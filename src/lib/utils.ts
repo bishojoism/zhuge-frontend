@@ -26,6 +26,13 @@ export function avatarUrlOf(u?: { avatar_url?: string | null; author_avatar?: st
   return (u && (u.avatar_url || u.author_avatar)) || null;
 }
 
+/** 图片 URL 追加尺寸参数（?w=）：配合后端 Image Resizing 生成 WebP 缩略图，减小传输 */
+export function imgSrc(url: string | null | undefined, w: number): string | null {
+  if (!url) return null;
+  if (!url.startsWith('/img/')) return url; // 非本站图片原样
+  return url + (url.includes('?') ? '&' : '?') + 'w=' + w;
+}
+
 export function initials(name: string): string {
   return (name || '?').charAt(0).toUpperCase();
 }

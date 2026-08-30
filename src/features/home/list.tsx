@@ -1,7 +1,7 @@
 // ===== 列表模式（最新/热门）：.topic 卡片 + 底部无限滚动哨兵 =====
 import { useEffect, useRef } from 'react';
 import type { Discussion, Tag } from '../../types';
-import { displayName, tagColorOf, tagTextColorOf, timeAgo } from '../../lib/utils';
+import { displayName, imgSrc, tagColorOf, tagTextColorOf, timeAgo } from '../../lib/utils';
 import Avatar from '../../components/Avatar';
 import { openShareModal } from '../share/shareModals';
 import { openAuthorDidiStats } from '../private/authorDidiStats';
@@ -84,7 +84,7 @@ export function TopicCard({
       <div className="topic-title">{d.title}</div>
       {d.image_url ? (
         <img
-          src={d.image_url}
+          src={imgSrc(d.image_url, 480) || d.image_url}
           alt="配图"
           style={{
             maxWidth: '100%',

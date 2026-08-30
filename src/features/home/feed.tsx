@@ -1,7 +1,7 @@
 // ===== 推荐模式：抖音式全屏卡片流（完整移植旧前端 renderFeed/setupFeedScroll） =====
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import type { Discussion, Tag } from '../../types';
-import { displayName, tagColorOf, tagTextColorOf, timeAgo } from '../../lib/utils';
+import { displayName, imgSrc, tagColorOf, tagTextColorOf, timeAgo } from '../../lib/utils';
 import { collapseIosUrlBar, isIosUrlBarCollapsing } from '../../lib/iosUrlBar';
 import { parseBBCodeExcerpt } from '../../lib/bbcode';
 import Avatar from '../../components/Avatar';
@@ -541,7 +541,7 @@ function FeedCard({
         ) : null}
         {d.image_url ? (
           <img
-            src={d.image_url}
+            src={imgSrc(d.image_url, 480) || d.image_url}
             alt="配图"
             style={{
               maxWidth: '100%',

@@ -1,5 +1,5 @@
 // ===== 通用头像：圆形头像（图片在独立裁剪层内）+ 右下角性别徽标（可超出头像范围） =====
-import { avatarUrlOf, displayName, initials } from '../lib/utils';
+import { avatarUrlOf, displayName, imgSrc, initials } from '../lib/utils';
 
 interface AvatarUser {
   avatar_url?: string | null;
@@ -30,7 +30,7 @@ export default function Avatar({ user, size = 'md', showGender = false, classNam
   return (
     <span className={`avatar-circle ${sizeClass} ${className}`}>
       <span className="avatar-clip">
-        {url ? <img src={url} alt="" /> : initials(name)}
+        {url ? <img src={imgSrc(url, 96) || url} alt="" /> : initials(name)}
       </span>
       {showGender && symbol ? (
         <span className={`gender-badge ${isMale ? 'male' : 'female'}`}>{symbol}</span>

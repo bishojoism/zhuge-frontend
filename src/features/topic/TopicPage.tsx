@@ -14,7 +14,7 @@ import { hasBBCode, parseBBCode } from '../../lib/bbcode';
 import { exportTextLog, openImageExportModal } from './exportLog';
 import { openReportModal, type ReportTargetType } from './reportModal';
 import { openPostAdminModal, type AdminTargetType } from './postAdminModal';
-import { copyText, displayName, pickImageFile, tagTextColorOf, timeAgo, uploadImageFile } from '../../lib/utils';
+import { copyText, displayName, imgSrc, pickImageFile, tagTextColorOf, timeAgo, uploadImageFile } from '../../lib/utils';
 import Avatar from '../../components/Avatar';
 import BBCodeEditor from '../../components/BBCodeEditor';
 import { clearDraft, saveDraft } from '../../lib/drafts';
@@ -1112,7 +1112,7 @@ function PostCard({
 
       {post.image_url && (
         <img
-          src={post.image_url}
+          src={imgSrc(post.image_url, 800) || post.image_url}
           alt="配图"
           style={{ maxWidth: '100%', borderRadius: 10, margin: '8px 0' }}
           loading="lazy"
