@@ -155,6 +155,8 @@ export default function TopicPage() {
 
   // 帖子编辑：editingPost 非空时打开编辑弹窗
   const [editingPost, setEditingPost] = useState<TopicPost | null>(null);
+  // 查看源码：sourcePost 非空时打开源码弹窗（显示原始 BBCode 文本）
+  const [sourcePost, setSourcePost] = useState<TopicPost | null>(null);
 
   const composerRef = useRef<HTMLDivElement | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
@@ -761,6 +763,7 @@ export default function TopicPage() {
               ? () => setEditingPost(firstPost)
               : undefined
           }
+          onSource={() => setSourcePost(firstPost)}
           onAuthorStats={openAuthorStats}
           onCopyLink={handleCopyLink}
         />
@@ -900,6 +903,7 @@ export default function TopicPage() {
           }
           onJumpToReply={(targetId) => jumpToPost(targetId)}
           onAuthorStats={openAuthorStats}
+          onSource={() => setSourcePost(p)}
           onEdit={
             user && (user.id === p.user_id || user.isAdmin) ? () => setEditingPost(p) : undefined
           }
@@ -919,6 +923,9 @@ export default function TopicPage() {
           onSaved={() => mutate()}
         />
       )}
+
+      {/* 查看源码弹窗 */}
+      {sourcePost && <SourceCodeModal post={sourcePost} onClose={() => setSourcePost(null)} />}
     </>
   );
 }
@@ -942,6 +949,8 @@ interface PostCardProps {
   onAdmin?: () => void;
   onPoster?: () => void;
   onCopyLink?: () => void;
+  /** 查看帖子源码（原始 BBCode 文本） */
+  onSource?: () => void;
   /** 编辑自己的帖子（作者本人或管理员可见） */
   onEdit?: () => void;
   /** 点击回复引用 → 跳转到被回复的帖子 */
@@ -999,6 +1008,7 @@ function PostCard({
   onAdmin,
   onPoster,
   onCopyLink,
+  onSource,
   onEdit,
   onJumpToReply,
   onAuthorStats,
@@ -1175,6 +1185,11 @@ function PostCard({
               生成精美海报
             </Button>
           )}
+          {onSource && (
+            <Button size="compact-sm" variant="subtle" onClick={onSource}>
+              源码
+            </Button>
+          )}
           {onEdit && (
             <Button size="compact-sm" variant="subtle" onClick={onEdit}>
               编辑
@@ -1191,6 +1206,65 @@ function PostCard({
         </div>
       </div>
     </div>
+  );
+}
+
+// ===== 帖子源码弹窗：显示原始 BBCode 文本（所见即所得的反面——看格式标签），可复制 =====
+function SourceCodeModal({
+  post,
+  onClose,
+}: {
+  post: TopicPost;
+  onClose: () => void;
+}) {
+  const [copied, setCopied] = useState(false);
+  const text = post.content || '（空）';
+
+  const handleCopy = async () => {
+    const ok = await copyText(post.content || '');
+    if (ok) {
+      setCopied(true);
+      notifications.show({ color: 'teal', message: '源码已复制' });
+      window.setTimeout(() => setCopied(false), 1500);
+    } else {
+      notifications.show({ color: 'red', message: '复制失败，请手动选择复制' });
+    }
+  };
+
+  return (
+    <Modal opened onClose={onClose} title={`源码 · ${displayName(post)}`} centered size={600}>
+      <Stack gap="sm">
+        <Text size="xs" c="dimmed">
+          这是帖子内容的原始文本（含格式标签，如 [b]加粗[/b]、[color=red]颜色[/color]）。BBCode 不会被执行，仅原样展示。
+        </Text>
+        <pre
+          style={{
+            margin: 0,
+            maxHeight: '50vh',
+            overflow: 'auto',
+            whiteSpace: 'pre-wrap',
+            wordBreak: 'break-word',
+            fontFamily: 'ui-monospace, "SF Mono", Consolas, Menlo, monospace',
+            fontSize: 13,
+            lineHeight: 1.6,
+            background: 'var(--card)',
+            border: '1px solid var(--border)',
+            borderRadius: 8,
+            padding: '10px 12px',
+          }}
+        >
+          {text}
+        </pre>
+        <Group justify="flex-end" mt="sm">
+          <Button variant="default" onClick={onClose}>
+            关闭
+          </Button>
+          <Button onClick={handleCopy} loading={copied}>
+            {copied ? '已复制' : '复制源码'}
+          </Button>
+        </Group>
+      </Stack>
+    </Modal>
   );
 }
 

@@ -47,9 +47,12 @@ export function NotificationsModalContent({ onClose }: { onClose: () => void }) 
 
   if (user === null) return null;
 
-  // 点击单条：标记已读（静默）→ 刷新列表/未读 → 跳转（优先通知自带 url，如标签申请→管理批准页）→ 关闭弹窗
+  // 点击单条：立即显示"正在打开…"加载反馈（跳转前）→ 标记已读 → 刷新 → 跳转 → 关闭弹窗
   // 接戏/滴滴通知：带 state 让主题页自动引用对方（回复框自动 @对方）
+  const [navigating, setNavigating] = useState(false);
   const markReadAndGo = async (n: NotificationItem) => {
+    if (navigating) return; // 防重复点击
+    setNavigating(true);
     try {
       await api('/me/notifications/read', { method: 'POST', body: { id: n.id } });
     } catch {
@@ -87,40 +90,67 @@ export function NotificationsModalContent({ onClose }: { onClose: () => void }) 
   };
 
   return (
-    <Stack gap="xs">
-      {list.length > 0 && (
-        <Group justify="flex-end">
-          <Button variant="subtle" size="compact-sm" onClick={markAllRead} loading={markingAll} loaderProps={{ size: 'xs' }}>
-            全部已读
-          </Button>
-        </Group>
-      )}
-      {isLoading && list.length === 0 ? (
-        <Group justify="center" py="xl">
-          <Loader size="sm" />
-        </Group>
-      ) : list.length === 0 ? (
-        <Text c="dimmed" ta="center" py="xl">
-          还没有通知
-        </Text>
-      ) : (
-        <Stack gap={4}>
-          {list.map((n) => (
-            <div
-              key={n.id}
-              className={`notif-item${n.is_read ? '' : ' unread'}`}
-              onClick={() => markReadAndGo(n)}
-            >
-              <span className="notif-icon">{notifIcon(n.type)}</span>
-              <div className="notif-body">
-                <div className="notif-text">{notifText(n)}</div>
-                <div className="notif-time">{timeAgo(n.created_at)}</div>
+    <div style={{ position: 'relative' }}>
+      <Stack gap="xs">
+        {list.length > 0 && (
+          <Group justify="flex-end">
+            <Button variant="subtle" size="compact-sm" onClick={markAllRead} loading={markingAll} loaderProps={{ size: 'xs' }}>
+              全部已读
+            </Button>
+          </Group>
+        )}
+        {isLoading && list.length === 0 ? (
+          <Group justify="center" py="xl">
+            <Loader size="sm" />
+          </Group>
+        ) : list.length === 0 ? (
+          <Text c="dimmed" ta="center" py="xl">
+            还没有通知
+          </Text>
+        ) : (
+          <Stack gap={4}>
+            {list.map((n) => (
+              <div
+                key={n.id}
+                className={`notif-item${n.is_read ? '' : ' unread'}`}
+                onClick={() => markReadAndGo(n)}
+              >
+                <span className="notif-icon">{notifIcon(n.type)}</span>
+                <div className="notif-body">
+                  <div className="notif-text">{notifText(n)}</div>
+                  <div className="notif-time">{timeAgo(n.created_at)}</div>
+                </div>
+                {!n.is_read && <span className="notif-dot" />}
               </div>
-              {!n.is_read && <span className="notif-dot" />}
-            </div>
-          ))}
-        </Stack>
+            ))}
+          </Stack>
+        )}
+      </Stack>
+
+      {/* 跳转前加载反馈：点击通知后立即出现，标记已读完成即跳转 */}
+      {navigating && (
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            background: 'rgba(255,255,255,.72)',
+            borderRadius: 8,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 8,
+            zIndex: 3,
+            backdropFilter: 'blur(2px)',
+            WebkitBackdropFilter: 'blur(2px)',
+          }}
+        >
+          <Loader size="md" />
+          <Text size="sm" c="dimmed">
+            正在打开…
+          </Text>
+        </div>
       )}
-    </Stack>
+    </div>
   );
 }
