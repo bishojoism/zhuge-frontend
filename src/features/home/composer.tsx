@@ -69,9 +69,12 @@ export function ComposerContent({ user, tags, onPosted }: ComposerContentProps) 
   const restoredRef = useRef(false);
 
   // 打开时恢复草稿（只恢复一次：SSR init 同步就绪则首帧恢复，否则等 /me/drafts 到位）
+  // 注意：仅当确实在写内容（标题或内容任一非空）才恢复；只选过标签的"残草稿"不恢复，
+  // 避免打开弹窗时标签区自动选中（用户以为没选却被选中）
   useEffect(() => {
     if (!draft || restoredRef.current) return;
     restoredRef.current = true;
+    if (!draft.title.trim() && !draft.content.trim()) return;
     setTitle(draft.title);
     setContent(draft.content);
     setTagIds(draft.tagIds);
