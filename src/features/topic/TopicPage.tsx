@@ -652,44 +652,45 @@ export default function TopicPage() {
                   : '写下你的接戏……'
             }
           />
-          {imageUrl && (
-            <div style={{ margin: '8px 0', position: 'relative', display: 'inline-block' }}>
-              <img
-                src={imageUrl}
-                alt="配图预览"
-                style={{ maxWidth: '100%', maxHeight: 140, borderRadius: 8, display: 'block' }}
-              />
-              <button
-                type="button"
-                aria-label="移除图片"
-                onClick={removeImage}
-                style={{
-                  position: 'absolute',
-                  top: 6,
-                  right: 6,
-                  width: 26,
-                  height: 26,
-                  borderRadius: '50%',
-                  border: 'none',
-                  background: 'rgba(0,0,0,.6)',
-                  color: '#fff',
-                  fontSize: 14,
-                  lineHeight: 1,
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  padding: 0,
-                }}
-              >
-                ✕
-              </button>
-            </div>
-          )}
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
             <Button variant="subtle" size="compact-sm" onClick={handlePickImage} loading={uploading}>
               🖼 插图
             </Button>
+            {imageUrl && (
+              /* 上传后显示行内小缩略图（不撑高输入区），点 ✕ 移除 */
+              <span style={{ position: 'relative', display: 'inline-block', lineHeight: 0 }}>
+                <img
+                  src={imageUrl}
+                  alt="配图缩略图"
+                  style={{ width: 44, height: 44, objectFit: 'cover', borderRadius: 8, display: 'block' }}
+                />
+                <button
+                  type="button"
+                  aria-label="移除图片"
+                  onClick={removeImage}
+                  style={{
+                    position: 'absolute',
+                    top: -6,
+                    right: -6,
+                    width: 20,
+                    height: 20,
+                    borderRadius: '50%',
+                    border: 'none',
+                    background: 'rgba(0,0,0,.65)',
+                    color: '#fff',
+                    fontSize: 12,
+                    lineHeight: 1,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: 0,
+                  }}
+                >
+                  ✕
+                </button>
+              </span>
+            )}
             <span style={{ fontSize: 12, color: 'var(--muted)' }}>每帖最多一张</span>
             <span style={{ flex: 1 }} />
             <Button onClick={submitReply} loading={submitting}>
@@ -1267,24 +1268,29 @@ function EditPostModal({
           placeholder="修改内容……"
           minRows={3}
         />
-        <Group gap="xs">
+        <Group gap="xs" align="center">
           <Button variant="subtle" size="compact-sm" loading={uploading} onClick={handlePickImage}>
             🖼 更换插图
           </Button>
           {imageUrl ? (
-            <Text size="xs" c="dimmed">
-              当前有 1 张图片
-            </Text>
+            <>
+              {/* 行内小缩略图（不撑高弹窗） */}
+              <span style={{ position: 'relative', display: 'inline-block', lineHeight: 0 }}>
+                <img
+                  src={imageUrl}
+                  alt="配图缩略图"
+                  style={{ width: 44, height: 44, objectFit: 'cover', borderRadius: 8, display: 'block' }}
+                />
+              </span>
+              <Button variant="subtle" size="compact-xs" color="gray" onClick={() => setImageUrl(null)}>
+                移除图片
+              </Button>
+            </>
           ) : (
             <Text size="xs" c="dimmed">
               无配图
             </Text>
           )}
-          {imageUrl ? (
-            <Button variant="subtle" size="compact-xs" color="gray" onClick={() => setImageUrl(null)}>
-              移除图片
-            </Button>
-          ) : null}
         </Group>
         <Group justify="flex-end" mt="sm">
           <Button variant="default" onClick={onClose}>

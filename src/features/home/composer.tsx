@@ -222,33 +222,34 @@ export function ComposerContent({ user, tags, onPosted }: ComposerContentProps) 
           }
         }}
       />
-      {imageUrl ? (
-        <div style={{ position: 'relative', display: 'inline-block', maxWidth: '100%' }}>
-          <img
-            src={imageUrl}
-            alt="配图"
-            style={{ maxWidth: '100%', maxHeight: 160, borderRadius: 8, display: 'block' }}
-          />
-          <ActionIcon
-            variant="filled"
-            color="dark"
-            size="sm"
-            style={{ position: 'absolute', top: 6, right: 6 }}
-            onClick={removeImage}
-            aria-label="移除图片"
-          >
-            ✕
-          </ActionIcon>
-        </div>
-      ) : null}
-      <Group gap="xs">
+      <Group gap="xs" align="center">
         <Button variant="subtle" size="compact-sm" loading={uploading} onClick={handlePickImage}>
           🖼 插图
         </Button>
         {imageUrl ? (
-          <Text size="xs" c="dimmed">
-            已添加 1 张图片（每帖最多一张）
-          </Text>
+          <>
+            {/* 上传后显示行内小缩略图（不撑高弹窗），点 ✕ 移除 */}
+            <span style={{ position: 'relative', display: 'inline-block', lineHeight: 0 }}>
+              <img
+                src={imageUrl}
+                alt="配图缩略图"
+                style={{ width: 56, height: 56, objectFit: 'cover', borderRadius: 8, display: 'block' }}
+              />
+              <ActionIcon
+                variant="filled"
+                color="dark"
+                size="xs"
+                style={{ position: 'absolute', top: -6, right: -6 }}
+                onClick={removeImage}
+                aria-label="移除图片"
+              >
+                ✕
+              </ActionIcon>
+            </span>
+            <Text size="xs" c="dimmed">
+              已添加 1 张图片（每帖最多一张）
+            </Text>
+          </>
         ) : null}
       </Group>
       {characters.length > 0 && (
