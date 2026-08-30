@@ -10,6 +10,7 @@ import {
   tagTextColorOf,
   uploadImageFile,
   copyText,
+  punycodeToUnicode,
 } from '../src/lib/utils';
 
 describe('timeAgo', () => {
@@ -118,5 +119,32 @@ describe('copyText', () => {
     const ok = await copyText('hi');
     expect(ok).toBe(true);
     expect(write).toHaveBeenCalledWith('hi');
+  });
+});
+
+describe('punycodeToUnicode', () => {
+  it('站内中文域名 xn-- → 中文', () => {
+    expect(punycodeToUnicode('xn--cnqs3e5vdw9icjz2q1eaa.xyz')).toBe('清冷仙子哦齁齁齁.xyz');
+  });
+
+  it('带子域（master.）也转回中文', () => {
+    expect(punycodeToUnicode('master.xn--cnqs3e5vdw9icjz2q1eaa.xyz')).toBe('master.清冷仙子哦齁齁齁.xyz');
+  });
+
+  it('普通域名原样返回', () => {
+    expect(punycodeToUnicode('example.com')).toBe('example.com');
+    expect(punycodeToUnicode('localhost')).toBe('localhost');
+  });
+
+  it('带端口保留', () => {
+    expect(punycodeToUnicode('xn--cnqs3e5vdw9icjz2q1eaa.xyz:3000')).toBe('清冷仙子哦齁齁齁.xyz:3000');
+  });
+
+  it('已知 punycode 样例：bücher → xn--bcher-kva', () => {
+    expect(punycodeToUnicode('xn--bcher-kva.de')).toBe('bücher.de');
+  });
+
+  it('多标签混合（一个 xn-- 一个普通）', () => {
+    expect(punycodeToUnicode('www.xn--bcher-kva.example.com')).toBe('www.bücher.example.com');
   });
 });

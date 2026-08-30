@@ -6,6 +6,7 @@ import { modals } from '@mantine/modals';
 import { api } from '../../api/client';
 import { openModalOnce } from '../../lib/modals';
 import { useMe } from '../../api/hooks';
+import { punycodeToUnicode } from '../../lib/utils';
 import useSWR from 'swr';
 import { fetcher } from '../../api/hooks';
 import type { CharacterItem } from '../../types';
@@ -104,10 +105,8 @@ function PosterContent({ userId, username }: { userId: number; username: string 
         ctx.fillStyle = '#fff';
         ctx.fillRect(qx - 14, qy - 14, qrSize + 28, qrSize + 28);
         ctx.drawImage(qrCanvas, qx, qy, qrSize, qrSize);
-        // 平台网址：中文域名显示（location.host 是 punycode；完整域名为 master.清冷仙子哦齁齁齁.xyz）
-        const displayHost = ['localhost', '127.0.0.1'].includes(window.location.hostname)
-          ? window.location.host
-          : 'master.清冷仙子哦齁齁齁.xyz';
+        // 平台网址：中文域名显示（location.host 是 punycode，运行时转回 Unicode，不写死域名）
+        const displayHost = punycodeToUnicode(window.location.host);
         ctx.fillStyle = 'rgba(255,255,255,.7)';
         ctx.font = '28px "PingFang SC","Microsoft YaHei",sans-serif';
         ctx.fillText(displayHost, W / 2, H - 60);

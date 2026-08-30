@@ -149,3 +149,89 @@ export async function copyText(text: string): Promise<boolean> {
     return false;
   }
 }
+
+// ===== Punycode（RFC 3492）解码：把 xn-- 形式的国际化域名转回中文/Unicode =====
+// 浏览器 location.hostname 对中文域名返回 punycode（如 xn--cnqs3e5vdw9icjz2q1eaa.xyz），
+// 海报/分享需要展示中文域名时用此函数转回（不依赖写死的域名文本）。
+// 完整实现 RFC 3492（含 punycode 参数：base=36, tmin=1, tmax=26, skew=38, damp=700,
+// initial_bias=72, initial_n=128），支持多标签（. 分隔）逐个解码。
+
+const PUNY_BASE = 36;
+const PUNY_TMIN = 1;
+const PUNY_TMAX = 26;
+const PUNY_SKEW = 38;
+const PUNY_DAMP = 700;
+const PUNY_INITIAL_BIAS = 72;
+const PUNY_INITIAL_N = 128;
+
+function punyAdapt(delta: number, numPoints: number, firstTime: boolean): number {
+  let d = firstTime ? Math.floor(delta / PUNY_DAMP) : delta >> 1;
+  d += Math.floor(d / numPoints);
+  let k = 0;
+  while (d > ((PUNY_BASE - PUNY_TMIN) * PUNY_TMAX) >> 1) {
+    d = Math.floor(d / (PUNY_BASE - PUNY_TMIN));
+    k += PUNY_BASE;
+  }
+  return k + Math.floor(((PUNY_BASE - PUNY_TMIN + 1) * d) / (d + PUNY_SKEW));
+}
+
+function decodePunycodeLabel(label: string): string {
+  const output: number[] = [];
+  let input = label;
+  // 分隔符 '-'：最后的 '-' 之前是基本码点（ASCII），之后是增量编码
+  const lastDash = input.lastIndexOf('-');
+  let n = PUNY_INITIAL_N;
+  let i = 0;
+  let bias = PUNY_INITIAL_BIAS;
+  let consumed = 0;
+  if (lastDash >= 0) {
+    for (let j = 0; j < lastDash; j++) {
+      const c = input.charCodeAt(j);
+      if (c >= 0x80) throw new Error('invalid basic code point');
+      output.push(c);
+    }
+    input = input.slice(lastDash + 1);
+  }
+  while (consumed < input.length) {
+    const oldi = i;
+    let w = 1;
+    for (let k = PUNY_BASE; ; k += PUNY_BASE) {
+      if (consumed >= input.length) throw new Error('invalid punycode');
+      const digit = input.charCodeAt(consumed++);
+      const codePoint = digit - 48 < 10 ? digit - 22 : digit - 65 < 26 ? digit - 65 : digit - 97 < 26 ? digit - 97 : PUNY_BASE;
+      if (codePoint >= PUNY_BASE) throw new Error('invalid punycode digit');
+      i += codePoint * w;
+      const t = k <= bias ? PUNY_TMIN : k >= bias + PUNY_TMAX ? PUNY_TMAX : k - bias;
+      if (codePoint < t) break;
+      w *= PUNY_BASE - t;
+    }
+    const outLen = output.length + 1;
+    bias = punyAdapt(i - oldi, outLen, oldi === 0);
+    n += Math.floor(i / outLen);
+    i %= outLen;
+    output.splice(i, 0, n);
+    i++;
+  }
+  return String.fromCodePoint(...output);
+}
+
+/** 把国际化域名（可含多个标签 + 端口）从 punycode 转回 Unicode；非 xn-- 标签原样保留 */
+export function punycodeToUnicode(host: string): string {
+  if (!host) return host;
+  // 拆端口
+  const m = host.match(/^(.*?)(:\d+)?$/);
+  const hostPart = m ? m[1] : host;
+  const port = m && m[2] ? m[2] : '';
+  const labels = hostPart.split('.');
+  const decoded = labels.map((lab) => {
+    if (lab.toLowerCase().startsWith('xn--')) {
+      try {
+        return decodePunycodeLabel(lab.slice(4));
+      } catch {
+        return lab; // 解码失败原样返回
+      }
+    }
+    return lab;
+  });
+  return decoded.join('.') + port;
+}
