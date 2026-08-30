@@ -93,6 +93,7 @@ export function NotificationsModalContent({ onClose }: { onClose: () => void }) 
     } catch {
       /* 乐观更新失败忽略 */
     }
+    setMarkingAll(false); // 乐观已生效：按钮立即恢复（不等网络请求，避免"已已读还转圈"）
     void mutate('/me'); // 未读徽标（乐观后重拉确认）
     try {
       await api('/me/notifications/read', { method: 'POST', body: { all: true } });
@@ -103,7 +104,6 @@ export function NotificationsModalContent({ onClose }: { onClose: () => void }) 
       void mutate('/me/notifications');
       void mutate('/me');
     }
-    setMarkingAll(false);
   };
 
   return (

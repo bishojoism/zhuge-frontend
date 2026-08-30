@@ -452,14 +452,9 @@ export default function TopicPage() {
       notifications.show({ message: e instanceof Error ? e.message : '回复失败', color: 'red' });
       return;
     }
-    // POST 成功：清理草稿 + 刷新（刷新失败不影响"回复成功"，不误报）
+    // POST 成功：立即恢复按钮 + 清空输入 + 显示成功（不等任何后台刷新，避免"已成功但按钮还转圈"）
     if (draftTimer.current) window.clearTimeout(draftTimer.current);
-    try {
-      await clearDraft(draftKey);
-      void mutateDrafts();
-    } catch {
-      /* 草稿清理失败不影响回复成功 */
-    }
+    setSubmitting(false);
     setContent('');
     setImageUrl(null);
     setReplyTarget(null);
@@ -471,15 +466,19 @@ export default function TopicPage() {
     } catch {
       /* 忽略 */
     }
+    // 后台：清理草稿 + 真实数据替换乐观帖 + 列表刷新（全部不阻塞按钮恢复）
+    void (async () => {
+      try {
+        await clearDraft(draftKey);
+      } catch {
+        /* 草稿清理失败不影响回复成功 */
+      }
+      void mutateDrafts();
+    })();
     // 用真实数据替换乐观帖（拿回真实 id/楼层/时间）；失败仅静默（乐观帖仍在，下次进入重拉）
-    try {
-      await mutate();
-    } catch {
-      /* 刷新失败不影响已提交的回复 */
-    }
+    void mutate().catch(() => {});
     // 刷新讨论列表缓存（评论数/摘要变化），切回列表页无需手动刷新网页
     void refreshListsAfterWrite();
-    setSubmitting(false);
   }, [user, content, imageUrl, id, replyTarget, replyCharacterId, draftKey, mutate, mutateDrafts, data]);
 
   const handleCopyLink = useCallback(async () => {
