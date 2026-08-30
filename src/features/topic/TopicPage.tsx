@@ -1,7 +1,7 @@
 // ===== 主题详情页 /d/:id：首帖 + 回复、接戏、滴滴、举报、管理、海报、分享 =====
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
-import { Button, Group, Menu, Modal, SegmentedControl, Select, Skeleton, Stack, Text, TextInput, Textarea } from '@mantine/core';
+import { Button, Group, Menu, Modal, SegmentedControl, Select, Skeleton, Stack, Text, TextInput } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import useSWR, { mutate as globalMutate } from 'swr';
 import { IconArrowLeft } from '@tabler/icons-react';
@@ -16,6 +16,7 @@ import { openReportModal, type ReportTargetType } from './reportModal';
 import { openPostAdminModal, type AdminTargetType } from './postAdminModal';
 import { copyText, displayName, pickImageFile, tagTextColorOf, timeAgo, uploadImageFile } from '../../lib/utils';
 import Avatar from '../../components/Avatar';
+import BBCodeEditor from '../../components/BBCodeEditor';
 import { clearDraft, saveDraft } from '../../lib/drafts';
 import type { CharacterItem, Discussion, Post, Tag, User } from '../../types';
 
@@ -151,6 +152,9 @@ export default function TopicPage() {
     }
   });
   const [showJump, setShowJump] = useState(false);
+
+  // 帖子编辑：editingPost 非空时打开编辑弹窗
+  const [editingPost, setEditingPost] = useState<TopicPost | null>(null);
 
   const composerRef = useRef<HTMLDivElement | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
@@ -626,15 +630,12 @@ export default function TopicPage() {
               mb={8}
             />
           )}
-          <Textarea
-            ref={textareaRef}
-            autoComplete="off"
-            minRows={2}
-            autosize
+          <BBCodeEditor
             value={content}
-            onChange={(e) => {
-              setContent(e.currentTarget.value);
-              scheduleDraftSave(e.currentTarget.value, imageUrl);
+            inputRef={textareaRef}
+            onChange={(v) => {
+              setContent(v);
+              scheduleDraftSave(v, imageUrl);
             }}
             onKeyDown={(e) => {
               // Ctrl/Cmd+Enter 快捷提交（效率加速）
@@ -650,7 +651,6 @@ export default function TopicPage() {
                   ? `接戏 @${replyTarget.author}……`
                   : '写下你的接戏……'
             }
-            styles={{ input: { fontFamily: 'inherit' } }}
           />
           {imageUrl && (
             <div style={{ margin: '8px 0', position: 'relative', display: 'inline-block' }}>
@@ -747,6 +747,11 @@ export default function TopicPage() {
                 gender: firstPost.author_gender || null,
               },
             })
+          }
+          onEdit={
+            user && (user.id === firstPost.user_id || user.isAdmin)
+              ? () => setEditingPost(firstPost)
+              : undefined
           }
           onAuthorStats={openAuthorStats}
           onCopyLink={handleCopyLink}
@@ -887,11 +892,25 @@ export default function TopicPage() {
           }
           onJumpToReply={(targetId) => jumpToPost(targetId)}
           onAuthorStats={openAuthorStats}
+          onEdit={
+            user && (user.id === p.user_id || user.isAdmin) ? () => setEditingPost(p) : undefined
+          }
         />
       ))}
       {posts.length === 0 && <div className="empty">暂无内容</div>}
       {/* 从旧到新：接戏输入卡片放在最末尾（所有回复之后） */}
       {postOrder === 'old' && composerCard}
+
+      {/* 编辑帖子弹窗 */}
+      {editingPost && (
+        <EditPostModal
+          post={editingPost}
+          isFirstPost={editingPost.number === 1}
+          discussionTitle={d.title}
+          onClose={() => setEditingPost(null)}
+          onSaved={() => mutate()}
+        />
+      )}
     </>
   );
 }
@@ -915,6 +934,8 @@ interface PostCardProps {
   onAdmin?: () => void;
   onPoster?: () => void;
   onCopyLink?: () => void;
+  /** 编辑自己的帖子（作者本人或管理员可见） */
+  onEdit?: () => void;
   /** 点击回复引用 → 跳转到被回复的帖子 */
   onJumpToReply?: (targetPostId: number) => void;
   /** 点击作者名 → 查看该用户名片（角色/皮下/滴滴统计） */
@@ -970,6 +991,7 @@ function PostCard({
   onAdmin,
   onPoster,
   onCopyLink,
+  onEdit,
   onJumpToReply,
   onAuthorStats,
   title,
@@ -1023,6 +1045,11 @@ function PostCard({
           </div>
           <div className="post-time">
             {floor} · {timeAgo(post.created_at)}
+            {post.edited_at ? (
+              <span title={`编辑于 ${post.edited_at}`} style={{ opacity: 0.8 }}>
+                {' '}· 已编辑
+              </span>
+            ) : null}
           </div>
         </div>
       </div>
@@ -1140,6 +1167,11 @@ function PostCard({
               生成精美海报
             </Button>
           )}
+          {onEdit && (
+            <Button size="compact-sm" variant="subtle" onClick={onEdit}>
+              编辑
+            </Button>
+          )}
           <Button size="compact-sm" variant="subtle" color="gray" onClick={onReport}>
             举报
           </Button>
@@ -1151,5 +1183,118 @@ function PostCard({
         </div>
       </div>
     </div>
+  );
+}
+
+// ===== 帖子编辑弹窗：内容（BBCode 编辑器）+ 配图；首帖可改标题 =====
+function EditPostModal({
+  post,
+  isFirstPost,
+  discussionTitle,
+  onClose,
+  onSaved,
+}: {
+  post: TopicPost;
+  isFirstPost: boolean;
+  discussionTitle: string;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const [content, setContent] = useState(post.content || '');
+  const [title, setTitle] = useState(discussionTitle);
+  const [imageUrl, setImageUrl] = useState<string | null>(post.image_url || null);
+  const [uploading, setUploading] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  const handlePickImage = async () => {
+    const file = await pickImageFile();
+    if (!file) return;
+    setUploading(true);
+    try {
+      const url = await uploadImageFile(file);
+      setImageUrl(url);
+    } catch (e) {
+      notifications.show({ color: 'red', message: e instanceof Error ? e.message : '上传失败' });
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleSave = async () => {
+    const c = content.trim();
+    if (!c) {
+      notifications.show({ color: 'red', message: '内容不能为空' });
+      return;
+    }
+    if (isFirstPost && !title.trim()) {
+      notifications.show({ color: 'red', message: '标题不能为空' });
+      return;
+    }
+    setSaving(true);
+    try {
+      await api(`/posts/${post.id}`, {
+        method: 'PUT',
+        body: {
+          content: c,
+          ...(isFirstPost ? { title: title.trim() } : {}),
+          imageUrl: imageUrl || null,
+        },
+      });
+      notifications.show({ color: 'teal', message: '已保存' });
+      onClose();
+      onSaved();
+    } catch (e) {
+      notifications.show({ color: 'red', message: e instanceof Error ? e.message : '保存失败' });
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Modal opened onClose={onClose} title="编辑帖子" centered size={560}>
+      <Stack gap="sm">
+        {isFirstPost ? (
+          <TextInput
+            label="标题"
+            maxLength={40}
+            value={title}
+            onChange={(e) => setTitle(e.currentTarget.value)}
+            autoComplete="off"
+          />
+        ) : null}
+        <BBCodeEditor
+          value={content}
+          onChange={setContent}
+          placeholder="修改内容……"
+          minRows={3}
+        />
+        <Group gap="xs">
+          <Button variant="subtle" size="compact-sm" loading={uploading} onClick={handlePickImage}>
+            🖼 更换插图
+          </Button>
+          {imageUrl ? (
+            <Text size="xs" c="dimmed">
+              当前有 1 张图片
+            </Text>
+          ) : (
+            <Text size="xs" c="dimmed">
+              无配图
+            </Text>
+          )}
+          {imageUrl ? (
+            <Button variant="subtle" size="compact-xs" color="gray" onClick={() => setImageUrl(null)}>
+              移除图片
+            </Button>
+          ) : null}
+        </Group>
+        <Group justify="flex-end" mt="sm">
+          <Button variant="default" onClick={onClose}>
+            取消
+          </Button>
+          <Button onClick={handleSave} loading={saving}>
+            保存
+          </Button>
+        </Group>
+      </Stack>
+    </Modal>
   );
 }

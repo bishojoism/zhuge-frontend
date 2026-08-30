@@ -1,6 +1,6 @@
 // ===== 发帖弹窗（openComposer 等价物）：标题/内容/标签/配图 + 云草稿自动保存 =====
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ActionIcon, Button, Group, Select, Stack, Text, TextInput, Textarea } from '@mantine/core';
+import { ActionIcon, Button, Group, Select, Stack, Text, TextInput } from '@mantine/core';
 import { modals } from '@mantine/modals';
 import { notifications } from '@mantine/notifications';
 import { api } from '../../api/client';
@@ -9,6 +9,7 @@ import { fetcher } from '../../api/hooks';
 import useSWR from 'swr';
 import { clearDraft, saveDraft } from '../../lib/drafts';
 import { pickImageFile, uploadImageFile } from '../../lib/utils';
+import BBCodeEditor from '../../components/BBCodeEditor';
 import type { CharacterItem, Tag, User } from '../../types';
 
 // 角色性别显示
@@ -207,18 +208,13 @@ export function ComposerContent({ user, tags, onPosted }: ComposerContentProps) 
           scheduleSave(v, content, tagIds, imageUrl);
         }}
       />
-      <Textarea
-        label="内容"
-        placeholder="内容（可选）……（Ctrl+Enter 提交）"
-        minRows={2}
-        autosize
-        autoComplete="off"
+      <BBCodeEditor
         value={content}
-        onChange={(e) => {
-          const v = e.currentTarget.value;
+        onChange={(v) => {
           setContent(v);
           scheduleSave(title, v, tagIds, imageUrl);
         }}
+        placeholder="内容（可选）……（Ctrl+Enter 提交）"
         onKeyDown={(e) => {
           if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
             e.preventDefault();
