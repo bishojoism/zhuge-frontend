@@ -18,9 +18,10 @@ function notifIcon(type: NotifType): string {
 }
 
 // 文案：优先 content；didi/reply 无 content 时按类型拼接
+// 全沉浸：content 已含角色名（后端用角色名生成）；这里兜底用角色名/用户名
 function notifText(n: NotificationItem): string {
   if (n.content) return n.content;
-  const who = n.actor_name || '有人';
+  const who = n.actor_character_name || n.actor_name || '有人';
   if (n.type === 'didi') return `${who} 滴滴了你`;
   if (n.type === 'reply') return `${who} 回复了你`;
   return '新通知';
@@ -118,10 +119,22 @@ export function NotificationsModalContent({ onClose }: { onClose: () => void }) 
                 className={`notif-item${n.is_read ? '' : ' unread'}`}
                 onClick={() => markReadAndGo(n)}
               >
-                <span className="notif-icon">{notifIcon(n.type)}</span>
+                {n.actor_character_appearance ? (
+                  // 全沉浸：以角色触发 → 显示角色头像
+                  <img
+                    src={n.actor_character_appearance}
+                    alt=""
+                    style={{ width: 34, height: 34, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }}
+                  />
+                ) : (
+                  <span className="notif-icon">{notifIcon(n.type)}</span>
+                )}
                 <div className="notif-body">
                   <div className="notif-text">{notifText(n)}</div>
-                  <div className="notif-time">{timeAgo(n.created_at)}</div>
+                  <div className="notif-time">
+                    {n.actor_character_name ? `${n.actor_character_name} · ` : ''}
+                    {timeAgo(n.created_at)}
+                  </div>
                 </div>
                 {!n.is_read && <span className="notif-dot" />}
               </div>

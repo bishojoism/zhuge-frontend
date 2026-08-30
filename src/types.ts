@@ -96,6 +96,10 @@ export interface NotificationItem {
   is_read: number;
   created_at: string;
   actor_name?: string;
+  /** 全沉浸：触发者所用角色（若有）——通知显示角色身份而非皮下 */
+  actor_character_name?: string | null;
+  actor_character_appearance?: string | null;
+  actor_character_gender?: string | null;
   /** 后端算好的跳转目标（接戏/滴滴→主题；标签申请→管理批准页；举报→管理举报页） */
   url?: string | null;
 }
