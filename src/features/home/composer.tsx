@@ -6,11 +6,11 @@ import { notifications } from '@mantine/notifications';
 import { api } from '../../api/client';
 import { useDrafts, useInitData } from '../../api/hooks';
 import { fetcher } from '../../api/hooks';
-import useSWR from 'swr';
+import useSWR, { mutate as globalMutate } from 'swr';
 import { clearDraft, saveDraft } from '../../lib/drafts';
 import { pickImageFile, uploadImageFile } from '../../lib/utils';
 import BBCodeEditor from '../../components/BBCodeEditor';
-import type { CharacterItem, Tag, User } from '../../types';
+import type { CharacterItem, DiscussionDetail, Gender, Tag, User } from '../../types';
 
 // 角色性别显示
 const GENDER_LABEL: Record<string, string> = { male: '男', female: '女', other: '其他', secret: '保密' };
@@ -164,6 +164,8 @@ export function ComposerContent({ user, tags, onPosted }: ComposerContentProps) 
     }
     setSubmitting(true);
     try {
+      // 预加载详情页 chunk（发帖提交期间并行下载，跳转后零等待，不闪转圈/骨架屏）
+      void import('../../features/topic/TopicPage');
       // 后端契约（src/index.js）：body { title, content, tagIds, imageUrl, characterId }
       const res = await api<{ data: { id: number } }>('/discussions', {
         method: 'POST',
@@ -181,6 +183,9 @@ export function ComposerContent({ user, tags, onPosted }: ComposerContentProps) 
       } catch {
         /* 忽略清理失败 */
       }
+      // 乐观种入新主题详情数据：跳转后详情页首帧直接渲染（不闪骨架屏），
+      // 后台 revalidate 用真实数据（真实 id/楼层/骰子结果/角色名）替换
+      seedTopicCache(user, res.data.id, t, content.trim(), imageUrl, characterId, tagIds, tags, charMap);
       modals.closeAll();
       onPosted(res.data.id);
     } catch (e) {
@@ -425,4 +430,70 @@ export function ComposerContent({ user, tags, onPosted }: ComposerContentProps) 
       </Group>
     </Stack>
   );
+}
+
+// 发帖成功后乐观种入新主题详情数据（key: /discussions/:id）：
+// 详情页跳转后首帧直接用这段数据渲染（不闪骨架屏），SWR revalidate 拿真实数据替换。
+// 帖子 id 用负值标记"乐观帖"，详情页据此显示（同回复乐观更新的约定）。
+export function seedTopicCache(
+  user: User,
+  newId: number,
+  title: string,
+  content: string,
+  imageUrl: string | null,
+  characterId: string | null,
+  tagIds: number[],
+  tags: Tag[],
+  charMap: Map<string, CharacterItem>
+): void {
+  const now = new Date().toISOString().replace('T', ' ').slice(0, 19);
+  const char = characterId ? charMap.get(characterId) : undefined;
+  const pickedTags = tags.filter((t) => tagIds.includes(t.id));
+  const authorName = char ? char.name : user.username;
+  const authorGender: Gender | undefined = char ? char.gender ?? undefined : user.gender;
+  const optimistic: DiscussionDetail = {
+    discussion: {
+      id: newId,
+      title,
+      comment_count: 1,
+      created_at: now,
+      user_id: user.id,
+      first_post_id: null,
+      last_posted_at: now,
+      last_posted_user_id: user.id,
+      slug: null,
+      is_private: 0,
+      is_sticky: 0,
+      is_locked: 0,
+      didi_count: 0,
+      hot_score: 1,
+      first_character_id: char ? char.id : null,
+      author: authorName,
+      author_gender: authorGender,
+      excerpt: content.slice(0, 200),
+      image_url: imageUrl,
+      tags: pickedTags.map((t) => t.name).join(' / '),
+    },
+    posts: [
+      {
+        id: -Date.now(), // 负 id = 乐观帖（详情页据此识别）
+        discussion_id: newId,
+        number: 1,
+        created_at: now,
+        user_id: user.id,
+        content,
+        edited_at: null,
+        is_private: 0,
+        reply_to_post_id: null,
+        image_url: imageUrl,
+        author: authorName,
+        author_gender: authorGender,
+        author_avatar: user.avatar_url || null,
+        character_id: char ? char.id : null,
+        character_name: char ? char.name : null,
+      },
+    ],
+    tags: pickedTags,
+  };
+  void globalMutate(`/discussions/${newId}`, optimistic, { revalidate: true });
 }

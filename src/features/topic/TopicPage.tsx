@@ -4,7 +4,7 @@ import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { Button, Group, Menu, Modal, SegmentedControl, Select, Skeleton, Stack, Text, TextInput } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import useSWR, { mutate as globalMutate } from 'swr';
-import { IconArrowLeft } from '@tabler/icons-react';
+import { IconArrowLeft, IconCheck } from '@tabler/icons-react';
 import { api } from '../../api/client';
 import { fetcher, refreshListsAfterWrite, useDrafts, useTopic, useUnread } from '../../api/hooks';
 import { useAuth } from '../auth/AuthContext';
@@ -1326,7 +1326,7 @@ function SourceCodeModal({
           <Button variant="default" onClick={onClose}>
             关闭
           </Button>
-          <Button onClick={handleCopy} loading={copied}>
+          <Button onClick={handleCopy} color={copied ? 'teal' : undefined} leftSection={copied ? <IconCheck size={14} /> : undefined}>
             {copied ? '已复制' : '复制源码'}
           </Button>
         </Group>
