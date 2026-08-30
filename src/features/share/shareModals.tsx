@@ -32,11 +32,11 @@ const TPL_COLORS: Record<string, string> = {
   candy: 'linear-gradient(135deg,#ffd9e8,#cfe4ff)',
 };
 
-/** 打开「生成精美海报」弹窗 */
+/** 打开「精美海报」弹窗 */
 export function openShareModal(d: ShareData): void {
   openModalOnce('share', (m) => {
     m.open({
-      title: '生成精美海报',
+      title: '精美海报',
       size: 520,
       centered: true,
       children: <ShareModalContent data={d} />,

@@ -1182,7 +1182,7 @@ function PostCard({
           )}
           {onPoster && (
             <Button size="compact-sm" variant="subtle" onClick={onPoster}>
-              生成精美海报
+              精美海报
             </Button>
           )}
           {onSource && (
