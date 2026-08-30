@@ -259,27 +259,55 @@ describe('parseBBCode（深层嵌套）', () => {
     expect(container.querySelector('b')?.textContent).toContain('绿大绿小');
   });
 
-  it('copy 内嵌套 copy：简单解析器按最近闭合截断，不崩溃、内容保留', () => {
+  it('copy 内嵌套 copy：BBob 栈式解析器正确嵌套，两个独立复制块', () => {
     const { container } = render(parseBBCode('[copy]外层[copy]内层[/copy]结束[/copy]'));
-    // 解析器不做栈匹配：外层 [copy] 遇到第一个 [/copy]（内层的）即闭合
     expect(container.textContent).toContain('外层');
     expect(container.textContent).toContain('内层');
-    // 至少有一个复制按钮，其余按原文保留（不崩溃即符合当前行为）
-    expect(screen.getAllByRole('button', { name: /复制|已复制/ }).length).toBeGreaterThanOrEqual(1);
+    expect(container.textContent).toContain('结束');
+    // 外层与内层各有一个复制按钮
+    expect(screen.getAllByRole('button', { name: /复制|已复制/ }).length).toBe(2);
   });
 
-  it('30 层深嵌套：安全不崩溃（简单解析器同标签嵌套按最近闭合截断，不做栈匹配）', () => {
+  it('30 层深嵌套：BBob 栈式解析器完整渲染全部层级', () => {
     const depth = 30;
     const input = '[b]'.repeat(depth) + '最内层' + '[/b]'.repeat(depth);
     const { container } = render(parseBBCode(input));
-    // 内容不丢失
-    expect(container.textContent).toContain('最内层');
-    // 不生成多余 HTML 标签之外的注入（无 script/a/img 等）
+    // 内容完整渲染（不再原文残留）
+    expect(container.textContent).toBe('最内层');
+    // 渲染出全部 30 层 <b>（嵌套）
+    expect(container.querySelectorAll('b').length).toBe(depth);
+    // 最深层的 b 内容是"最内层"
+    const allB = container.querySelectorAll('b');
+    expect(allB[allB.length - 1]?.textContent).toBe('最内层');
+    // 无注入
     expect(container.querySelector('script')).toBeNull();
     expect(container.querySelector('a')).toBeNull();
     expect(container.querySelector('img')).toBeNull();
-    // 至少渲染了一层 <b>（浅层正常）
-    expect(container.querySelector('b')).toBeTruthy();
+  });
+
+  it('50 层混合嵌套（b/i/u/s/color/big/small）不崩溃且正确渲染', () => {
+    const depth = 50;
+    const tags = ['b', 'i', 'u', 's', 'big', 'small'] as const;
+    let input = '';
+    for (let i = 0; i < depth; i++) {
+      const t = tags[i % tags.length];
+      input += t === 'big' || t === 'small' ? `[${t}]` : `[${t}]`;
+    }
+    input += '深层内容';
+    for (let i = depth - 1; i >= 0; i--) {
+      const t = tags[i % tags.length];
+      input += t === 'big' || t === 'small' ? `[/${t}]` : `[/${t}]`;
+    }
+    const { container } = render(parseBBCode(input));
+    expect(container.textContent).toBe('深层内容');
+  });
+
+  it('未知标签夹在白名单标签之间：未知标签原文保留，白名单正常渲染', () => {
+    const { container } = render(parseBBCode('[b]粗[quote]引[/quote]斜[/i]尾'));
+    expect(container.textContent).toContain('粗');
+    expect(container.textContent).toContain('[quote]');
+    expect(container.textContent).toContain('引');
+    expect(container.textContent).toContain('[/quote]');
   });
 
   it('骰子标签内不解析内部 BBCode（内容即表达式）', () => {
@@ -298,11 +326,12 @@ describe('parseBBCode（错误/异常输入）', () => {
     expect(screen.getByText(/红未闭合/)).toBeInTheDocument();
   });
 
-  it('交叉嵌套 [b][i]x[/b][/i]：内层按未闭合原文处理，不崩溃', () => {
+  it('交叉嵌套 [b][i]x[/b][/i]：BBob 智能修复为合法嵌套，不崩溃', () => {
     const { container } = render(parseBBCode('[b][i]交错[/b]尾巴[/i]'));
-    // [b] 闭合到第一个 [/b]，内部 [i] 无闭合 → 原文显示
-    expect(container.querySelector('b')?.textContent).toContain('[i]交错');
-    expect(container.textContent).toContain('尾巴[/i]');
+    // BBob 栈式解析器自动修复交叉闭合：[b] 内含 [i]交错 + 尾巴，全部渲染
+    expect(container.querySelector('b')?.textContent).toContain('交错');
+    expect(container.querySelector('b')?.textContent).toContain('尾巴');
+    expect(container.querySelector('i')?.textContent).toBe('交错');
   });
 
   it('多余闭合标签 [/b] 无开标签 → 原文显示（整段为一个文本节点）', () => {
@@ -322,10 +351,11 @@ describe('parseBBCode（错误/异常输入）', () => {
     expect(screen.getByText(/\[b 无右括号/)).toBeInTheDocument();
   });
 
-  it('未闭合 copy / 未闭合 dice', () => {
+  it('未闭合 copy / 未闭合 dice：完整模式显示开标签原文，不崩溃', () => {
     wrap(parseBBCode('[copy]没关'));
     expect(screen.getByText(/\[copy\]/)).toBeInTheDocument();
     wrap(parseBBCode('[dice]1d20'));
+    // 成对未闭合（无 =值 也无 [/dice]）：按未闭合处理，显示开标签原文
     expect(screen.getByText(/\[dice\]/)).toBeInTheDocument();
   });
 
@@ -403,8 +433,8 @@ describe('stripBBCode（复杂剥离）', () => {
   it('混合文本 + 标签 + 未知标签', () => {
     expect(stripBBCode('前[url]https://e.com[/url]中[quote]引[/quote]后')).toBe('前https://e.com中引后');
   });
-  it('未闭合标签：无成对闭合则原样保留（stripBBCode 只剥成对标签）', () => {
-    expect(stripBBCode('[b]粗[color=red]红')).toBe('[b]粗[color=red]红');
+  it('未闭合标签：BBob 容错剥壳取内容（未闭合标签也剥离）', () => {
+    expect(stripBBCode('[b]粗[color=red]红')).toBe('粗红');
   });
   it('20 层嵌套剥离不卡死（guard 上限内完成）', () => {
     const input = '[b]'.repeat(20) + '底' + '[/b]'.repeat(20);

@@ -1,9 +1,16 @@
-// ===== BBCode 安全渲染：用户内容文本格式白名单 =====
+// ===== BBCode 安全渲染：基于 @bbob/parser 的栈式解析器 =====
 // 允许：粗体 [b]、斜体 [i]、下划线 [u]、删除线 [s]、颜色 [color=red|#ff0000]、大字 [big]、小字 [small]、
 //       可复制文本块 [copy]文字[/copy]、骰子 [dice]1d20[/dice]（支持 NdM / NdM+K，如 2d6+1）
 // 禁止：链接/图片/音频/视频等任何外链标签（[url][img][audio][video]…）——不识别即原文显示
 // 安全：解析生成 React 元素（文本自动转义），color 值严格校验（防 CSS 注入），绝无 dangerouslySetInnerHTML
+// 健壮：BBob 栈式解析器处理任意嵌套（含同标签嵌套）、未闭合、交叉闭合、空标签、深层嵌套等
+//       全部容错不崩溃；白名单外标签由解析器拆回原文保留。
 import { useState, type ReactNode } from 'react';
+import { parse } from '@bbob/parser';
+import type { TagNode } from '@bbob/plugin-helper';
+
+// ===== BBob AST 节点（@bbob/parser 产出） =====
+type BBNode = TagNode<any> | string;
 
 // 颜色白名单：常见颜色名 + 合法 hex
 const COLOR_NAMES = new Set([
@@ -19,8 +26,8 @@ export function isSafeColor(value: string): boolean {
 }
 
 // 允许的标签（不含 color 的 value 部分）
-const TAG_NAMES = new Set(['b', 'i', 'u', 's', 'color', 'big', 'small', 'copy', 'dice']);
-// 开标签正则：普通标签 / color=值 / dice=表达式
+const ALLOWED_TAGS = ['b', 'i', 'u', 's', 'color', 'big', 'small', 'copy', 'dice'];
+// 开标签正则（判断"是否含 BBCode"用；与解析器口径一致）
 const OPEN_RE = /\[(b|i|u|s|big|small|copy|dice|color(?:=[^\]\s]+)?|dice(?:=[^\]\s]+)?)\]/i;
 
 /** 内容是否含 BBCode 标签（决定是否走 BBCode 渲染） */
@@ -153,99 +160,153 @@ function DiceRoll({ expr }: { expr: string }) {
   );
 }
 
-// 递归解析一段文本为 React 节点（支持嵌套）
-// loose=true（列表摘要用）：遇到未闭合标签时丢弃标签标记本身、保留后续文本，
-// 避免摘要截断在标签中间时把 "[color=red]" 这类半截标签当原文显示
-function parseSegment(text: string, loose = false): ReactNode[] {
-  const nodes: ReactNode[] = [];
-  let rest = text;
-  while (rest.length > 0) {
-    const m = rest.match(OPEN_RE);
-    if (!m) {
-      nodes.push(rest);
-      break;
-    }
-    const before = rest.slice(0, m.index ?? 0);
-    if (before) nodes.push(before);
-    const rawTag = m[1]; // 如 'b' 或 'color=red'
-    const tagName = rawTag.startsWith('color') ? 'color' : rawTag.toLowerCase();
-    const closeTag = `[/${tagName}]`;
-    const innerStart = (m.index ?? 0) + m[0].length;
-    // [dice=...] 一律按自闭合处理（注入格式 [dice=expr|total|detail] 无闭合；防误吞后续内容）
-    if (rawTag.toLowerCase().startsWith('dice=')) {
-      nodes.push(<DiceRoll key={nodes.length} expr={rawTag.slice(5).trim()} />);
-      rest = rest.slice(innerStart);
-      continue;
-    }
-    const closeIdx = rest.slice(innerStart).toLowerCase().indexOf(closeTag);
-    if (closeIdx === -1) {
-      if (loose) {
-        // 摘要截断在标签中间：丢弃残缺标签，继续解析后续文本
-        rest = rest.slice(innerStart);
-        continue;
-      }
-      // 无闭合：原文显示（不解析，避免把 [b] 吃掉）
-      nodes.push(rest.slice(m.index ?? 0, innerStart));
-      rest = rest.slice(innerStart);
-      continue;
-    }
-    const inner = rest.slice(innerStart, innerStart + closeIdx);
-    const after = rest.slice(innerStart + closeIdx + closeTag.length);
-    const children = parseSegment(inner, loose); // 嵌套递归
-    const key = nodes.length;
-    if (tagName === 'b') nodes.push(<b key={key}>{children}</b>);
-    else if (tagName === 'i') nodes.push(<i key={key}>{children}</i>);
-    else if (tagName === 'u') nodes.push(<u key={key}>{children}</u>);
-    else if (tagName === 's') nodes.push(<s key={key}>{children}</s>);
-    else if (tagName === 'big') nodes.push(<span key={key} style={{ fontSize: '1.25em' }}>{children}</span>);
-    else if (tagName === 'small') nodes.push(<span key={key} style={{ fontSize: '0.8em' }}>{children}</span>);
-    else if (tagName === 'copy') {
-      // 可复制文本块：纯文本内容（stripBBCode 得复制文本，显示层仍渲染 BBCode）
-      nodes.push(
-        <CopyBlock key={key} text={stripBBCode(inner)}>
-          {children}
-        </CopyBlock>
-      );
-    } else if (tagName === 'dice') {
-      // 骰子：内容即表达式（不解析内部 BBCode）；支持 [dice]1d20[/dice] 与 [dice=1d20] 两种写法
-      const expr = rawTag.startsWith('dice=') ? rawTag.slice('dice='.length).trim() : inner.trim();
-      nodes.push(<DiceRoll key={key} expr={expr} />);
-    } else {
-      // color=值：严格校验，非法值忽略颜色（按普通文本显示）
-      const value = rawTag.slice('color'.length + 1).trim();
-      nodes.push(
-        isSafeColor(value) ? (
-          <span key={key} style={{ color: value.toLowerCase() }}>
-            {children}
-          </span>
-        ) : (
-          <span key={key}>{children}</span>
-        )
-      );
-    }
-    rest = after;
-  }
-  return nodes;
+// ===== BBob AST 节点类型（@bbob/parser 产出） =====
+// 取 [tag=value] 的 value：BBob 把 =值 解析为 attrs { value: value }
+function tagValue(attrs?: Record<string, unknown>): string {
+  if (!attrs) return '';
+  const keys = Object.keys(attrs);
+  return keys.length ? String(attrs[keys[0]] ?? '') : '';
 }
 
-/** 渲染 BBCode 内容为 React 节点（禁用的外链标签不识别 → 原文显示） */
+// 递归渲染 BBob AST 为 React 节点
+// loose=true（摘要）：未闭合标签（无 end）丢弃开标签原文，保留后续文本（截断场景不显示残缺标签）
+function renderBB(nodes: BBNode[], loose: boolean): ReactNode[] {
+  const out: ReactNode[] = [];
+  let k = 0;
+  for (const n of nodes) {
+    const key = k++;
+    if (typeof n === 'string') {
+      out.push(n);
+      continue;
+    }
+    const tag = String(n.tag || '').toLowerCase();
+    const value = tagValue(n.attrs);
+    // 白名单外的标签：解析器已把原文拆成字符串节点（仅白名单 tag 才会成为对象），
+    // 理论上不会到这里；兜底：原文显示
+    if (!ALLOWED_TAGS.includes(tag)) {
+      out.push(String(n));
+      continue;
+    }
+    // 骰子：自闭合 [dice=expr]（无 end 但有 attrs，注入格式含 | 结果）渲染骰子；
+    // 成对 [dice]expr[/dice]（有 end）用内容作表达式；无 end 也无 attrs（[dice] 未闭合）按未闭合处理
+    if (tag === 'dice' && (value !== '' || n.end)) {
+      out.push(<DiceRoll key={key} expr={value || innerText(n)} />);
+      continue;
+    }
+    // 未闭合标签：完整模式原文显示开标签；摘要模式丢弃开标签（保留后续文本）
+    if (!n.end) {
+      if (loose) continue;
+      const raw = `[${n.tag}${tagValue(n.attrs) ? '=' + tagValue(n.attrs) : ''}]`;
+      out.push(raw);
+      continue;
+    }
+    const children = renderBB((n.content || []) as BBNode[], loose);
+    switch (tag) {
+      case 'b':
+        out.push(<b key={key}>{children}</b>);
+        break;
+      case 'i':
+        out.push(<i key={key}>{children}</i>);
+        break;
+      case 'u':
+        out.push(<u key={key}>{children}</u>);
+        break;
+      case 's':
+        out.push(<s key={key}>{children}</s>);
+        break;
+      case 'big':
+        out.push(<span key={key} style={{ fontSize: '1.25em' }}>{children}</span>);
+        break;
+      case 'small':
+        out.push(<span key={key} style={{ fontSize: '0.8em' }}>{children}</span>);
+        break;
+      case 'copy': {
+        // 可复制文本块：纯文本内容（stripBBCode 得复制文本，显示层仍渲染 BBCode）
+        out.push(
+          <CopyBlock key={key} text={stripBBCode(innerText(n))}>
+            {children}
+          </CopyBlock>
+        );
+        break;
+      }
+      default: {
+        // color=值：严格校验，非法值忽略颜色（按普通文本显示）
+        out.push(
+          isSafeColor(value) ? (
+            <span key={key} style={{ color: value.toLowerCase() }}>{children}</span>
+          ) : (
+            <span key={key}>{children}</span>
+          )
+        );
+      }
+    }
+  }
+  return out;
+}
+
+// 提取节点内容纯文本（copy 复制内容 / dice 表达式用；递归含子 tag）
+function innerText(n: TagNode<any>): string {
+  const parts: string[] = [];
+  const walk = (nodes: BBNode[]) => {
+    for (const c of nodes) {
+      if (typeof c === 'string') parts.push(c);
+      else if (c && Array.isArray(c.content)) walk(c.content as BBNode[]);
+    }
+  };
+  walk((n.content || []) as BBNode[]);
+  return parts.join('');
+}
+
+/** 渲染 BBCode 内容为 React 节点（白名单外标签原文显示） */
 export function parseBBCode(text: string): ReactNode {
-  return <>{parseSegment(text)}</>;
+  let ast: BBNode[] = [];
+  try {
+    ast = parse(String(text || ''), { onlyAllowTags: ALLOWED_TAGS, caseFreeTags: true });
+  } catch {
+    /* 解析异常：原文显示 */
+    return <>{String(text || '')}</>;
+  }
+  return <>{renderBB(ast, false)}</>;
 }
 
 /** 渲染 BBCode 摘要（列表/feed 用）：未闭合标签宽容处理，不显示残缺标签文本 */
 export function parseBBCodeExcerpt(text: string): ReactNode {
-  return <>{parseSegment(text, true)}</>;
+  let ast: BBNode[] = [];
+  try {
+    ast = parse(String(text || ''), { onlyAllowTags: ALLOWED_TAGS, caseFreeTags: true });
+  } catch {
+    return <>{String(text || '')}</>;
+  }
+  return <>{renderBB(ast, true)}</>;
 }
 
 /** 剥离 BBCode 得纯文本（列表摘要/导出用） */
 export function stripBBCode(text: string): string {
-  // 递归剥离所有 [tag]...[/tag]（白名单 + 未知标签都剥，只留内容文本）
-  let out = text;
-  for (let guard = 0; guard < 20; guard++) {
-    const m = out.match(/\[([a-z]+)(?:=[^\]\s]*)?\]([\s\S]*?)\[\/\1\]/i);
-    if (!m) break;
-    out = out.slice(0, m.index ?? 0) + m[2] + out.slice((m.index ?? 0) + m[0].length);
+  // 不带 onlyAllowTags：所有标签（白名单 + 未知/外链）都解析成 AST 节点，
+  // 统一剥壳取内容文本（strip 语义：只留文本，标签全剥）
+  let ast: BBNode[] = [];
+  try {
+    ast = parse(String(text || ''), { caseFreeTags: true });
+  } catch {
+    // 解析失败：正则兜底剥离成对标签
+    let out = String(text || '');
+    for (let guard = 0; guard < 20; guard++) {
+      const m = out.match(/\[([a-z]+)(?:=[^\]\s]*)?\]([\s\S]*?)\[\/\1\]/i);
+      if (!m) break;
+      out = out.slice(0, m.index ?? 0) + m[2] + out.slice((m.index ?? 0) + m[0].length);
+    }
+    return out;
   }
-  return out;
+  const parts: string[] = [];
+  const walk = (nodes: BBNode[]) => {
+    for (const n of nodes) {
+      if (typeof n === 'string') {
+        parts.push(n);
+      } else if (n && Array.isArray(n.content)) {
+        walk(n.content as BBNode[]);
+      }
+    }
+  };
+  walk(ast);
+  return parts.join('');
 }

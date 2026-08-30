@@ -10,6 +10,9 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@bbob/core": "^4.4.1",
+    "@bbob/parser": "^4.4.1",
+    "@bbob/react": "^4.4.1",
     "@mantine/core": "^7.17.2",
     "@mantine/form": "^7.17.2",
     "@mantine/hooks": "^7.17.2",
