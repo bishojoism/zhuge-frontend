@@ -128,19 +128,18 @@ export default function FeedView({
     mode.style.height = Math.max(visBottom - top, 160) + 'px';
   }, []);
 
-  // 卡片高度 = viewport 实际高度；translateY 定位当前卡；transition transform .35s ease
-  // 只处理窗口内已挂载的真实卡（占位符用 CSS var 统一高度），不遍历全量
+  // 卡片高度 = viewport 实际高度（CSS var --feed-h 统一驱动真卡+占位符，窗口切换无错位）；
+  // translateY 定位当前卡；transition transform .35s ease。只 toggle active 类，不设高度。
   const updateFeedPosition = useCallback((animate: boolean) => {
     const vp = viewportRef.current;
     const track = trackRef.current;
     if (!vp || !track) return;
     const h = vp.clientHeight;
     const cur = indexRef.current;
-    // 占位符（窗口外卡）高度 = 视口高：用 CSS 变量一次性设置，避免遍历几百个占位符
+    // 所有卡（真卡+占位符）高度统一由 --feed-h 驱动：一次设置，新挂载的卡自动正确
     track.style.setProperty('--feed-h', h + 'px');
     const map = cardElsRef.current;
     map.forEach((card, i) => {
-      card.style.height = h + 'px';
       card.classList.toggle('active', i === cur);
     });
     track.style.transition = animate ? 'transform .35s ease' : 'none';
@@ -294,6 +293,14 @@ export default function FeedView({
     updateFeedPosition(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [items, resetKey, recenterPage]);
+
+  // 窗口移动（feedIndex 变化）：React 重渲染后新挂载的真实卡/占位符已就位，
+  // 重设 active 类与 transform（goTo 里同步调用 updateFeedPosition 时 React 尚未重渲染，
+  // 用的还是旧窗口 Map；这里在渲染提交后修正，避免 active 标错/位置残留）
+  useLayoutEffect(() => {
+    updateFeedPosition(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [feedIndex]);
 
   // 视口高度变化（窗口 resize / iOS 地址栏显隐）：重算高度并重设卡片位置
   useEffect(() => {

@@ -599,14 +599,16 @@
       border-radius: var(--radius-md); background: var(--bg);
     }
     .feed-track { display: flex; flex-direction: column; will-change: transform; }
+    .feed-card, .feed-card-ph {
+      /* 高度统一由轨道上的 --feed-h 驱动（窗口化：真卡/占位符同高，切换无错位） */
+      height: var(--feed-h, 100vh); flex-shrink: 0; box-sizing: border-box;
+    }
     .feed-card {
-      height: 100%; flex-shrink: 0; box-sizing: border-box;
       padding: min(168px, 14vh) 20px; display: flex; flex-direction: column;
       justify-content: center; cursor: pointer;
     }
     /* 窗口化虚拟滚动：窗口外的卡渲染为同高占位（高度由 --feed-h 驱动，轨道总高不变） */
     .feed-card-ph {
-      height: var(--feed-h, 100vh); flex-shrink: 0; box-sizing: border-box;
       pointer-events: none;
     }
     .feed-card-inner {
