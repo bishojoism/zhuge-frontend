@@ -106,7 +106,16 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <MantineProvider theme={theme} colorSchemeManager={colorSchemeManager} defaultColorScheme="auto">
       <Notifications position="top-center" />
-      <SWRConfig value={{ revalidateOnFocus: false, dedupingInterval: 1500, fallback: swrFallback }}>
+      <SWRConfig
+        value={{
+          // 首屏零 API：SSR 内联数据（fallback）命中后不重新验证（revalidateIfStale 默认 true
+          // 会导致挂载时重复请求 /tags、/discussions 等 —— 首屏白费 4 个请求）
+          revalidateIfStale: false,
+          revalidateOnFocus: false,
+          dedupingInterval: 1500,
+          fallback: swrFallback,
+        }}
+      >
         <BrowserRouter>
           <AuthProvider>
             <ModalsProvider>

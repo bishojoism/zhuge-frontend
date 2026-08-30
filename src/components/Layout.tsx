@@ -85,7 +85,8 @@ export default function Layout({ children }: { children: ReactNode }) {
   };
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-  const { unread, mutate: refreshUnread } = useUnread();
+  // 未登录不请求通知（首屏零 API）
+  const { unread, mutate: refreshUnread } = useUnread(!!user);
   const pwa = usePwaInstall();
   const push = usePushNotify();
   // 通知弹窗（本地 state 单例）

@@ -3,6 +3,17 @@
 // 海报信息只包含：主题标题 + 主题内容（+ 配图），不出现站名/作者/链接
 // 尺寸：900x1200（3:4 竖版）
 
+// 剥离 BBCode 标签（海报 canvas 纯文本绘制，不支持格式标签）
+function stripBBCode(text: string): string {
+  let out = text;
+  for (let i = 0; i < 20; i++) {
+    const m = out.match(/\[([a-z]+)(?:=[^\]\s]*)?\]([\s\S]*?)\[\/\1\]/i);
+    if (!m) break;
+    out = out.slice(0, m.index ?? 0) + m[2] + out.slice((m.index ?? 0) + m[0].length);
+  }
+  return out;
+}
+
 const W = 900;
 const H = 1200;
 const FONT = '"PingFang SC", "Microsoft YaHei", "Noto Sans SC", sans-serif';
@@ -1093,10 +1104,11 @@ export interface DrawShareCardOpts {
   author?: { name: string; avatarUrl?: string | null; gender?: string | null };
 }
 
-// 性别徽标（与站内一致）：♂/♀ 彩色字符；深色底板上用亮色保证可读
+// 性别徽标（与站内一致）：♂/♀/⚧ 彩色字符；保密不显示；深色底板上用亮色保证可读
 function genderSymbol(gender?: string | null): { sym: string; color: string } | null {
   if (gender === 'male') return { sym: '♂', color: '#9cc3f0' };
   if (gender === 'female') return { sym: '♀', color: '#f5a9c6' };
+  if (gender === 'other') return { sym: '⚧', color: '#c9a6e8' };
   return null;
 }
 
@@ -1209,7 +1221,7 @@ export function drawShareCard(canvas: HTMLCanvasElement, opts: DrawShareCardOpts
       : undefined;
     tpl.draw(ctx, {
       title: opts.title || '',
-      excerpt: opts.content || '',
+      excerpt: stripBBCode(opts.content || ''),
       image,
       seed: seedOf(opts.title),
       author,

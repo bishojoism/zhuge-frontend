@@ -5,6 +5,7 @@ import { Button, SimpleGrid, Stack, Text } from '@mantine/core';
 import { modals } from '@mantine/modals';
 import { notifications } from '@mantine/notifications';
 import { openModalOnce } from '../../lib/modals';
+import { stripBBCode } from '../../lib/bbcode';
 import type { Discussion, Gender, Post } from '../../types';
 import { displayName } from '../../lib/utils';
 
@@ -87,7 +88,7 @@ export function exportTextLog(d: Discussion, posts: ExportPost[]): void {
     lines.push(
       `【${p.number}楼】${displayName(p)} · ${String(p.created_at || '').slice(0, 16)}${p.reply_to_author ? `（回复 @${p.reply_to_author}）` : ''}`
     );
-    if (p.content) lines.push(p.content);
+    if (p.content) lines.push(stripBBCode(p.content));
     if (p.image_url) lines.push(`[图片] ${location.origin}${p.image_url}`);
   }
   const blob = new Blob([lines.join('\n')], { type: 'text/plain;charset=utf-8' });
@@ -199,7 +200,7 @@ export async function exportImageLog(d: Discussion, posts: ExportPost[], style: 
     const floor = `${p.number}楼`;
     const time = String(p.created_at || '').slice(0, 16);
     const ref = p.reply_to_author ? `回复 @${p.reply_to_author}` : '';
-    const bodyLines = wrap(ctx, p.content || '', bodyFont(17), cardBodyW);
+    const bodyLines = wrap(ctx, stripBBCode(p.content || ''), bodyFont(17), cardBodyW);
     const hasImage = !!p.image_url;
     const bodyH = bodyLines.length * 27;
     const imgH = hasImage ? 20 : 0;
@@ -364,9 +365,10 @@ export async function exportImageLog(d: Discussion, posts: ExportPost[], style: 
     ctx.beginPath();
     ctx.arc(avX, avY, avR, 0, Math.PI * 2);
     ctx.stroke();
-    // 性别徽标（右下角，♂蓝 / ♀粉，白色光晕）
+    // 性别徽标（右下角，♂蓝 / ♀粉 / ⚧紫，白色光晕；保密不显示）
     const g = p.gender || p.author_gender;
-    const gSym = g === 'male' ? '♂' : g === 'female' ? '♀' : '';
+    const gColor = g === 'male' ? '#3d6fb5' : g === 'female' ? '#e0608f' : g === 'other' ? '#8f5fb5' : '';
+    const gSym = g === 'male' ? '♂' : g === 'female' ? '♀' : g === 'other' ? '⚧' : '';
     if (gSym) {
       const gx = avX + avR - 4;
       const gy = avY + avR - 4;
@@ -376,10 +378,10 @@ export async function exportImageLog(d: Discussion, posts: ExportPost[], style: 
       ctx.textBaseline = 'middle';
       ctx.shadowColor = 'rgba(255,255,255,.95)';
       ctx.shadowBlur = 5;
-      ctx.fillStyle = g === 'male' ? '#3d6fb5' : '#e0608f';
+      ctx.fillStyle = gColor;
       ctx.fillText(gSym, gx, gy);
       ctx.restore();
-      ctx.fillStyle = g === 'male' ? '#3d6fb5' : '#e0608f';
+      ctx.fillStyle = gColor;
       ctx.font = bodyFont(15);
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';

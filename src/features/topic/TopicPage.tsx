@@ -10,6 +10,7 @@ import { fetcher, useDrafts, useTopic, useUnread } from '../../api/hooks';
 import { useAuth } from '../auth/AuthContext';
 import { requireLogin } from '../auth/authModals';
 import { openShareModal } from '../share/shareModals';
+import { hasBBCode, parseBBCode } from '../../lib/bbcode';
 import { exportTextLog, openImageExportModal } from './exportLog';
 import { openReportModal, type ReportTargetType } from './reportModal';
 import { openPostAdminModal, type AdminTargetType } from './postAdminModal';
@@ -929,6 +930,8 @@ interface PostCardProps {
 
 // 按关键词把一行内容拆成高亮片段（大小写不敏感）
 function renderLine(line: string, kw?: string): ReactNode {
+  // BBCode 内容优先走安全解析（搜索高亮在 BBCode 行不做，避免与格式元素冲突）
+  if (hasBBCode(line)) return parseBBCode(line);
   if (!kw) return line;
   const lower = line.toLowerCase();
   if (!lower.includes(kw)) return line;

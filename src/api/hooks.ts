@@ -88,15 +88,16 @@ export function useTopic(id: number | string | undefined) {
   });
 }
 
-export function useUnread(): { unread: number; mutate: () => void } {
+export function useUnread(enabled: boolean = true): { unread: number; mutate: () => void } {
   // 与 useNotifications 共用同一个 SWR key 和 fetcher（/me/notifications → {data, meta}），
   // 否则两个 hook 用不同 fetcher/结构写同一个缓存，弹窗会读到"数字"导致列表永远为空
-  const { data, mutate } = useSWR<NotifListResult>('/me/notifications', fetcher);
+  // enabled=false（未登录）时 key 为 null → 不请求（首屏零 API）
+  const { data, mutate } = useSWR<NotifListResult>(enabled ? '/me/notifications' : null, fetcher);
   return { unread: data?.meta?.unread || 0, mutate: () => mutate() };
 }
 
-export function useNotifications() {
-  return useSWR<NotifListResult>('/me/notifications', fetcher);
+export function useNotifications(enabled: boolean = true) {
+  return useSWR<NotifListResult>(enabled ? '/me/notifications' : null, fetcher);
 }
 
 export function usePrivateList() {

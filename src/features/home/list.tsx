@@ -5,6 +5,7 @@ import { displayName, tagColorOf, tagTextColorOf, timeAgo } from '../../lib/util
 import Avatar from '../../components/Avatar';
 import { openShareModal } from '../share/shareModals';
 import { openAuthorDidiStats } from '../private/authorDidiStats';
+import { stripBBCode } from '../../lib/bbcode';
 
 interface ListViewProps {
   items: Discussion[];
@@ -64,7 +65,7 @@ export function TopicCard({
   tags: Tag[];
   onOpenTopic: (id: number) => void;
 }) {
-  const excerpt = (d.excerpt || '').replace(/\s+/g, ' ').trim();
+  const excerpt = stripBBCode((d.excerpt || '').replace(/\s+/g, ' ').trim());
   const tagNames = (d.tags || '')
     .split(' / ')
     .map((s) => s.trim())

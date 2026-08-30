@@ -3,6 +3,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNo
 import type { Discussion, Tag } from '../../types';
 import { displayName, tagColorOf, tagTextColorOf, timeAgo } from '../../lib/utils';
 import { collapseIosUrlBar, isIosUrlBarCollapsing } from '../../lib/iosUrlBar';
+import { stripBBCode } from '../../lib/bbcode';
 import Avatar from '../../components/Avatar';
 import { openAuthorDidiStats } from '../private/authorDidiStats';
 
@@ -482,7 +483,7 @@ function FeedCard({
   active: boolean;
   onOpenTopic: (id: number) => void;
 }) {
-  const excerpt = (d.excerpt || '').replace(/\s+/g, ' ').trim();
+  const excerpt = stripBBCode((d.excerpt || '').replace(/\s+/g, ' ').trim());
   const tagNames = (d.tags || '')
     .split(' / ')
     .map((s) => s.trim())

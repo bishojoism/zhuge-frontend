@@ -5,6 +5,7 @@ import { Button, Group, Stack, Text } from '@mantine/core';
 import { modals } from '@mantine/modals';
 import { api } from '../../api/client';
 import { openModalOnce } from '../../lib/modals';
+import { useMe } from '../../api/hooks';
 import useSWR from 'swr';
 import { fetcher } from '../../api/hooks';
 import type { CharacterItem } from '../../types';
@@ -31,6 +32,9 @@ function PosterContent({ userId, username }: { userId: number; username: string 
   // 第一个角色（有外貌图时画到海报上，更亲切）
   const { data: charsData } = useSWR<{ data: CharacterItem[] }>('/me/characters', fetcher);
   const char = (charsData?.data || []).find((c) => c.appearance) || (charsData?.data || [])[0];
+  // 皮下用户性别（画在用户名旁，与站内一致：♂蓝 / ♀粉 / ⚧紫，保密不显示）
+  const { user: me } = useMe();
+  const userGender = me?.gender;
 
   useEffect(() => {
     let alive = true;
@@ -79,6 +83,17 @@ function PosterContent({ userId, username }: { userId: number; username: string 
         ctx.fillStyle = '#d8a05c';
         ctx.font = '600 40px "PingFang SC","Microsoft YaHei",sans-serif';
         ctx.fillText(username, W / 2, char?.appearance ? 460 : 340);
+        // 性别徽标（用户名右侧，♂蓝 / ♀粉 / ⚧紫；保密不显示）
+        const gSym = userGender === 'male' ? '♂' : userGender === 'female' ? '♀' : userGender === 'other' ? '⚧' : '';
+        if (gSym) {
+          const nameW = ctx.measureText(username).width;
+          ctx.font = '600 34px "PingFang SC","Microsoft YaHei",sans-serif';
+          const symW = ctx.measureText(gSym).width;
+          ctx.fillStyle = userGender === 'male' ? '#9cc3f0' : userGender === 'female' ? '#f5a9c6' : '#c9a6e8';
+          ctx.textAlign = 'left';
+          ctx.fillText(gSym, W / 2 + nameW / 2 + 10, (char?.appearance ? 460 : 340) - 2);
+          ctx.textAlign = 'center';
+        }
         // 二维码
         const qrSize = 280;
         const qrCanvas = document.createElement('canvas');
@@ -110,7 +125,7 @@ function PosterContent({ userId, username }: { userId: number; username: string 
     };
     void draw();
     return () => { alive = false; };
-  }, [userId, username, char?.id, char?.appearance]);
+  }, [userId, username, char?.id, char?.appearance, userGender]);
 
   const download = () => {
     if (!imgSrc) return;
