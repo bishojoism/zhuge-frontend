@@ -8,7 +8,7 @@ import { api } from '../../api/client';
 import { useNotifications, useMe } from '../../api/hooks';
 import { requireLogin } from '../auth/authModals';
 import { timeAgo } from '../../lib/utils';
-import type { NotificationItem, NotifType } from '../../types';
+import type { NotificationItem, NotifListResult, NotifType } from '../../types';
 
 // 通知图标：didi → 📨；report/report_result → ⚑；其余（reply）→ 💬
 function notifIcon(type: NotifType): string {
@@ -78,18 +78,31 @@ export function NotificationsModalContent({ onClose }: { onClose: () => void }) 
     onClose();
   };
 
-  // 全部已读（请求期间按钮显示加载中，防重复点击）
+  // 全部已读（乐观更新：先本地标记全部已读 + 未读归零，请求后台进行；失败回滚）
   const [markingAll, setMarkingAll] = useState(false);
   const markAllRead = async () => {
     if (markingAll) return;
     setMarkingAll(true);
+    // 乐观：本地立即标记已读
+    const optimistic = (current?: NotifListResult): NotifListResult => ({
+      data: (current?.data || []).map((n) => ({ ...n, is_read: 1 })),
+      meta: { unread: 0 },
+    });
+    try {
+      await mutate('/me/notifications', optimistic, { revalidate: false, rollbackOnError: true });
+    } catch {
+      /* 乐观更新失败忽略 */
+    }
+    void mutate('/me'); // 未读徽标（乐观后重拉确认）
     try {
       await api('/me/notifications/read', { method: 'POST', body: { all: true } });
+      void mutate('/me/notifications');
+      void mutate('/me');
     } catch {
-      // 静默失败
+      // 失败：回滚 + 重拉
+      void mutate('/me/notifications');
+      void mutate('/me');
     }
-    mutate('/me/notifications');
-    mutate('/me');
     setMarkingAll(false);
   };
 

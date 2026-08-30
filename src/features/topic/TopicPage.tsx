@@ -398,8 +398,37 @@ export default function TopicPage() {
     }
     if (!id) return;
     setSubmitting(true);
+    const prevData = data; // 记录乐观前数据（失败回滚用）
     try {
-      // 后端契约（src/index.js）：body { content, imageUrl?, replyTo? }（camelCase）
+      // 乐观更新：构造本地新帖，先更新缓存立即显示（不等网络），POST 并行发出
+      const optimisticPost: TopicPost = {
+        id: Date.now() * -1, // 临时负 id 标记乐观帖
+        discussion_id: Number(id),
+        number: (data?.posts?.length ?? 1) + 1,
+        created_at: new Date().toISOString().replace('T', ' ').slice(0, 19),
+        user_id: user.id,
+        content: trimmed,
+        image_url: imageUrl || null,
+        edited_at: null,
+        is_private: 0,
+        reply_to_post_id: replyTarget ? replyTarget.postId : null,
+        author: user.username,
+        author_gender: user.gender || null,
+        author_avatar: user.avatar_url || null,
+        character_id: replyCharacterId ? Number(replyCharacterId) : null,
+      };
+      // 本地立即显示（追加 + 评论数 +1）
+      if (data) {
+        await mutate(
+          {
+            ...data,
+            discussion: { ...data.discussion, comment_count: (data.discussion.comment_count || 0) + 1 },
+            posts: [...data.posts, optimisticPost],
+          },
+          { revalidate: false }
+        );
+      }
+      // 后端真实请求（并行，乐观显示期间完成）
       await api(`/discussions/${id}/posts`, {
         method: 'POST',
         body: {
@@ -427,6 +456,7 @@ export default function TopicPage() {
       } catch {
         /* 忽略 */
       }
+      // 用真实数据替换乐观帖（拿回真实 id/楼层/时间）
       await mutate();
       // 刷新讨论列表缓存（评论数变化）
       await globalMutate(
@@ -435,11 +465,16 @@ export default function TopicPage() {
         { revalidate: true }
       );
     } catch (e) {
+      // 失败：回滚乐观更新（恢复原数据）
+      if (prevData) {
+        await mutate(prevData, { revalidate: false }).catch(() => {});
+        void mutate(); // 后台重拉确保与服务端一致
+      }
       notifications.show({ message: e instanceof Error ? e.message : '回复失败', color: 'red' });
     } finally {
       setSubmitting(false);
     }
-  }, [user, content, imageUrl, id, replyTarget, replyCharacterId, draftKey, mutate, mutateDrafts]);
+  }, [user, content, imageUrl, id, replyTarget, replyCharacterId, draftKey, mutate, mutateDrafts, data]);
 
   const handleCopyLink = useCallback(async () => {
     if (!id) return;
