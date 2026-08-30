@@ -283,7 +283,9 @@ export function parseBBCodeExcerpt(text: string): ReactNode {
 /** 剥离 BBCode 得纯文本（列表摘要/导出用） */
 export function stripBBCode(text: string): string {
   // 不带 onlyAllowTags：所有标签（白名单 + 未知/外链）都解析成 AST 节点，
-  // 统一剥壳取内容文本（strip 语义：只留文本，标签全剥）
+  // 统一剥壳取内容文本（strip 语义：只留文本，标签全剥）。
+  // 注意：dice（骰子）标签整体跳过——表达式/结果是"代码部分"，纯文本里不该出现
+  //（如 [dice]1d20[/dice] 或注入格式 [dice=1d20|17|17]）。
   let ast: BBNode[] = [];
   try {
     ast = parse(String(text || ''), { caseFreeTags: true });
@@ -303,6 +305,8 @@ export function stripBBCode(text: string): string {
       if (typeof n === 'string') {
         parts.push(n);
       } else if (n && Array.isArray(n.content)) {
+        // 骰子整体跳过（表达式/结果不进入纯文本）
+        if (String(n.tag || '').toLowerCase() === 'dice') continue;
         walk(n.content as BBNode[]);
       }
     }

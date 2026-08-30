@@ -440,6 +440,17 @@ describe('stripBBCode（复杂剥离）', () => {
     const input = '[b]'.repeat(20) + '底' + '[/b]'.repeat(20);
     expect(stripBBCode(input)).toBe('底');
   });
+  it('骰子代码部分不进入纯文本（成对与注入格式都跳过）', () => {
+    // stripBBCode 保留原始空白（不压缩），骰子移除后可能留下空格
+    const norm = (s: string) => s.replace(/\s+/g, ' ').trim();
+    expect(norm(stripBBCode('我掷出了 [dice]1d20[/dice]'))).toBe('我掷出了');
+    expect(norm(stripBBCode('结果 [dice=1d20|17|17] 大成功'))).toBe('结果 大成功');
+    expect(norm(stripBBCode('[dice]101d20[/dice]非法'))).toBe('非法');
+    expect(norm(stripBBCode('[dice=2d6+1|8|3,4+1]'))).toBe('');
+  });
+  it('copy 块内嵌骰子：复制内容不含骰子代码', () => {
+    expect(stripBBCode('密语[copy]暗号是 [dice]1d6[/dice][/copy]收好')).toBe('密语暗号是 收好');
+  });
 });
 
 describe('parseBBCodeExcerpt（摘要宽容模式）', () => {
