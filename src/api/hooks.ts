@@ -1,6 +1,22 @@
 // ===== SWR hooks：按领域组织的取数 hooks（数据/缓存/重验证都在这里） =====
-import useSWR from 'swr';
+import useSWR, { mutate as globalMutate } from 'swr';
 import { api, readInitData } from './client';
+
+// 写操作（发帖/回复/编辑/删除/滴滴等）后的全局缓存同步：
+// SSR fallback 是页面加载快照，revalidateIfStale:false 不会自动重拉，
+// 因此所有影响"列表/计数"的写操作后都要调用本函数，否则切回列表页看到的还是旧数据（需手动刷新网页）。
+// 刷新范围：公开讨论列表（/discussions?...）、我的主题、私密主题、标签、角色卡、通知。
+export function refreshListsAfterWrite() {
+  const matches = (k: unknown) =>
+    typeof k === 'string' &&
+    (k.startsWith('/discussions?') ||
+      k.startsWith('/me/discussions') ||
+      k.startsWith('/me/private') ||
+      k.startsWith('/tags') ||
+      k.startsWith('/me/characters') ||
+      k.startsWith('/me/notifications'));
+  return globalMutate(matches, undefined, { revalidate: true }).catch(() => {});
+}
 // 管理后台类型（adminApi 只 import api，无循环依赖）
 import type {
   AdminTagRow,

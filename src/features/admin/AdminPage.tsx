@@ -27,6 +27,7 @@ import {
   useStickyDiscussions,
   useTagRequests,
   useAdminTags,
+  refreshListsAfterWrite,
 } from '../../api/hooks';
 import { openModalOnce } from '../../lib/modals';
 import { openPromptModal } from '../../lib/promptModal';
@@ -261,6 +262,7 @@ function PromoTab() {
       notifications.show({ message: sticky ? `已置顶主题 #${id}` : `已取消置顶 #${id}`, color: 'green' });
       void mutateSticky();
       void mutateStats();
+      void refreshListsAfterWrite(); // 首页列表置顶/取消即时生效，无需刷新网页
     } catch (e) {
       notifications.show({ message: e instanceof Error ? e.message : '操作失败', color: 'red' });
     } finally {
@@ -365,6 +367,7 @@ function TagRequestsTab() {
         await handleTagRequest(r.id, 'approve', (res.desc || '').trim(), finalName);
         notifications.show({ message: `已创建标签「${finalName}」`, color: 'green' });
         void mutate();
+        void refreshListsAfterWrite(); // 首页标签栏 /tags 即时出现新标签，无需刷新网页
       } catch (e) {
         notifications.show({ message: e instanceof Error ? e.message : '操作失败', color: 'red' });
       } finally {
@@ -492,6 +495,7 @@ function TagsTab() {
       await createAdminTag({ name: n, description: (res.desc || '').trim(), primary: res.type === '主标签' });
       notifications.show({ message: `已创建标签「${n}」`, color: 'green' });
       void mutate();
+      void refreshListsAfterWrite(); // 首页标签栏即时出现新标签
     } catch (e) {
       err(e);
     } finally {
@@ -510,6 +514,7 @@ function TagsTab() {
     try {
       await updateAdminTag(t.id, { name: (res.name || '').trim() });
       void mutate();
+      void refreshListsAfterWrite(); // 首页标签栏改名即时生效
     } catch (e) {
       err(e);
     } finally {
@@ -523,6 +528,7 @@ function TagsTab() {
       await updateAdminTag(t.id, { is_hidden: !t.is_hidden });
       notifications.show({ message: t.is_hidden ? `已显示「${t.name}」` : `已隐藏「${t.name}」`, color: 'green' });
       void mutate();
+      void refreshListsAfterWrite(); // 首页标签栏显隐即时生效
     } catch (e) {
       err(e);
     } finally {
@@ -536,6 +542,7 @@ function TagsTab() {
       await updateAdminTag(t.id, { primary: !(t.position != null) });
       notifications.show({ message: t.position != null ? `「${t.name}」已改回次标签` : `「${t.name}」已设为主标签`, color: 'green' });
       void mutate();
+      void refreshListsAfterWrite(); // 首页标签栏主/次标签即时生效
     } catch (e) {
       err(e);
     } finally {
@@ -560,6 +567,7 @@ function TagsTab() {
           await deleteAdminTag(t.id);
           notifications.show({ message: `已删除「${t.name}」`, color: 'green' });
           void mutate();
+          void refreshListsAfterWrite(); // 首页标签栏即时消失
         } catch (e) {
           err(e);
         } finally {

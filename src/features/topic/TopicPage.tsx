@@ -6,7 +6,7 @@ import { notifications } from '@mantine/notifications';
 import useSWR, { mutate as globalMutate } from 'swr';
 import { IconArrowLeft } from '@tabler/icons-react';
 import { api } from '../../api/client';
-import { fetcher, useDrafts, useTopic, useUnread } from '../../api/hooks';
+import { fetcher, refreshListsAfterWrite, useDrafts, useTopic, useUnread } from '../../api/hooks';
 import { useAuth } from '../auth/AuthContext';
 import { requireLogin } from '../auth/authModals';
 import { openShareModal } from '../share/shareModals';
@@ -337,6 +337,7 @@ export default function TopicPage() {
         notifications.show({ message: '已滴滴' });
         refreshUnread();
         void mutate(); // 刷新滴滴数
+        void refreshListsAfterWrite(); // 私密列表/滴滴统计同步，回列表页无需刷新网页
         // 进入创建的私密主题（返回 = 上一级 = 当前主题）
         navigate(`/d/${res.discussionId}`, {
           state: { from: routeLocation.pathname + routeLocation.search },
@@ -476,12 +477,8 @@ export default function TopicPage() {
     } catch {
       /* 刷新失败不影响已提交的回复 */
     }
-    // 刷新讨论列表缓存（评论数变化）
-    void globalMutate(
-      (k) => typeof k === 'string' && k.startsWith('/discussions'),
-      undefined,
-      { revalidate: true }
-    ).catch(() => {});
+    // 刷新讨论列表缓存（评论数/摘要变化），切回列表页无需手动刷新网页
+    void refreshListsAfterWrite();
     setSubmitting(false);
   }, [user, content, imageUrl, id, replyTarget, replyCharacterId, draftKey, mutate, mutateDrafts, data]);
 
@@ -523,6 +520,8 @@ export default function TopicPage() {
             undefined,
             { revalidate: true }
           );
+          // 我的主题/私密列表也同步（当前页被删时直接离开，无需刷新网页）
+          void refreshListsAfterWrite();
           if (t === 'discussion') navigate('/');
         },
         onModeration: async () => {
@@ -862,7 +861,14 @@ export default function TopicPage() {
       {/* 私密主题：滴滴响应条。仅【收件人】（被滴滴方）显示「接受/婉拒」；
           发起者（作者）不显示响应条（避免看到"对方滴滴了你"） */}
       {isPrivate && data.isRecipient && (
-        <DidiResponseBar status={d.didi_status ?? null} discussionId={d.id} onChanged={() => mutate()} />
+        <DidiResponseBar
+          status={d.didi_status ?? null}
+          discussionId={d.id}
+          onChanged={() => {
+            void mutate(); // 本主题响应状态即时更新
+            void refreshListsAfterWrite(); // 私密列表响应状态同步，无需刷新网页
+          }}
+        />
       )}
 
       {/* 主题内搜索 / 导出记录 */}
@@ -978,7 +984,10 @@ export default function TopicPage() {
           isFirstPost={editingPost.number === 1}
           discussionTitle={d.title}
           onClose={() => setEditingPost(null)}
-          onSaved={() => mutate()}
+          onSaved={() => {
+            void mutate(); // 详情立即刷新（编辑内容/标题即时显示）
+            void refreshListsAfterWrite(); // 列表摘要/标题同步，无需刷新网页
+          }}
         />
       )}
 

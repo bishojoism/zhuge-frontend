@@ -7,7 +7,7 @@ import { modals } from '@mantine/modals';
 import { mutate } from 'swr';
 import { useAuth } from '../auth/AuthContext';
 import { requireLogin } from '../auth/authModals';
-import { useDiscussions, useTags } from '../../api/hooks';
+import { useDiscussions, useTags, refreshListsAfterWrite } from '../../api/hooks';
 import { readInitData } from '../../api/client';
 import { openModalOnce } from '../../lib/modals';
 import { focusOnEnter } from '../../lib/modalFocus';
@@ -213,11 +213,11 @@ export default function HomePage() {
   // 发帖成功：刷新列表/标签缓存 + 跳转详情（记录来源）
   const handlePosted = useCallback(
     (id: number) => {
-      mutate(key);
-      mutate('/tags');
+      // 全局刷新：所有排序/标签列表 + 标签计数 + 我的主题，切回列表页无需手动刷新网页
+      void refreshListsAfterWrite();
       navigate(`/d/${id}`, { state: { from: location.pathname + location.search } });
     },
-    [key, navigate, location.pathname, location.search]
+    [navigate, location.pathname, location.search]
   );
 
   const openComposer = useCallback(() => {
