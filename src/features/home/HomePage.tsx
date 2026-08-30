@@ -225,6 +225,9 @@ export default function HomePage() {
       requireLogin('开戏');
       return;
     }
+    // 打开发帖弹窗前拉全量标签（SSR 首屏只内联了主标签；SWR revalidate 不覆盖 fallback 命中，
+    // 手动重新验证，让发帖弹窗可选全部标签）
+    void mutate('/tags');
     openModalOnce(
       'composer',
       (m) => {
@@ -241,6 +244,8 @@ export default function HomePage() {
     );
   }, [user, tags, handlePosted]);
   const openTagPicker = useCallback(() => {
+    // 打开"更多标签"弹窗前拉全量标签（SSR 首屏只内联了主标签）
+    void mutate('/tags');
     openModalOnce(
       'tag-picker',
       (m) => {

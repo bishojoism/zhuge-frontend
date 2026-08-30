@@ -40,3 +40,18 @@ if (!('ResizeObserver' in window)) {
 if (!window.scrollTo) {
   Object.defineProperty(window, 'scrollTo', { value: vi.fn(), configurable: true });
 }
+
+// Image mock：jsdom 不加载图片，onload 永不触发。
+// uploadImageFile 的压缩步骤会等 onload/超时 —— mock 成同步 onload，
+// 避免每个上传测试白白等 2s 超时（naturalWidth=0 时压缩逻辑直接跳过）。
+class ImageMock {
+  naturalWidth = 0;
+  naturalHeight = 0;
+  set src(_v: string) {
+    // 模拟解码成功（naturalWidth=0 → compressImageDataUrl 视为无需压缩，走原图）
+    if (this.onload) queueMicrotask(() => this.onload(new Event('load')));
+  }
+  onload: ((e: Event) => void) | null = null;
+  onerror: ((e: Event) => void) | null = null;
+}
+Object.defineProperty(globalThis, 'Image', { value: ImageMock, configurable: true });
