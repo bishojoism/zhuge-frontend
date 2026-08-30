@@ -24,7 +24,7 @@ export function openTagRequestModal(): void {
   );
 }
 
-function TagRequestContent() {
+export function TagRequestContent() {
   const [name, setName] = useState('');
   const [reason, setReason] = useState('');
   const [submitting, setSubmitting] = useState(false);

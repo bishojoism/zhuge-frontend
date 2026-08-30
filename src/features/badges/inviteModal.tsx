@@ -26,7 +26,7 @@ export function openInviteModal(userId: number, username: string): void {
   });
 }
 
-function InviteContent({ userId, username }: { userId: number; username: string }) {
+export function InviteContent({ userId, username }: { userId: number; username: string }) {
   const [inviteCount, setInviteCount] = useState<number | null>(null);
   const [invited, setInvited] = useState<InvitedUser[] | null>(null);
 

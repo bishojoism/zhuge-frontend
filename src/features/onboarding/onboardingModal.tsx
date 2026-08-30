@@ -20,7 +20,7 @@ export function openOnboardingModal(): void {
   });
 }
 
-function OnboardingContent() {
+export function OnboardingContent() {
   const navigate = useNavigate();
   const { data: charsData } = useSWR<{ data: CharacterItem[] }>('/me/characters', fetcher);
   const { data: myTopics } = useSWR<{ data: { id: number }[] }>('/me/discussions', fetcher);

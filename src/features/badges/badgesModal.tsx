@@ -20,7 +20,7 @@ export function openBadgesModal(userId: number): void {
   });
 }
 
-function BadgesContent({ userId }: { userId: number }) {
+export function BadgesContent({ userId }: { userId: number }) {
   const [data, setData] = useState<MyBadgesResult | null>(null);
   const [error, setError] = useState(false);
 

@@ -27,7 +27,7 @@ export function openApiTokensModal(): void {
   });
 }
 
-function ApiTokensContent() {
+export function ApiTokensContent() {
   const navigate = useNavigate();
   const [rows, setRows] = useState<ApiTokenRow[] | null>(null);
   const [name, setName] = useState('');
