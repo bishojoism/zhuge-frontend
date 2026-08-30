@@ -87,27 +87,26 @@ describe('parseBBCode（安全渲染）', () => {
     expect(screen.getByRole('button', { name: '复制' })).toBeInTheDocument();
   });
 
-  it('骰子 [dice]1d20[/dice]：渲染按钮，点击掷出', () => {
-    const { container } = render(parseBBCode('[dice]1d20[/dice]'));
-    const btn = screen.getByRole('button', { name: /🎲 1d20/ });
-    expect(btn).toBeInTheDocument();
-    btn.click();
-    // 结果在 1-20 之间
-    const m = container.textContent!.match(/\d+/g)!.map(Number).filter((n) => n <= 20);
-    expect(m.length).toBeGreaterThan(0);
-    expect(Math.min(...m)).toBeGreaterThanOrEqual(1);
-  });
-
-  it('骰子 [dice=2d6+1] 自闭合写法', () => {
-    render(parseBBCode('[dice=2d6+1]'));
-    expect(screen.getByRole('button', { name: /🎲 2d6\+1/ })).toBeInTheDocument();
-  });
-
-  it('非法骰子表达式 → 显示原表达式（不掷出）', () => {
-    wrap(parseBBCode('[dice]999d9999[/dice]'));
-    // 渲染为 🎲 [表达式]（parseDiceExpr 校验失败），不生成可点击骰子按钮
-    expect(screen.getByText(/999d9999/)).toBeInTheDocument();
+  it('骰子注入格式 [dice=1d20|17|17]：显示服务端结果，不可自行掷骰', () => {
+    const { container } = render(parseBBCode('[dice=1d20|17|17]'));
+    expect(container.textContent).toContain('🎲 1d20');
+    expect(container.textContent).toContain('17');
+    expect(container.textContent).toContain('[17]');
+    // 无掷骰按钮（结果由服务端注入，防伪造）
     expect(screen.queryByRole('button', { name: /🎲/ })).toBeNull();
+  });
+
+  it('骰子 [dice]2d6+1[/dice]：未发帖时显示等待掷定', () => {
+    wrap(parseBBCode('[dice]2d6+1[/dice]'));
+    expect(screen.getByText(/🎲 2d6\+1/)).toBeInTheDocument();
+    expect(screen.getByText(/发帖后掷定/)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /🎲/ })).toBeNull();
+  });
+
+  it('非法骰子表达式 → 显示原表达式（不生成骰子）', () => {
+    wrap(parseBBCode('[dice]999d9999[/dice]'));
+    // 非法表达式渲染为 🎲 [表达式]（无法掷出）
+    expect(screen.getByText(/🎲 \[999d9999\]/)).toBeInTheDocument();
   });
 
   it('纯文本不转义破坏（React 自动转义）', () => {

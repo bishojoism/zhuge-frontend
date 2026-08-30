@@ -99,48 +99,47 @@ function CopyBlock({ children, text }: { children: ReactNode; text: string }) {
   );
 }
 
-// ===== 骰子：点击掷出（NdM / NdM+K），显示结果与明细 =====
+// ===== 骰子：显示服务端注入的结果（防客户端伪造，不可自行掷骰） =====
+// 注入格式：[dice=expr|total|detail]，如 [dice=2d6+1|8|3,4+1]
+// 旧格式（无结果）：显示 🎲 表达式，提示结果由服务端掷定（发帖/回复时注入）
 function DiceRoll({ expr }: { expr: string }) {
-  const parsed = parseDiceExpr(expr);
-  const [result, setResult] = useState<{ total: number; rolls: number[] } | null>(null);
+  // 拆分注入结果：expr|total|detail
+  const [rawExpr, totalStr, detail] = expr.split('|');
+  const parsed = parseDiceExpr(rawExpr || expr);
   if (!parsed) return <span>🎲 [{expr}]</span>;
   const { count, sides, mod } = parsed;
-  const roll = () => {
-    const rolls: number[] = [];
-    for (let i = 0; i < count; i++) rolls.push(Math.floor(Math.random() * sides) + 1);
-    const total = rolls.reduce((a, b) => a + b, 0) + mod;
-    setResult({ total, rolls });
-  };
   const label = `${count}d${sides}${mod ? (mod > 0 ? `+${mod}` : mod) : ''}`;
+  const hasResult = totalStr !== undefined && totalStr !== '';
   return (
     <span
       style={{ display: 'inline-flex', alignItems: 'center', gap: 6, margin: '0 2px', verticalAlign: 'middle' }}
+      title="结果由服务端掷定"
     >
-      <button
-        type="button"
-        onClick={roll}
-        title={`掷 ${label}`}
+      <span
         style={{
+          display: 'inline-block',
           border: '1px solid var(--border)',
           borderRadius: 8,
           background: 'var(--card)',
           padding: '2px 10px',
           fontSize: 13,
-          cursor: 'pointer',
           boxShadow: 'var(--shadow-sm)',
         }}
       >
         🎲 {label}
-      </button>
-      {result && (
+      </span>
+      {hasResult ? (
         <span style={{ fontSize: 13, color: 'var(--primary-deep)', fontWeight: 600 }}>
-          {result.total}
-          <span style={{ fontWeight: 400, color: 'var(--muted)', fontSize: 12 }}>
-            {' '}
-            [{result.rolls.join(', ')}
-            {mod ? (mod > 0 ? ` +${mod}` : ` ${mod}`) : ''}]
-          </span>
+          {totalStr}
+          {detail ? (
+            <span style={{ fontWeight: 400, color: 'var(--muted)', fontSize: 12 }}>
+              {' '}
+              [{detail}]
+            </span>
+          ) : null}
         </span>
+      ) : (
+        <span style={{ fontSize: 12, color: 'var(--muted)' }}>（发帖后掷定）</span>
       )}
     </span>
   );
@@ -164,13 +163,13 @@ function parseSegment(text: string, loose = false): ReactNode[] {
     const tagName = rawTag.startsWith('color') ? 'color' : rawTag.toLowerCase();
     const closeTag = `[/${tagName}]`;
     const innerStart = (m.index ?? 0) + m[0].length;
-    const closeIdx = rest.slice(innerStart).toLowerCase().indexOf(closeTag);
-    // [dice=1d20] 自闭合写法：无 [/dice] 时直接渲染骰子（表达式在标签 value 里）
-    if (closeIdx === -1 && rawTag.toLowerCase().startsWith('dice=')) {
+    // [dice=...] 一律按自闭合处理（注入格式 [dice=expr|total|detail] 无闭合；防误吞后续内容）
+    if (rawTag.toLowerCase().startsWith('dice=')) {
       nodes.push(<DiceRoll key={nodes.length} expr={rawTag.slice(5).trim()} />);
       rest = rest.slice(innerStart);
       continue;
     }
+    const closeIdx = rest.slice(innerStart).toLowerCase().indexOf(closeTag);
     if (closeIdx === -1) {
       if (loose) {
         // 摘要截断在标签中间：丢弃残缺标签，继续解析后续文本
