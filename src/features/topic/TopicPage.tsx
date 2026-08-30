@@ -271,20 +271,27 @@ export default function TopicPage() {
   }, []);
 
   // 从通知点入：自动引用对方（接戏/滴滴通知 → 回复框自动 @对方并滚动过去，不抢焦点）
+  // 支持两种来源：站内通知弹窗（location.state.replyPostId）与系统推送通知（URL ?reply=&replyAuthor=）
   useEffect(() => {
     if (!user || !data) return;
     const st = (routeLocation.state || {}) as { replyPostId?: number; replyAuthor?: string };
-    if (!st.replyPostId) return;
-    const targetPost = data.posts.find((p) => p.id === st.replyPostId);
+    const sp = new URLSearchParams(routeLocation.search);
+    const qReply = sp.get('reply');
+    const replyPostId =
+      st.replyPostId ??
+      (qReply && /^\d+$/.test(qReply) ? Number(qReply) : undefined);
+    if (!replyPostId) return;
+    const targetPost = data.posts.find((p) => p.id === replyPostId);
     if (!targetPost) return;
-    setReplyTarget({ postId: st.replyPostId, author: st.replyAuthor || displayName(targetPost) });
+    const replyAuthor = st.replyAuthor || sp.get('replyAuthor') || undefined;
+    setReplyTarget({ postId: replyPostId, author: replyAuthor || displayName(targetPost) });
     requestAnimationFrame(() => {
       composerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
     });
-    // 清除 state：仅首次进入时生效，刷新/返回不重复触发
-    navigate(routeLocation.pathname + routeLocation.search, { replace: true, state: null });
+    // 清除 state + query：仅首次进入时生效，刷新/返回不重复触发
+    navigate(routeLocation.pathname, { replace: true, state: null });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, data, routeLocation.state, navigate]);
+  }, [user, data, routeLocation.state, routeLocation.search, navigate]);
 
   // 接戏：target 为 null 表示直接回复主题（首帖），否则回复指定帖子
   const startReply = useCallback(
