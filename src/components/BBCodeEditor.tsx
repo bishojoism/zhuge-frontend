@@ -3,7 +3,7 @@
 // 编辑态为纯 textarea（保留原生输入/自动保存/快捷键），预览态用 parseBBCode 安全渲染
 import { useMemo, useRef, useState } from 'react';
 import { ActionIcon, Group, Text, Textarea, Tooltip } from '@mantine/core';
-import { parseBBCode, hasBBCode } from '../lib/bbcode';
+import { parseBBCode } from '../lib/bbcode';
 
 // 预设色板：与解析白名单一致的常用颜色（点击即插入 [color=值]）
 const PALETTE: { name: string; value: string }[] = [
@@ -117,7 +117,6 @@ export default function BBCodeEditor({
     () => (value ? parseBBCode(value) : <span style={{ opacity: 0.5 }}>（空）</span>),
     [value]
   );
-  const hasFmt = hasBBCode(value);
 
   return (
     <div>
@@ -208,16 +207,11 @@ export default function BBCodeEditor({
         </div>
       )}
 
-      <Group justify="space-between" mt={2}>
-        <Text size="xs" c="dimmed">
-          支持格式：加粗、斜体、下划线、删除线、大字、小字、文字颜色、可复制文本块、骰子（选中文字后点按钮）
+      {preview && mode === 'preview' ? (
+        <Text size="xs" c="dimmed" mt={2}>
+          （预览 · 点「编辑」返回输入）
         </Text>
-        {hasFmt && mode === 'edit' ? (
-          <Text size="xs" c="dimmed">
-            已检测到格式标签
-          </Text>
-        ) : null}
-      </Group>
+      ) : null}
     </div>
   );
 }
