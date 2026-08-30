@@ -1,11 +1,11 @@
 // ===== 我的徽章弹窗：头像菜单「徽章」入口 =====
 // 展示 9 枚徽章（基础/进阶两组，未获得置灰显示条件）+ 邀请好友卡片（复制链接 + 已邀请数）
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Button, Divider, Group, Loader, SimpleGrid, Stack, Text } from '@mantine/core';
 import { modals } from '@mantine/modals';
 import { notifications } from '@mantine/notifications';
-import { api } from '../../api/client';
 import { openModalOnce } from '../../lib/modals';
+import { useMyBadges } from '../../api/hooks';
 import type { MyBadgesResult } from '../../types';
 
 export function openBadgesModal(userId: number): void {
@@ -21,14 +21,8 @@ export function openBadgesModal(userId: number): void {
 }
 
 export function BadgesContent({ userId }: { userId: number }) {
-  const [data, setData] = useState<MyBadgesResult | null>(null);
-  const [error, setError] = useState(false);
-
-  useEffect(() => {
-    api<{ data: MyBadgesResult }>('/me/badges')
-      .then((r) => setData(r.data))
-      .catch(() => setError(true));
-  }, []);
+  // SWR 缓存：徽章数据跨弹窗复用（与邀请弹窗同 key）
+  const { data, error } = useMyBadges();
 
   if (error) {
     return (

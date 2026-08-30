@@ -2,6 +2,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import { MantineProvider } from '@mantine/core';
+import { SWRConfig } from 'swr';
 import { BadgesContent } from '../src/features/badges/badgesModal';
 
 const apiMock = vi.hoisted(() => vi.fn());
@@ -16,7 +17,9 @@ const BADGES = [
 function renderContent() {
   return render(
     <MantineProvider>
-      <BadgesContent userId={189} />
+      <SWRConfig value={{ dedupingInterval: 0, provider: () => new Map() }}>
+        <BadgesContent userId={189} />
+      </SWRConfig>
     </MantineProvider>
   );
 }

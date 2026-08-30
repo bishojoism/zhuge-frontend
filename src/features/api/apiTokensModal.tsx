@@ -1,19 +1,13 @@
 // ===== 开放 API 弹窗：头像菜单「开放 API」入口 =====
 // 个人访问令牌：程序调用 API 用（Authorization: Bearer <token>），替代 cookie
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Button, Divider, Group, Loader, Stack, Text, TextInput } from '@mantine/core';
 import { modals } from '@mantine/modals';
 import { notifications } from '@mantine/notifications';
 import { api } from '../../api/client';
 import { openModalOnce } from '../../lib/modals';
 import { useNavigate } from 'react-router-dom';
-
-interface ApiTokenRow {
-  id: number;
-  name: string;
-  created_at: string;
-  last_used_at: string | null;
-}
+import { useApiTokens, type ApiTokenRow } from '../../api/hooks';
 
 export function openApiTokensModal(): void {
   openModalOnce('api-tokens', (m) => {
@@ -29,19 +23,14 @@ export function openApiTokensModal(): void {
 
 export function ApiTokensContent() {
   const navigate = useNavigate();
-  const [rows, setRows] = useState<ApiTokenRow[] | null>(null);
+  // SWR 缓存：令牌列表跨弹窗复用；创建/撤销后 mutate 刷新
+  const { data: rows, mutate } = useApiTokens();
   const [name, setName] = useState('');
   const [creating, setCreating] = useState(false);
   const [newToken, setNewToken] = useState<string | null>(null);
   // 新令牌明文默认隐藏，手动点眼睛显示
   const [newTokenVisible, setNewTokenVisible] = useState(false);
   const [revokingId, setRevokingId] = useState<number | null>(null);
-
-  const reload = () => api<{ data: ApiTokenRow[] }>('/me/api-tokens').then((r) => setRows(r.data)).catch(() => setRows([]));
-  useEffect(() => {
-    reload();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   const create = async () => {
     const n = name.trim();
@@ -51,7 +40,7 @@ export function ApiTokensContent() {
       setNewToken(r.data.token); // 明文默认隐藏，眼睛显示
       setNewTokenVisible(false);
       setName('');
-      reload();
+      void mutate();
     } catch (e) {
       notifications.show({ message: e instanceof Error ? e.message : '创建失败', color: 'red' });
     } finally {
@@ -74,7 +63,7 @@ export function ApiTokensContent() {
     try {
       await api(`/me/api-tokens/${t.id}`, { method: 'DELETE' });
       notifications.show({ message: `已撤销「${t.name}」`, color: 'green' });
-      reload();
+      void mutate();
     } catch (e) {
       notifications.show({ message: e instanceof Error ? e.message : '撤销失败', color: 'red' });
     } finally {
@@ -156,7 +145,7 @@ curl -X POST '${window.location.origin}/api/discussions/1/posts' \\
 
       {/* 列表 */}
       <Divider label="我的令牌" labelPosition="left" />
-      {rows === null ? (
+      {rows === undefined ? (
         <Loader size="sm" />
       ) : rows.length === 0 ? (
         <Text size="xs" c="dimmed">

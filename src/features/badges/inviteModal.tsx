@@ -4,8 +4,8 @@ import { useEffect, useState } from 'react';
 import { Button, Divider, Group, Loader, Stack, Text } from '@mantine/core';
 import { modals } from '@mantine/modals';
 import { notifications } from '@mantine/notifications';
-import { api } from '../../api/client';
 import { openModalOnce } from '../../lib/modals';
+import { useMyBadges, useMyInvites } from '../../api/hooks';
 import type { MyBadgesResult } from '../../types';
 
 interface InvitedUser {
@@ -27,17 +27,10 @@ export function openInviteModal(userId: number, username: string): void {
 }
 
 export function InviteContent({ userId, username }: { userId: number; username: string }) {
-  const [inviteCount, setInviteCount] = useState<number | null>(null);
-  const [invited, setInvited] = useState<InvitedUser[] | null>(null);
-
-  useEffect(() => {
-    api<{ data: MyBadgesResult }>('/me/badges')
-      .then((r) => setInviteCount(r.data.inviteCount))
-      .catch(() => setInviteCount(0));
-    api<{ data: InvitedUser[] }>('/me/invites')
-      .then((r) => setInvited(r.data))
-      .catch(() => setInvited([]));
-  }, []);
+  // SWR 缓存：徽章/邀请数据跨弹窗复用，不重复请求
+  const { data: badgesData } = useMyBadges();
+  const { data: invited } = useMyInvites();
+  const inviteCount = badgesData?.inviteCount ?? 0;
 
   const inviteLink = `${window.location.origin}/?invite=${userId}`;
 
@@ -83,7 +76,7 @@ export function InviteContent({ userId, username }: { userId: number; username: 
           <Text size="sm" fw={600}>
             🤝 我的邀请链接
           </Text>
-          {inviteCount === null ? (
+          {badgesData === undefined ? (
             <Loader size={14} />
           ) : (
             <Text size="xs" c="dimmed">
@@ -115,7 +108,7 @@ export function InviteContent({ userId, username }: { userId: number; username: 
 
       {/* 邀请明细：谁通过我的链接注册了 */}
       <Divider label="我的邀请" labelPosition="left" />
-      {invited === null ? (
+      {invited === undefined ? (
         <Loader size={14} />
       ) : invited.length === 0 ? (
         <Text size="xs" c="dimmed">

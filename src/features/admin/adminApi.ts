@@ -108,6 +108,7 @@ export function deleteContent(opts: { targetType: 'discussion' | 'post'; targetI
 
 // ===== 宣传数据看板 =====
 // GET /api/admin/overview → { data: OverviewStats }
+// 读取已改用 SWR hook useAdminOverview（api/hooks.ts）；本模块仅保留类型与写操作
 export interface OverviewStats {
   users: number;
   newUsers7d: number;
@@ -116,9 +117,6 @@ export interface OverviewStats {
   didis: number;
   invited: number;
   stickyCount: number;
-}
-export function getOverview() {
-  return api<{ data: OverviewStats }>('/admin/overview');
 }
 
 // ===== 主题置顶（站长推荐位） =====
@@ -129,10 +127,6 @@ export interface StickyDiscussion {
   created_at: string;
   comment_count: number;
   author: string;
-}
-// GET /api/sticky-discussions → { data: StickyDiscussion[] }
-export function getStickyDiscussions() {
-  return api<{ data: StickyDiscussion[] }>('/sticky-discussions');
 }
 // POST /api/admin/discussions/:id/sticky → { ok, sticky }
 export function setDiscussionSticky(id: number, sticky: boolean) {
@@ -153,10 +147,6 @@ export interface TagRequestRow {
   handled_at: string | null;
   requester: string;
   handled_by_name: string | null;
-}
-// GET /api/tag-requests → { data: TagRequestRow[] }
-export function getTagRequests() {
-  return api<{ data: TagRequestRow[] }>('/tag-requests');
 }
 // POST /api/tag-requests/:id/handle → { ok }
 // 批准时可改名（finalName，默认保持申请名）；note 批准时为标签描述 / 驳回时为原因
@@ -180,10 +170,6 @@ export interface AdminTagRow {
   discussion_count: number;
   slug: string | null;
   created_at: string;
-}
-// GET /api/admin/tags → { data: AdminTagRow[] }
-export function getAdminTags() {
-  return api<{ data: AdminTagRow[] }>('/admin/tags');
 }
 // POST /api/admin/tags → { data: { id } }
 export function createAdminTag(opts: { name: string; description?: string; color?: string; primary?: boolean }) {

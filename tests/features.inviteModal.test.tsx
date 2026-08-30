@@ -3,6 +3,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MantineProvider } from '@mantine/core';
+import { SWRConfig } from 'swr';
 import { InviteContent } from '../src/features/badges/inviteModal';
 
 const apiMock = vi.hoisted(() => vi.fn());
@@ -18,7 +19,9 @@ vi.mock('../src/features/badges/posterModal', () => ({ openInvitePosterModal: vi
 function renderContent() {
   return render(
     <MantineProvider>
-      <InviteContent userId={189} username="promodemo" />
+      <SWRConfig value={{ dedupingInterval: 0, provider: () => new Map() }}>
+        <InviteContent userId={189} username="promodemo" />
+      </SWRConfig>
     </MantineProvider>
   );
 }

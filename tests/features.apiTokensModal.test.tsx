@@ -3,6 +3,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MantineProvider } from '@mantine/core';
+import { SWRConfig } from 'swr';
 import { ApiTokensContent } from '../src/features/api/apiTokensModal';
 
 const apiMock = vi.hoisted(() => vi.fn());
@@ -14,7 +15,9 @@ vi.mock('react-router-dom', () => ({ useNavigate: () => vi.fn() }));
 function renderContent() {
   return render(
     <MantineProvider>
-      <ApiTokensContent />
+      <SWRConfig value={{ dedupingInterval: 0, provider: () => new Map() }}>
+        <ApiTokensContent />
+      </SWRConfig>
     </MantineProvider>
   );
 }

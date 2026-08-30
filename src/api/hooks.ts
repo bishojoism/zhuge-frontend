@@ -1,6 +1,13 @@
 // ===== SWR hooks：按领域组织的取数 hooks（数据/缓存/重验证都在这里） =====
 import useSWR from 'swr';
 import { api, readInitData } from './client';
+// 管理后台类型（adminApi 只 import api，无循环依赖）
+import type {
+  AdminTagRow,
+  OverviewStats,
+  StickyDiscussion,
+  TagRequestRow,
+} from '../features/admin/adminApi';
 import type {
   AdminReport,
   AdminStats,
@@ -11,6 +18,7 @@ import type {
   DiscussionListResult,
   InitData,
   IpLogRow,
+  MyBadgesResult,
   MyTopicItem,
   NotifListResult,
   DidiStats,
@@ -156,6 +164,74 @@ export function useIpLogs() {
 export function useDeviceAuthRequests() {
   return useSWR<DeviceAuthRequest[]>('/device/auth-requests/mine', async (p: string) => {
     const r = await api<{ data: DeviceAuthRequest[] }>(p);
+    return r.data;
+  });
+}
+
+// 我的徽章 + 邀请统计（邀请弹窗 / 徽章弹窗共用，SWR 缓存去重）
+// 类型复用 types.ts 的 MyBadgesResult
+
+export function useMyBadges() {
+  return useSWR<MyBadgesResult>('/me/badges', async (p: string) => {
+    const r = await api<{ data: MyBadgesResult }>(p);
+    return r.data;
+  });
+}
+
+// 我的邀请明细（谁通过我的链接注册）
+export interface InvitedUser {
+  id: number;
+  username: string;
+  created_at: string;
+}
+
+export function useMyInvites() {
+  return useSWR<InvitedUser[]>('/me/invites', async (p: string) => {
+    const r = await api<{ data: InvitedUser[] }>(p);
+    return r.data;
+  });
+}
+
+// 我的 API 令牌列表（开放 API 弹窗）
+export interface ApiTokenRow {
+  id: number;
+  name: string;
+  created_at: string;
+  last_used_at: string | null;
+}
+
+export function useApiTokens() {
+  return useSWR<ApiTokenRow[]>('/me/api-tokens', async (p: string) => {
+    const r = await api<{ data: ApiTokenRow[] }>(p);
+    return r.data;
+  });
+}
+
+// ===== 管理后台次级数据（SWR 缓存/去重；与 adminApi.ts 的请求封装共用 key） =====
+export function useAdminOverview() {
+  return useSWR<OverviewStats>('/admin/overview', async (p: string) => {
+    const r = await api<{ data: OverviewStats }>(p);
+    return r.data;
+  });
+}
+
+export function useStickyDiscussions() {
+  return useSWR<StickyDiscussion[]>('/sticky-discussions', async (p: string) => {
+    const r = await api<{ data: StickyDiscussion[] }>(p);
+    return r.data;
+  });
+}
+
+export function useTagRequests() {
+  return useSWR<TagRequestRow[]>('/tag-requests', async (p: string) => {
+    const r = await api<{ data: TagRequestRow[] }>(p);
+    return r.data;
+  });
+}
+
+export function useAdminTags() {
+  return useSWR<AdminTagRow[]>('/admin/tags', async (p: string) => {
+    const r = await api<{ data: AdminTagRow[] }>(p);
     return r.data;
   });
 }

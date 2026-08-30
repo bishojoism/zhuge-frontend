@@ -17,9 +17,17 @@ import {
 } from '@mantine/core';
 import { modals } from '@mantine/modals';
 import { notifications } from '@mantine/notifications';
-import { mutate } from 'swr';
 import { useAuth } from '../auth/AuthContext';
-import { useAdminReports, useAdminStats, useAdminUsers, useIpLogs } from '../../api/hooks';
+import {
+  useAdminReports,
+  useAdminStats,
+  useAdminUsers,
+  useIpLogs,
+  useAdminOverview,
+  useStickyDiscussions,
+  useTagRequests,
+  useAdminTags,
+} from '../../api/hooks';
 import { openModalOnce } from '../../lib/modals';
 import { openPromptModal } from '../../lib/promptModal';
 import { timeAgo } from '../../lib/utils';
@@ -32,12 +40,8 @@ import {
   type StickyDiscussion,
   type TagRequestRow,
   type AdminTagRow,
-  getOverview,
-  getStickyDiscussions,
   setDiscussionSticky,
-  getTagRequests,
   handleTagRequest,
-  getAdminTags,
   createAdminTag,
   updateAdminTag,
   deleteAdminTag,
@@ -244,23 +248,19 @@ function StatCard({ label, value }: { label: string; value: number | string }) {
 
 // ============ 宣传 / 置顶管理 ============
 function PromoTab() {
-  const [stats, setStats] = useState<OverviewStats | null>(null);
-  const [stickyList, setStickyList] = useState<StickyDiscussion[] | null>(null);
+  // SWR 缓存：宣传数据 / 置顶列表跨 tab 切换复用
+  const { data: stats, mutate: mutateStats } = useAdminOverview();
+  const { data: stickyList, mutate: mutateSticky } = useStickyDiscussions();
   const [topicId, setTopicId] = useState('');
   const [busy, setBusy] = useState(false);
-
-  const reload = () => {
-    getOverview().then((r) => setStats(r.data)).catch(() => {});
-    getStickyDiscussions().then((r) => setStickyList(r.data)).catch(() => setStickyList([]));
-  };
-  useEffect(reload, []);
 
   const doSticky = async (id: number, sticky: boolean) => {
     setBusy(true);
     try {
       await setDiscussionSticky(id, sticky);
       notifications.show({ message: sticky ? `已置顶主题 #${id}` : `已取消置顶 #${id}`, color: 'green' });
-      reload();
+      void mutateSticky();
+      void mutateStats();
     } catch (e) {
       notifications.show({ message: e instanceof Error ? e.message : '操作失败', color: 'red' });
     } finally {
@@ -304,7 +304,7 @@ function PromoTab() {
             取消置顶
           </Button>
         </Group>
-        {stickyList === null ? (
+        {stickyList === undefined ? (
           <Loader size="sm" />
         ) : stickyList.length === 0 ? (
           <Text size="sm" c="dimmed">
@@ -339,14 +339,9 @@ function PromoTab() {
 
 // ============ 标签申请管理 ============
 function TagRequestsTab() {
-  const [rows, setRows] = useState<TagRequestRow[] | null>(null);
+  // SWR 缓存：申请列表跨 tab 切换复用；处理后 mutate
+  const { data: rows, mutate } = useTagRequests();
   const [busyId, setBusyId] = useState<number | null>(null);
-
-  const reload = () => getTagRequests().then((r) => setRows(r.data)).catch(() => setRows([]));
-  useEffect(() => {
-    reload();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   const act = async (r: TagRequestRow, action: 'approve' | 'reject') => {
     if (action === 'approve') {
@@ -369,7 +364,7 @@ function TagRequestsTab() {
       try {
         await handleTagRequest(r.id, 'approve', (res.desc || '').trim(), finalName);
         notifications.show({ message: `已创建标签「${finalName}」`, color: 'green' });
-        reload();
+        void mutate();
       } catch (e) {
         notifications.show({ message: e instanceof Error ? e.message : '操作失败', color: 'red' });
       } finally {
@@ -389,7 +384,7 @@ function TagRequestsTab() {
     try {
       await handleTagRequest(r.id, 'reject', (res.note || '').trim());
       notifications.show({ message: `已驳回「${r.name}」`, color: 'green' });
-      reload();
+      void mutate();
     } catch (e) {
       notifications.show({ message: e instanceof Error ? e.message : '操作失败', color: 'red' });
     } finally {
@@ -400,7 +395,7 @@ function TagRequestsTab() {
   return (
     <Stack gap="md">
       <Text fw={600}>用户申请的标签（批准后自动创建为 IP 标签）</Text>
-      {rows === null ? (
+      {rows === undefined ? (
         <Loader size="sm" />
       ) : rows.length === 0 ? (
         <Text size="sm" c="dimmed">
@@ -461,15 +456,10 @@ function TagRequestsTab() {
 
 // ============ 标签管理 ============
 function TagsTab() {
-  const [rows, setRows] = useState<AdminTagRow[] | null>(null);
+  // SWR 缓存：标签列表跨 tab 切换复用；增删改后 mutate
+  const { data: rows, mutate } = useAdminTags();
   const [busyId, setBusyId] = useState<number | null>(null);
   const [q, setQ] = useState('');
-
-  const reload = () => getAdminTags().then((r) => setRows(r.data)).catch(() => setRows([]));
-  useEffect(() => {
-    reload();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   const err = (e: unknown) => notifications.show({ message: e instanceof Error ? e.message : '操作失败', color: 'red' });
 
@@ -501,7 +491,7 @@ function TagsTab() {
     try {
       await createAdminTag({ name: n, description: (res.desc || '').trim(), primary: res.type === '主标签' });
       notifications.show({ message: `已创建标签「${n}」`, color: 'green' });
-      reload();
+      void mutate();
     } catch (e) {
       err(e);
     } finally {
@@ -519,7 +509,7 @@ function TagsTab() {
     setBusyId(t.id);
     try {
       await updateAdminTag(t.id, { name: (res.name || '').trim() });
-      reload();
+      void mutate();
     } catch (e) {
       err(e);
     } finally {
@@ -532,7 +522,7 @@ function TagsTab() {
     try {
       await updateAdminTag(t.id, { is_hidden: !t.is_hidden });
       notifications.show({ message: t.is_hidden ? `已显示「${t.name}」` : `已隐藏「${t.name}」`, color: 'green' });
-      reload();
+      void mutate();
     } catch (e) {
       err(e);
     } finally {
@@ -545,7 +535,7 @@ function TagsTab() {
     try {
       await updateAdminTag(t.id, { primary: !(t.position != null) });
       notifications.show({ message: t.position != null ? `「${t.name}」已改回次标签` : `「${t.name}」已设为主标签`, color: 'green' });
-      reload();
+      void mutate();
     } catch (e) {
       err(e);
     } finally {
@@ -569,7 +559,7 @@ function TagsTab() {
         try {
           await deleteAdminTag(t.id);
           notifications.show({ message: `已删除「${t.name}」`, color: 'green' });
-          reload();
+          void mutate();
         } catch (e) {
           err(e);
         } finally {
@@ -593,7 +583,7 @@ function TagsTab() {
         value={q}
         onChange={(e) => setQ(e.currentTarget.value)}
       />
-      {rows === null ? (
+      {rows === undefined ? (
         <Loader size="sm" />
       ) : filtered === null || filtered.length === 0 ? (
         <Text size="sm" c="dimmed">
