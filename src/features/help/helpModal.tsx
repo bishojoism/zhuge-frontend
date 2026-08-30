@@ -75,7 +75,7 @@ const HELP_ITEMS: { title: string; body: string }[] = [
   },
   {
     title: 'MCP（AI 接入）',
-    body: '《主格》本身就是 MCP 服务器：Claude / Cursor 等 AI 客户端可通过专用域名直接连接，读取戏文、以你的身份开戏接戏。头像菜单「MCP」可生成令牌（默认隐藏、眼睛显示）、一键复制接入配置。详细见「MCP 文档」。',
+    body: '《主格》本身就是 MCP 服务器：Claude / Cursor 等 AI 客户端可直接连接（站点 /mcp 端点），读取戏文、以你的身份开戏接戏。头像菜单「MCP」可生成令牌（默认隐藏、眼睛显示）、一键复制接入配置。详细见「MCP 文档」。',
   },
   {
     title: '安装到桌面',

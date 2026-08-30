@@ -2,11 +2,8 @@
 import { useEffect } from 'react';
 import { Badge, Stack, Table, Text } from '@mantine/core';
 
-// MCP 端点在专用域名（mcp. 子域），主域名 /mcp 被白名单拒绝；本地开发回退当前 origin
-const MCP_URL =
-  typeof window !== 'undefined' && ['localhost', '127.0.0.1'].includes(window.location.hostname)
-    ? `${window.location.origin}/mcp`
-    : 'https://mcp.xn--cnqs3e5vdw9icjz2q1eaa.xyz/mcp';
+// MCP 已与主域名合并：任何环境都用当前 origin 的 /mcp（master 域名即提供 MCP 服务）
+const MCP_URL = typeof window !== 'undefined' ? `${window.location.origin}/mcp` : '/mcp';
 
 const TOOLS: { name: string; auth: string; desc: string }[] = [
   { name: 'list_discussions', auth: '公开', desc: '主题列表（标签/排序/分页/搜索）' },
@@ -39,12 +36,12 @@ export default function McpDocsPage() {
       </div>
 
       <Stack gap={6}>
-        <Text fw={600}>🔗 端点（专用域名）</Text>
+        <Text fw={600}>🔗 端点</Text>
         <Text size="sm" style={{ fontFamily: 'monospace', background: 'var(--card-soft, rgba(127,142,163,.08))', padding: '8px 12px', borderRadius: 8 }}>
           {MCP_URL}
         </Text>
         <Text size="xs" c="dimmed">
-          MCP 仅通过专用域名提供（与主站隔离），主域名不暴露 MCP 服务。传输为 JSON 响应模式：POST JSON-RPC 2.0，无需 SSE 长连接。
+          MCP 与主域名合并提供（与站点同域），限流与 API 层统一。传输为 JSON 响应模式：POST JSON-RPC 2.0，无需 SSE 长连接。
         </Text>
       </Stack>
 

@@ -102,28 +102,28 @@ const swrFallback = buildSwrFallback();
 // Provider 顺序说明：@mantine/modals 的弹窗内容渲染在 ModalsProvider 之下、
 // 与 children 平级（portal 但上下文继承），因此 SWRConfig / BrowserRouter /
 // AuthProvider 必须放在 ModalsProvider 外层，弹窗内才能用 SWR、useNavigate、useAuth。
+// 注意：不用 React.StrictMode —— 它在生产环境也会双渲染组件（React 18+），
+// 首屏 React 执行时间翻倍，拖慢加载；应用代码无需 StrictMode 的额外检查
 ReactDOM.createRoot(document.getElementById('root')!).render(
-  <React.StrictMode>
-    <MantineProvider theme={theme} colorSchemeManager={colorSchemeManager} defaultColorScheme="auto">
-      <Notifications position="top-center" />
-      <SWRConfig
-        value={{
-          // 首屏零 API：SSR 内联数据（fallback）命中后不重新验证（revalidateIfStale 默认 true
-          // 会导致挂载时重复请求 /tags、/discussions 等 —— 首屏白费 4 个请求）
-          revalidateIfStale: false,
-          revalidateOnFocus: false,
-          dedupingInterval: 1500,
-          fallback: swrFallback,
-        }}
-      >
-        <BrowserRouter>
-          <AuthProvider>
-            <ModalsProvider>
-              <App />
-            </ModalsProvider>
-          </AuthProvider>
-        </BrowserRouter>
-      </SWRConfig>
-    </MantineProvider>
-  </React.StrictMode>
+  <MantineProvider theme={theme} colorSchemeManager={colorSchemeManager} defaultColorScheme="auto">
+    <Notifications position="top-center" />
+    <SWRConfig
+      value={{
+        // 首屏零 API：SSR 内联数据（fallback）命中后不重新验证（revalidateIfStale 默认 true
+        // 会导致挂载时重复请求 /tags、/discussions 等 —— 首屏白费 4 个请求）
+        revalidateIfStale: false,
+        revalidateOnFocus: false,
+        dedupingInterval: 1500,
+        fallback: swrFallback,
+      }}
+    >
+      <BrowserRouter>
+        <AuthProvider>
+          <ModalsProvider>
+            <App />
+          </ModalsProvider>
+        </AuthProvider>
+      </BrowserRouter>
+    </SWRConfig>
+  </MantineProvider>
 );

@@ -29,11 +29,8 @@ export function openMcpModal(): void {
 
 function McpContent() {
   const navigate = useNavigate();
-  // MCP 端点在专用域名（mcp. 子域），主域名 /mcp 被白名单拒绝；本地开发回退当前 origin
-  const isLocal = ['localhost', '127.0.0.1'].includes(window.location.hostname);
-  const mcpUrl = isLocal
-    ? `${window.location.origin}/mcp`
-    : 'https://mcp.xn--cnqs3e5vdw9icjz2q1eaa.xyz/mcp';
+  // MCP 已与主域名合并：任何环境都用当前 origin 的 /mcp（master 域名即提供 MCP 服务）
+  const mcpUrl = `${window.location.origin}/mcp`;
   // 令牌：不落本机（每次打开为空）；可在本界面创建；默认隐藏（眼睛切换）
   const [token, setToken] = useState('');
   const [showForm, setShowForm] = useState(false); // 生成表单展开
@@ -120,7 +117,7 @@ function McpContent() {
 
       <Stack gap={4} style={{ border: '1px solid var(--border)', borderRadius: 10, padding: '10px 12px' }}>
         <Text size="xs" c="dimmed">
-          MCP 端点（专用域名）
+          MCP 端点
         </Text>
         <Text size="sm" style={{ fontFamily: 'monospace', userSelect: 'all' }}>
           {mcpUrl}
