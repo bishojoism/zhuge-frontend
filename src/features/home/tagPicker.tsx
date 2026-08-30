@@ -60,7 +60,8 @@ export function TagPickerContent({ tags, activeTag, onPick }: TagPickerContentPr
       </Text>
       <div
         style={{
-          maxHeight: 260,
+          maxHeight: 'min(48vh, 420px)',
+          minHeight: 200,
           overflowY: 'auto',
           border: '1px solid var(--border)',
           borderRadius: 8,
@@ -69,6 +70,7 @@ export function TagPickerContent({ tags, activeTag, onPick }: TagPickerContentPr
           display: 'flex',
           flexWrap: 'wrap',
           gap: 8,
+          alignContent: 'flex-start',
         }}
       >
         {filteredSecondary.map((t) => (
