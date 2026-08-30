@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <title>主格</title>
+  <meta name="description" content="文字角色扮演（语C）平台：公开剧情、私密演绎，你的故事由你书写。" />
+  <link rel="icon" href="/favicon.ico" sizes="any" />
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
+  <link rel="icon" type="image/png" sizes="48x48" href="/favicon.png" />
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+  <link rel="manifest" href="/manifest.json" />
+  <meta name="theme-color" content="#4D698E" />
+  <!-- SSR_INIT_DATA 占位：未来 Worker 侧渲染时在此注入 window.__INITIAL_DATA__ -->
+  <!--SSR_INIT_DATA-->
+  <!-- 深色模式防闪烁：React 挂载前按 localStorage 设置主题属性（兼容裸值与带引号格式） -->
+  <script>
+    (function () {
+      try {
+        var s = localStorage.getItem('zhuge-color-scheme');
+        var dark = s === 'dark' || s === '"dark"' || ((!s || s === 'auto') && window.matchMedia('(prefers-color-scheme: dark)').matches);
+        document.documentElement.setAttribute('data-mantine-color-scheme', dark ? 'dark' : 'light');
+      } catch (e) {}
+    })();
+  </script>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="module" src="/src/main.tsx"></script>
+</body>
+</html>

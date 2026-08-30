@@ -1,0 +1,13 @@
+{
+  "name": "主格",
+  "short_name": "主格",
+  "description": "文字角色扮演（语C）平台：公开剧情、私密演绎，你的故事由你书写。",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f6f5f2",
+  "theme_color": "#4D698E",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
