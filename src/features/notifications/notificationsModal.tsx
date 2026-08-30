@@ -64,12 +64,15 @@ export function NotificationsModalContent({ onClose }: { onClose: () => void }) 
       navigate(n.url);
     } else if (n.discussion_id) {
       const isReply = n.type === 'reply' || n.type === 'didi';
-      navigate(`/d/${n.discussion_id}`, {
-        state:
-          isReply && n.post_id
-            ? { replyPostId: n.post_id, replyAuthor: n.actor_name || undefined }
-            : undefined,
-      });
+      if (isReply && n.post_id) {
+        // 用 URL query 传回复目标（系统推送同款方式，TopicPage 读 ?reply=&replyAuthor=）：
+        // React Router navigate state 在弹窗场景偶发丢失，query 方式可靠
+        const qs = new URLSearchParams({ reply: String(n.post_id) });
+        if (n.actor_name) qs.set('replyAuthor', n.actor_name);
+        navigate(`/d/${n.discussion_id}?${qs.toString()}`);
+      } else {
+        navigate(`/d/${n.discussion_id}`);
+      }
     }
     onClose();
   };
