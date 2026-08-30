@@ -30,10 +30,6 @@ const WHEEL_THRESHOLD = 60; // 滚轮累积阈值
 const PRELOAD_GAP_CARDS = 10; // 还剩 ~10 张时提前加载下一页
 const MIN_INNER_SCROLL_H = 320; // 卡内可滚动区域至少这么高才启用"卡内滚动"，矮屏/小卡一律滑动切卡
 
-// 缩放看门狗基准（模块级持久）：首次进入推荐时记录，切走排序再切回不重置，
-// 否则"最新页放大 → 切回推荐"时会把放大值误当成正常基准，看门狗失效
-let BASE_SCALE: number | null = null;
-
 // feed 卡片位置记忆：从 feed 进主题再返回时恢复之前看的卡片。
 // 用 sessionStorage 持久化（模块级变量在返回导航/模块重载时会丢失，导致恢复失效）
 const FEED_POS_KEY = 'zhuge-feed-pos';
@@ -54,34 +50,6 @@ function writeFeedPos(v: number): void {
 }
 // 标记 FeedView 是否挂载过（模块级，重挂载不清零）：用于区分"首次进入 feed"与"返回导航"
 let FEED_MOUNTED = false;
-
-// 一键还原浏览器缩放：浏览器 JS 无法直接改 visualViewport.scale，
-// 但对移动端可重设 viewport meta 强制还原；桌面端模拟 Ctrl+0（部分浏览器生效），
-// 同时作为兜底提示用户手动还原
-export function resetBrowserZoom(): void {
-  // 1) 移动端：重设 viewport meta 的 maximum-scale/user-scalable（iOS/部分安卓可强制还原）
-  try {
-    const vp = document.querySelector<HTMLMetaElement>('meta[name="viewport"]');
-    if (vp) {
-      vp.setAttribute(
-        'content',
-        'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover'
-      );
-    }
-  } catch {
-    /* 忽略 */
-  }
-  // 2) 桌面端：模拟 Ctrl+0（Chrome 会忽略合成快捷键，Firefox/Edge 部分版本可能生效）
-  try {
-    document.dispatchEvent(
-      new KeyboardEvent('keydown', { key: '0', code: 'Digit0', ctrlKey: true, bubbles: true })
-    );
-  } catch {
-    /* 忽略 */
-  }
-  // 3) 兜底：刷新页面重置布局（浏览器缩放保留，但布局按当前视口重算）
-  //    不自动刷新（会打断用户操作），由提示文案引导用户 Ctrl+0
-}
 
 interface FeedViewProps {
   items: Discussion[];
@@ -351,50 +319,6 @@ export default function FeedView({
     };
   }, [recenterPage]);
 
-  // 页面缩放看门狗：以首次进入推荐模式时的缩放为基准（不打扰预置浏览器缩放），
-  // 若会话期间缩放偏离（Ctrl+滚轮/双指捏合漏网等）→ 提示还原；回到基准自动隐藏。
-  // 布局本身由 visualViewport resize 重测自适应，提示只负责告知与引导。
-  // 检测双通道：visualViewport.scale（浏览器缩放）+ 视口宽度比 innerWidth/vv.width（捏合缩放）
-  const [zoomWarn, setZoomWarn] = useState<number | null>(null);
-  // 基准缩放持久化到模块级：切走排序（feed 卸载）再切回时仍以"首次进入推荐"为基准，
-  // 不会把当前（可能被放大的）缩放误当成正常值 → 切回推荐时能正确检测并提示还原。
-  const baseScaleRef = useRef<number>(BASE_SCALE ?? 1);
-  useEffect(() => {
-    const vv = window.visualViewport;
-    const effective = (): number => {
-      if (!vv) return 1;
-      const s = vv.scale || 1;
-      const w = vv.width || window.innerWidth;
-      const ratio = w > 0 ? window.innerWidth / w : 1;
-      return Math.max(s, ratio);
-    };
-    if (BASE_SCALE === null) {
-      BASE_SCALE = effective();
-      baseScaleRef.current = BASE_SCALE;
-    }
-    // 切回推荐（组件挂载）时若检测到缩放偏离基准 → 自动尝试还原（移动端 viewport meta 可强制还原）
-    const initial = effective();
-    if (Math.abs(initial - baseScaleRef.current) > 0.02) {
-      resetBrowserZoom();
-      setZoomWarn(initial); // 还原可能不彻底（桌面 JS 无法改浏览器缩放），保留提示引导
-    }
-    const read = () => {
-      const e = effective();
-      if (Math.abs(e - baseScaleRef.current) > 0.02) setZoomWarn(e);
-      else setZoomWarn(null);
-    };
-    read();
-    const iv = window.setInterval(read, 1000);
-    const onResize = () => read();
-    vv?.addEventListener('resize', onResize);
-    window.addEventListener('resize', onResize);
-    return () => {
-      window.clearInterval(iv);
-      vv?.removeEventListener('resize', onResize);
-      window.removeEventListener('resize', onResize);
-    };
-  }, []);
-
   // 触摸/滚轮/键盘：监听挂在 feed-viewport 上，卸载时清理
   useEffect(() => {
     const vp = viewportRef.current;
@@ -520,17 +444,6 @@ export default function FeedView({
 
   return (
     <div className="feed-mode" ref={modeRef}>
-      {zoomWarn !== null && (
-        <div className="feed-zoom-warn" role="status">
-          <span>
-            ⚠️ 检测到页面已缩放（{Math.round(zoomWarn * 100)}%），可能影响滑动体验，请还原到
-            {Math.round(baseScaleRef.current * 100)}%（Ctrl+0 / 双指捏合还原）
-          </span>
-          <button type="button" className="zoom-reset-btn" onClick={resetBrowserZoom}>
-            一键还原
-          </button>
-        </div>
-      )}
       {hero}
       <div className="feed-body">
         <div className="feed-topbar">{tagbar}</div>

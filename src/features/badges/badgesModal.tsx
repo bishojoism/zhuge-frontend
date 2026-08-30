@@ -103,10 +103,9 @@ export function BadgesContent({ userId }: { userId: number }) {
                 borderRadius: 10,
                 background: earned ? 'var(--card-soft, rgba(127,142,163,0.08))' : 'transparent',
                 border: earned ? '1px solid var(--border)' : '1px solid transparent',
-                opacity: earned ? 1 : 0.45,
               }}
             >
-              <Text fz={26} style={{ filter: earned ? 'none' : 'grayscale(1)' }} title={earned ? '已获得' : '未获得'}>
+              <Text fz={26} style={{ filter: earned ? 'none' : 'grayscale(1)', opacity: earned ? 1 : 0.4 }} title={earned ? '已获得' : '未获得'}>
                 {b.icon}
               </Text>
               <Text size="xs" fw={600} ta="center">
@@ -141,10 +140,9 @@ export function BadgesContent({ userId }: { userId: number }) {
                 borderRadius: 10,
                 background: earned ? 'var(--card-soft, rgba(201,138,107,0.1))' : 'transparent',
                 border: earned ? '1px solid var(--border)' : '1px solid transparent',
-                opacity: earned ? 1 : 0.45,
               }}
             >
-              <Text fz={26} style={{ filter: earned ? 'none' : 'grayscale(1)' }} title={earned ? '已获得' : '未获得'}>
+              <Text fz={26} style={{ filter: earned ? 'none' : 'grayscale(1)', opacity: earned ? 1 : 0.4 }} title={earned ? '已获得' : '未获得'}>
                 {b.icon}
               </Text>
               <Text size="xs" fw={600} ta="center">

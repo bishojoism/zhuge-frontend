@@ -401,6 +401,10 @@
       border-color: #d9a92f !important;
       animation: badge-card-shine 2.6s ease-in-out infinite;
     }
+    /* 金色底上文字强制深色（浅色金底对比度 ≥4.5:1） */
+    .badge-card.t1 .mantine-Text-root, .badge-cell.t1.earned .mantine-Text-root {
+      color: #4a3a10 !important;
+    }
     @keyframes badge-card-shine {
       0%, 100% {
         box-shadow: 0 0 6px rgba(217, 169, 47, .4), 0 0 14px rgba(217, 169, 47, .18);
@@ -417,6 +421,11 @@
       background: linear-gradient(135deg, #7a5f1f, #a07f2f 45%, #c8a53f) !important;
       border-color: #f0d37a !important;
       animation-name: badge-card-shine-dark !important;
+    }
+    /* 深色金底上文字用浅金（暗金底对比度 ≥4.5:1） */
+    [data-mantine-color-scheme="dark"] .badge-card.t1 .mantine-Text-root,
+    [data-mantine-color-scheme="dark"] .badge-cell.t1.earned .mantine-Text-root {
+      color: #f5e2a8 !important;
     }
     /* 深色模式专用发光：光晕更亮更扩散，金色在暗底上突出 */
     @keyframes badge-card-shine-dark {
@@ -631,21 +640,6 @@
       border-radius: 10px; padding: 4px 12px;
       font-size: 12px; letter-spacing: 1px;
       pointer-events: none; z-index: 5;
-    }
-    /* 页面缩放看门狗提示 */
-    .feed-zoom-warn {
-      position: absolute; top: 8px; left: 50%; transform: translateX(-50%);
-      z-index: 20; display: flex; align-items: center; gap: 8px;
-      max-width: calc(100% - 24px);
-      background: rgba(61,68,80,.92); color: #fff;
-      border-radius: 10px; padding: 6px 10px 6px 12px;
-      font-size: 12px; line-height: 1.5; letter-spacing: .3px;
-      box-shadow: 0 4px 14px rgba(0,0,0,.18);
-    }
-    .feed-zoom-warn button {
-      flex-shrink: 0; border: none; background: rgba(255,255,255,.16);
-      color: #fff; width: 20px; height: 20px; border-radius: 50%;
-      font-size: 11px; line-height: 1; cursor: pointer; padding: 0;
     }
     /* 鏃犻檺鍔犺浇 */
     .load-more {
