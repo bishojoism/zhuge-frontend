@@ -219,7 +219,6 @@ export function ComposerContent({ user, tags, onPosted }: ComposerContentProps) 
   return (
     <Stack gap="sm" style={{ maxHeight: '70vh', overflowY: 'auto', paddingRight: 2 }}>
       <TextInput
-        label="标题"
         placeholder="标题（不能为空）"
         maxLength={40}
         autoFocus
