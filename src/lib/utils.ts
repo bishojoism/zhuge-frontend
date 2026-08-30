@@ -1,14 +1,23 @@
 // ===== 通用小工具 =====
+import dayjs from 'dayjs';
+import punycode from 'punycode';
 
 export function timeAgo(ts?: string | null): string {
   if (!ts) return '';
-  const t = new Date(ts.replace(' ', 'T') + 'Z').getTime();
-  if (Number.isNaN(t)) return ts.slice(0, 10);
-  const diff = Date.now() - t;
+  // 兼容两种存储格式：
+  //  - "YYYY-MM-DD HH:mm:ss"（无时区）→ 视为 UTC，补 Z
+  //  - 完整 ISO "YYYY-MM-DDTHH:mm:ss.sssZ"（带时区）→ 直接用
+  const normalized = ts.includes('T') && ts.trim().endsWith('Z') ? ts : ts.replace(' ', 'T') + 'Z';
+  const t = dayjs(new Date(normalized));
+  if (!t.isValid()) return ts.slice(0, 10);
+  const diff = Date.now() - t.valueOf();
   if (diff < 60e3) return '刚刚';
-  if (diff < 3600e3) return Math.floor(diff / 60e3) + ' 分钟前';
-  if (diff < 86400e3) return Math.floor(diff / 3600e3) + ' 小时前';
-  if (diff < 7 * 86400e3) return Math.floor(diff / 86400e3) + ' 天前';
+  const mins = Math.floor(diff / 60e3);
+  if (mins < 60) return mins + ' 分钟前';
+  const hours = Math.floor(diff / 3600e3);
+  if (hours < 24) return hours + ' 小时前';
+  const days = Math.floor(diff / 86400e3);
+  if (days < 7) return days + ' 天前';
   return ts.slice(0, 10);
 }
 
@@ -160,67 +169,7 @@ export async function copyText(text: string): Promise<boolean> {
 // ===== Punycode（RFC 3492）解码：把 xn-- 形式的国际化域名转回中文/Unicode =====
 // 浏览器 location.hostname 对中文域名返回 punycode（如 xn--cnqs3e5vdw9icjz2q1eaa.xyz），
 // 海报/分享需要展示中文域名时用此函数转回（不依赖写死的域名文本）。
-// 完整实现 RFC 3492（含 punycode 参数：base=36, tmin=1, tmax=26, skew=38, damp=700,
-// initial_bias=72, initial_n=128），支持多标签（. 分隔）逐个解码。
-
-const PUNY_BASE = 36;
-const PUNY_TMIN = 1;
-const PUNY_TMAX = 26;
-const PUNY_SKEW = 38;
-const PUNY_DAMP = 700;
-const PUNY_INITIAL_BIAS = 72;
-const PUNY_INITIAL_N = 128;
-
-function punyAdapt(delta: number, numPoints: number, firstTime: boolean): number {
-  let d = firstTime ? Math.floor(delta / PUNY_DAMP) : delta >> 1;
-  d += Math.floor(d / numPoints);
-  let k = 0;
-  while (d > ((PUNY_BASE - PUNY_TMIN) * PUNY_TMAX) >> 1) {
-    d = Math.floor(d / (PUNY_BASE - PUNY_TMIN));
-    k += PUNY_BASE;
-  }
-  return k + Math.floor(((PUNY_BASE - PUNY_TMIN + 1) * d) / (d + PUNY_SKEW));
-}
-
-function decodePunycodeLabel(label: string): string {
-  const output: number[] = [];
-  let input = label;
-  // 分隔符 '-'：最后的 '-' 之前是基本码点（ASCII），之后是增量编码
-  const lastDash = input.lastIndexOf('-');
-  let n = PUNY_INITIAL_N;
-  let i = 0;
-  let bias = PUNY_INITIAL_BIAS;
-  let consumed = 0;
-  if (lastDash >= 0) {
-    for (let j = 0; j < lastDash; j++) {
-      const c = input.charCodeAt(j);
-      if (c >= 0x80) throw new Error('invalid basic code point');
-      output.push(c);
-    }
-    input = input.slice(lastDash + 1);
-  }
-  while (consumed < input.length) {
-    const oldi = i;
-    let w = 1;
-    for (let k = PUNY_BASE; ; k += PUNY_BASE) {
-      if (consumed >= input.length) throw new Error('invalid punycode');
-      const digit = input.charCodeAt(consumed++);
-      const codePoint = digit - 48 < 10 ? digit - 22 : digit - 65 < 26 ? digit - 65 : digit - 97 < 26 ? digit - 97 : PUNY_BASE;
-      if (codePoint >= PUNY_BASE) throw new Error('invalid punycode digit');
-      i += codePoint * w;
-      const t = k <= bias ? PUNY_TMIN : k >= bias + PUNY_TMAX ? PUNY_TMAX : k - bias;
-      if (codePoint < t) break;
-      w *= PUNY_BASE - t;
-    }
-    const outLen = output.length + 1;
-    bias = punyAdapt(i - oldi, outLen, oldi === 0);
-    n += Math.floor(i / outLen);
-    i %= outLen;
-    output.splice(i, 0, n);
-    i++;
-  }
-  return String.fromCodePoint(...output);
-}
+// 解码交给 punycode 包（RFC 3492 标准实现，纯 JS 无依赖，浏览器可用）。
 
 /** 把国际化域名（可含多个标签 + 端口）从 punycode 转回 Unicode；非 xn-- 标签原样保留 */
 export function punycodeToUnicode(host: string): string {
@@ -233,7 +182,10 @@ export function punycodeToUnicode(host: string): string {
   const decoded = labels.map((lab) => {
     if (lab.toLowerCase().startsWith('xn--')) {
       try {
-        return decodePunycodeLabel(lab.slice(4));
+        // punycode 包解码大小写敏感：先转小写（xn-- 前缀不区分大小写，载荷按小写解码）
+        const out = punycode.decode(lab.slice(4).toLowerCase());
+        // 空载荷（如 "xn--"）解码为空串 → 保留原样，不吞掉标签
+        return out !== '' ? out : lab;
       } catch {
         return lab; // 解码失败原样返回
       }

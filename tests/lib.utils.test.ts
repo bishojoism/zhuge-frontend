@@ -40,6 +40,35 @@ describe('timeAgo', () => {
     const ts = new Date(NOW - 10 * 86400e3).toISOString().replace('T', ' ').replace('.000Z', '');
     expect(timeAgo(ts)).toMatch(/^\d{4}-\d{2}-\d{2}/);
   });
+
+  it('边界：59 秒→刚刚，60 秒→1 分钟前，59 分钟→59 分钟前，23 小时→23 小时前，6 天→6 天前', () => {
+    const fmt = (msAgo: number) => new Date(NOW - msAgo).toISOString().replace('T', ' ').replace('.000Z', '');
+    expect(timeAgo(fmt(59e3))).toBe('刚刚');
+    expect(timeAgo(fmt(60e3))).toBe('1 分钟前');
+    expect(timeAgo(fmt(59 * 60e3))).toBe('59 分钟前');
+    expect(timeAgo(fmt(23 * 3600e3))).toBe('23 小时前');
+    expect(timeAgo(fmt(6 * 86400e3))).toBe('6 天前');
+  });
+
+  it('未来时间（时钟偏差）→ 显示"刚刚"（diff 为负按刚刚处理）', () => {
+    const fmt = (msAhead: number) => new Date(NOW + msAhead).toISOString().replace('T', ' ').replace('.000Z', '');
+    expect(timeAgo(fmt(30e3))).toBe('刚刚');
+  });
+
+  it('无效日期字符串 → 截取前 10 位', () => {
+    expect(timeAgo('not-a-date')).toBe('not-a-date'.slice(0, 10));
+    expect(timeAgo('2026-13-99 99:99:99')).toBe('2026-13-99');
+  });
+
+  it('带毫秒的时间戳（完整 ISO 带时区）', () => {
+    const ts = new Date(NOW - 5 * 60e3).toISOString(); // 2026-08-30T11:55:00.000Z（带 T 和 Z）
+    expect(timeAgo(ts)).toBe('5 分钟前');
+  });
+
+  it('"YYYY-MM-DD HH:mm:ss"（无毫秒无时区）视为 UTC', () => {
+    const ts = new Date(NOW - 5 * 60e3).toISOString().replace('T', ' ').replace('.000Z', '');
+    expect(timeAgo(ts)).toBe('5 分钟前');
+  });
 });
 
 describe('genderMark', () => {
@@ -146,5 +175,34 @@ describe('punycodeToUnicode', () => {
 
   it('多标签混合（一个 xn-- 一个普通）', () => {
     expect(punycodeToUnicode('www.xn--bcher-kva.example.com')).toBe('www.bücher.example.com');
+  });
+
+  it('非法 punycode 标签解码失败 → 原样返回（不抛错）', () => {
+    // 无效的 punycode 载荷（含非法字符组合）
+    expect(punycodeToUnicode('xn--!!!!!')).toBe('xn--!!!!!');
+    expect(punycodeToUnicode('xn--')).toBe('xn--');
+  });
+
+  it('空字符串 / 仅端口 / 尾部点', () => {
+    expect(punycodeToUnicode('')).toBe('');
+    expect(punycodeToUnicode(':8080')).toBe(':8080');
+    expect(punycodeToUnicode('xn--bcher-kva.de.')).toBe('bücher.de.');
+  });
+
+  it('带 IPv4 地址原样返回（非域名）', () => {
+    expect(punycodeToUnicode('127.0.0.1')).toBe('127.0.0.1');
+    expect(punycodeToUnicode('192.168.1.1:8080')).toBe('192.168.1.1:8080');
+  });
+
+  it('RFC 3492 官方样例全部正确解码（与库实现一致）', () => {
+    // punycode 包标准测试向量
+    expect(punycodeToUnicode('xn--0zwm56d')).toBe('测试');
+    expect(punycodeToUnicode('xn--ihqwcrb4cv8a8dqg056pqjye')).toBe('他们为什么不说中文');
+    expect(punycodeToUnicode('xn--mgbh0fb')).toBe('مثال');
+    expect(punycodeToUnicode('xn--r8jz45g')).toBe('例え');
+  });
+
+  it('大小写混合的 xn-- 前缀也识别', () => {
+    expect(punycodeToUnicode('XN--BCHER-KVA.de')).toBe('bücher.de');
   });
 });
