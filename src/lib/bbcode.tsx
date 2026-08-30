@@ -1,5 +1,5 @@
 // ===== BBCode 安全渲染：用户内容文本格式白名单 =====
-// 允许：粗体 [b]、斜体 [i]、下划线 [u]、删除线 [s]、颜色 [color=red|#ff0000]
+// 允许：粗体 [b]、斜体 [i]、下划线 [u]、删除线 [s]、颜色 [color=red|#ff0000]、大字 [big]、小字 [small]
 // 禁止：链接/图片/音频/视频等任何外链标签（[url][img][audio][video]…）——不识别即原文显示
 // 安全：解析生成 React 元素（文本自动转义），color 值严格校验（防 CSS 注入），绝无 dangerouslySetInnerHTML
 import type { ReactNode } from 'react';
@@ -18,9 +18,9 @@ export function isSafeColor(value: string): boolean {
 }
 
 // 允许的标签（不含 color 的 value 部分）
-const TAG_NAMES = new Set(['b', 'i', 'u', 's', 'color']);
-// 开标签正则：b/i/u/s 或 color=值
-const OPEN_RE = /\[(b|i|u|s|color(?:=[^\]\s]+)?)\]/i;
+const TAG_NAMES = new Set(['b', 'i', 'u', 's', 'color', 'big', 'small']);
+// 开标签正则：b/i/u/s/big/small 或 color=值
+const OPEN_RE = /\[(b|i|u|s|big|small|color(?:=[^\]\s]+)?)\]/i;
 
 /** 内容是否含 BBCode 标签（决定是否走 BBCode 渲染） */
 export function hasBBCode(text: string): boolean {
@@ -65,6 +65,8 @@ function parseSegment(text: string, loose = false): ReactNode[] {
     else if (tagName === 'i') nodes.push(<i key={key}>{children}</i>);
     else if (tagName === 'u') nodes.push(<u key={key}>{children}</u>);
     else if (tagName === 's') nodes.push(<s key={key}>{children}</s>);
+    else if (tagName === 'big') nodes.push(<span key={key} style={{ fontSize: '1.25em' }}>{children}</span>);
+    else if (tagName === 'small') nodes.push(<span key={key} style={{ fontSize: '0.8em' }}>{children}</span>);
     else {
       // color=值：严格校验，非法值忽略颜色（按普通文本显示）
       const value = rawTag.slice('color'.length + 1).trim();

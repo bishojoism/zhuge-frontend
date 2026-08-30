@@ -127,6 +127,8 @@ export default function BBCodeEditor({
         <TplBtn label="I" tip="斜体" onClick={() => wrap('[i]', '[/i]')} style={{ fontStyle: 'italic' }} />
         <TplBtn label="U" tip="下划线" onClick={() => wrap('[u]', '[/u]')} style={{ textDecoration: 'underline' }} />
         <TplBtn label="S" tip="删除线" onClick={() => wrap('[s]', '[/s]')} style={{ textDecoration: 'line-through' }} />
+        <TplBtn label="A⁺" tip="大字" onClick={() => wrap('[big]', '[/big]')} style={{ fontSize: 15, fontWeight: 700 }} />
+        <TplBtn label="a⁻" tip="小字" onClick={() => wrap('[small]', '[/small]')} style={{ fontSize: 11 }} />
         <span style={{ width: 1, height: 16, background: 'var(--border)', margin: '0 6px' }} />
         {PALETTE.map((c) => (
           <TplBtn key={c.value} label={c.name} tip={`颜色：${c.name}`} onClick={() => wrapColor(c.value)} color={c.value === 'white' || c.value === 'gold' ? '#b8860b' : c.value === 'gray' ? '#888' : c.value} />
@@ -206,7 +208,7 @@ export default function BBCodeEditor({
 
       <Group justify="space-between" mt={2}>
         <Text size="xs" c="dimmed">
-          支持格式：加粗、斜体、下划线、删除线、文字颜色（选中文字后点按钮）
+          支持格式：加粗、斜体、下划线、删除线、大字、小字、文字颜色（选中文字后点按钮）
         </Text>
         {hasFmt && mode === 'edit' ? (
           <Text size="xs" c="dimmed">

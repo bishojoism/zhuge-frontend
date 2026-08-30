@@ -35,7 +35,7 @@ const HELP_ITEMS: { title: string; body: string }[] = [
   },
   {
     title: '文字格式（BBCode）',
-    body: '内容支持 BBCode 文本格式：粗体 [b]文字[/b]、斜体 [i]文字[/i]、下划线 [u]文字[/u]、删除线 [s]文字[/s]、颜色 [color=red]文字[/color]（支持常见颜色名与 #rrggbb）。出于安全考虑，链接、图片、音频、视频等外链标签不支持（[url]、[img]、[audio]、[video] 等会按原文显示）。',
+    body: '内容支持 BBCode 文本格式：粗体 [b]文字[/b]、斜体 [i]文字[/i]、下划线 [u]文字[/u]、删除线 [s]文字[/s]、大字 [big]文字[/big]、小字 [small]文字[/small]、颜色 [color=red]文字[/color]（支持常见颜色名与 #rrggbb）。出于安全考虑，链接、图片、音频、视频等外链标签不支持（[url]、[img]、[audio]、[video] 等会按原文显示）。',
   },
   {
     title: '徽章与成就',

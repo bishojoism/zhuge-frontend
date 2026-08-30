@@ -29,6 +29,13 @@ describe('insertBBCode', () => {
     expect(r.end).toBe(19);
   });
 
+  it('大字/小字标签：包裹选中文本', () => {
+    const big = insertBBCode('大字内容', 0, 4, '[big]', '[/big]');
+    expect(big.text).toBe('[big]大字内容[/big]');
+    const small = insertBBCode('小字内容', 0, 4, '[small]', '[/small]');
+    expect(small.text).toBe('[small]小字内容[/small]');
+  });
+
   it('文本开头/结尾边界', () => {
     expect(insertBBCode('abc', 0, 0, '[u]', '[/u]').text).toBe('[u][/u]abc');
     expect(insertBBCode('abc', 3, 3, '[u]', '[/u]').text).toBe('abc[u][/u]');

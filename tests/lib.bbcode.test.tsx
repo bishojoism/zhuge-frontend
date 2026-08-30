@@ -37,6 +37,16 @@ describe('parseBBCode（安全渲染）', () => {
     expect(screen.getByText('删').tagName).toBe('S');
   });
 
+  it('大字/小字渲染为 span 字号', () => {
+    const { container } = render(parseBBCode('[big]大[/big] [small]小[/small]'));
+    const spans = container.querySelectorAll('span');
+    expect(spans.length).toBe(2);
+    const styles = [...spans].map((s) => s.style.fontSize);
+    expect(styles).toContain('1.25em');
+    expect(styles).toContain('0.8em');
+    expect(container.textContent).toBe('大 小');
+  });
+
   it('颜色渲染为 span with color', () => {
     const { container } = render(parseBBCode('[color=red]红字[/color]'));
     const span = container.querySelector('span');
