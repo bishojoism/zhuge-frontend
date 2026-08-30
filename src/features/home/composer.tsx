@@ -41,13 +41,14 @@ function normalizeDraft(raw: unknown): ComposerDraft | null {
 }
 
 export function ComposerContent({ user, tags, onPosted }: ComposerContentProps) {
-  // 草稿恢复：SSR 首屏 init 优先，否则取 /me/drafts（打开弹窗时才挂载）
+  // 草稿恢复：优先 /me/drafts（实时，保存后 mutate 同步）；SSR 内联 init 作 fallback
+  // （页面加载时 init 的 drafts 是旧快照，若优先会用旧草稿覆盖新草稿 → 云同步失效）
   const { data: initData } = useInitData();
-  const { data: draftsData } = useDrafts();
+  const { data: draftsData, mutate: mutateDrafts } = useDrafts();
   const draft = useMemo<ComposerDraft | null>(() => {
     const raw =
-      (initData?.drafts as Record<string, unknown> | undefined)?.['composer'] ??
-      draftsData?.['composer'];
+      draftsData?.['composer'] ??
+      (initData?.drafts as Record<string, unknown> | undefined)?.['composer'];
     return normalizeDraft(raw);
   }, [initData, draftsData]);
 
@@ -68,18 +69,26 @@ export function ComposerContent({ user, tags, onPosted }: ComposerContentProps) 
   const saveTimerRef = useRef<number | null>(null);
   const restoredRef = useRef(false);
 
-  // 打开时恢复草稿（只恢复一次：SSR init 同步就绪则首帧恢复，否则等 /me/drafts 到位）
+  // 打开时恢复草稿（只恢复一次：先强制刷新云草稿，用最新值恢复而非 SSR fallback 旧快照）
   // 注意：仅当确实在写内容（标题或内容任一非空）才恢复；只选过标签的"残草稿"不恢复，
   // 避免打开弹窗时标签区自动选中（用户以为没选却被选中）
+  const [draftReady, setDraftReady] = useState(false);
   useEffect(() => {
-    if (!draft || restoredRef.current) return;
+    if (draftReady) return;
+    // 强制重新验证后置 ready（await 保证用最新云草稿）
+    void mutateDrafts().then(() => setDraftReady(true));
+  }, [mutateDrafts, draftReady]);
+
+  useEffect(() => {
+    if (restoredRef.current || !draftReady) return;
     restoredRef.current = true;
-    if (!draft.title.trim() && !draft.content.trim()) return;
-    setTitle(draft.title);
-    setContent(draft.content);
-    setTagIds(draft.tagIds);
-    setImageUrl(draft.imageUrl);
-  }, [draft]);
+    const d = draft;
+    if (!d || (!d.title.trim() && !d.content.trim())) return;
+    setTitle(d.title);
+    setContent(d.content);
+    setTagIds(d.tagIds);
+    setImageUrl(d.imageUrl);
+  }, [draft, draftReady]);
 
   // 卸载时取消未执行的自动保存（避免提交清空草稿后又被旧定时器写回）
   useEffect(

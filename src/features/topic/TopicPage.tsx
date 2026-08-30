@@ -111,6 +111,12 @@ export default function TopicPage() {
   const { mutate: refreshUnread } = useUnread();
   const { data: draftsData, mutate: mutateDrafts } = useDrafts();
 
+  // 挂载时强制刷新云草稿（SSR fallback 是页面加载时的旧快照，revalidateIfStale:false 不自动重拉）
+  useEffect(() => {
+    if (user && id) void mutateDrafts();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, user]);
+
   // 点击作者名 → 查看作者名片（角色/皮下/滴滴统计；动态导入）
   const openAuthorStats = (userId: number, name: string, characterId?: number | null) =>
     import('../private/authorDidiStats').then((m) => m.openAuthorDidiStats(userId, name, characterId));
@@ -233,16 +239,24 @@ export default function TopicPage() {
     setShowJump(lastPos !== null && lastPos < last);
   }, [data, lastPos]);
 
-  // 回复草稿恢复：数据就绪后一次性恢复（restored 防止覆盖用户输入）
+  // 回复草稿恢复：先强制刷新云草稿（SSR fallback 旧快照），刷新完成后一次性恢复
+  // （restored 防止覆盖用户输入）
+  const [draftReady, setDraftReady] = useState(false);
   useEffect(() => {
-    if (restored.current || !draftKey || !user || !draftsData) return;
+    if (!draftKey || !user || draftReady) return;
+    // 强制重新验证后置 ready（await 保证用最新云草稿，而非 fallback 旧快照）
+    void mutateDrafts().then(() => setDraftReady(true));
+  }, [draftKey, user, mutateDrafts, draftReady]);
+
+  useEffect(() => {
+    if (restored.current || !draftKey || !user || !draftReady || !draftsData) return;
     const d = draftsData[draftKey] as ReplyDraftData | undefined;
     if (d && typeof d === 'object') {
       if (typeof d.content === 'string') setContent(d.content);
       if (typeof d.imageUrl === 'string') setImageUrl(d.imageUrl);
     }
     restored.current = true;
-  }, [draftKey, user, draftsData]);
+  }, [draftKey, user, draftReady, draftsData]);
 
   // 防抖 250ms 云保存草稿（key: reply:{id}）
   const scheduleDraftSave = useCallback(

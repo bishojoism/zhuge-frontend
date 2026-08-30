@@ -225,9 +225,10 @@ export default function HomePage() {
       requireLogin('开戏');
       return;
     }
-    // 打开发帖弹窗前拉全量标签（SSR 首屏只内联了主标签；SWR revalidate 不覆盖 fallback 命中，
-    // 手动重新验证，让发帖弹窗可选全部标签）
+    // 打开发帖弹窗前拉全量标签 + 强制刷新云草稿（SSR fallback 是页面加载时的旧快照，
+    // revalidateIfStale:false 不自动重拉 → 手动重新验证，保证恢复最新云草稿）
     void mutate('/tags');
+    void mutate('/me/drafts');
     openModalOnce(
       'composer',
       (m) => {
