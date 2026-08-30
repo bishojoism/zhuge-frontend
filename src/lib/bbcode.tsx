@@ -1,8 +1,9 @@
 // ===== BBCode 安全渲染：用户内容文本格式白名单 =====
-// 允许：粗体 [b]、斜体 [i]、下划线 [u]、删除线 [s]、颜色 [color=red|#ff0000]、大字 [big]、小字 [small]
+// 允许：粗体 [b]、斜体 [i]、下划线 [u]、删除线 [s]、颜色 [color=red|#ff0000]、大字 [big]、小字 [small]、
+//       可复制文本块 [copy]文字[/copy]、骰子 [dice]1d20[/dice]（支持 NdM / NdM+K，如 2d6+1）
 // 禁止：链接/图片/音频/视频等任何外链标签（[url][img][audio][video]…）——不识别即原文显示
 // 安全：解析生成 React 元素（文本自动转义），color 值严格校验（防 CSS 注入），绝无 dangerouslySetInnerHTML
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 
 // 颜色白名单：常见颜色名 + 合法 hex
 const COLOR_NAMES = new Set([
@@ -18,13 +19,131 @@ export function isSafeColor(value: string): boolean {
 }
 
 // 允许的标签（不含 color 的 value 部分）
-const TAG_NAMES = new Set(['b', 'i', 'u', 's', 'color', 'big', 'small']);
-// 开标签正则：b/i/u/s/big/small 或 color=值
-const OPEN_RE = /\[(b|i|u|s|big|small|color(?:=[^\]\s]+)?)\]/i;
+const TAG_NAMES = new Set(['b', 'i', 'u', 's', 'color', 'big', 'small', 'copy', 'dice']);
+// 开标签正则：普通标签 / color=值 / dice=表达式
+const OPEN_RE = /\[(b|i|u|s|big|small|copy|dice|color(?:=[^\]\s]+)?|dice(?:=[^\]\s]+)?)\]/i;
 
 /** 内容是否含 BBCode 标签（决定是否走 BBCode 渲染） */
 export function hasBBCode(text: string): boolean {
   return OPEN_RE.test(text);
+}
+
+/** 校验骰子表达式：NdM 或 NdM+K（N 骰数 1-10，M 面数 2-1000，K 修正 -99~99） */
+export function parseDiceExpr(raw: string): { count: number; sides: number; mod: number } | null {
+  const m = String(raw || '').trim().toLowerCase().match(/^(\d{1,2})?d(\d{1,4})([+-]\d{1,3})?$/);
+  if (!m) return null;
+  const count = m[1] ? parseInt(m[1], 10) : 1;
+  const sides = parseInt(m[2], 10);
+  const mod = m[3] ? parseInt(m[3], 10) : 0;
+  if (count < 1 || count > 10 || sides < 2 || sides > 1000) return null;
+  return { count, sides, mod };
+}
+
+// ===== 可复制文本块：带「复制」按钮的容器（内容支持嵌套 BBCode） =====
+function CopyBlock({ children, text }: { children: ReactNode; text: string }) {
+  const [copied, setCopied] = useState(false);
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch {
+      // 旧浏览器回退
+      try {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        ta.remove();
+      } catch {
+        /* 复制失败静默 */
+      }
+    }
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 1500);
+  };
+  return (
+    <div
+      style={{
+        position: 'relative',
+        border: '1px solid var(--border)',
+        borderRadius: 8,
+        padding: '8px 12px',
+        margin: '6px 0',
+        background: 'var(--card)',
+        fontSize: 13,
+        lineHeight: 1.7,
+      }}
+    >
+      <button
+        type="button"
+        onClick={handleCopy}
+        style={{
+          position: 'absolute',
+          top: 6,
+          right: 6,
+          border: '1px solid var(--border)',
+          borderRadius: 6,
+          background: 'var(--card)',
+          color: 'var(--muted)',
+          fontSize: 11,
+          padding: '2px 8px',
+          cursor: 'pointer',
+        }}
+      >
+        {copied ? '✓ 已复制' : '复制'}
+      </button>
+      <div style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', paddingRight: 48 }}>{children}</div>
+    </div>
+  );
+}
+
+// ===== 骰子：点击掷出（NdM / NdM+K），显示结果与明细 =====
+function DiceRoll({ expr }: { expr: string }) {
+  const parsed = parseDiceExpr(expr);
+  const [result, setResult] = useState<{ total: number; rolls: number[] } | null>(null);
+  if (!parsed) return <span>🎲 [{expr}]</span>;
+  const { count, sides, mod } = parsed;
+  const roll = () => {
+    const rolls: number[] = [];
+    for (let i = 0; i < count; i++) rolls.push(Math.floor(Math.random() * sides) + 1);
+    const total = rolls.reduce((a, b) => a + b, 0) + mod;
+    setResult({ total, rolls });
+  };
+  const label = `${count}d${sides}${mod ? (mod > 0 ? `+${mod}` : mod) : ''}`;
+  return (
+    <span
+      style={{ display: 'inline-flex', alignItems: 'center', gap: 6, margin: '0 2px', verticalAlign: 'middle' }}
+    >
+      <button
+        type="button"
+        onClick={roll}
+        title={`掷 ${label}`}
+        style={{
+          border: '1px solid var(--border)',
+          borderRadius: 8,
+          background: 'var(--card)',
+          padding: '2px 10px',
+          fontSize: 13,
+          cursor: 'pointer',
+          boxShadow: 'var(--shadow-sm)',
+        }}
+      >
+        🎲 {label}
+      </button>
+      {result && (
+        <span style={{ fontSize: 13, color: 'var(--primary-deep)', fontWeight: 600 }}>
+          {result.total}
+          <span style={{ fontWeight: 400, color: 'var(--muted)', fontSize: 12 }}>
+            {' '}
+            [{result.rolls.join(', ')}
+            {mod ? (mod > 0 ? ` +${mod}` : ` ${mod}`) : ''}]
+          </span>
+        </span>
+      )}
+    </span>
+  );
 }
 
 // 递归解析一段文本为 React 节点（支持嵌套）
@@ -46,6 +165,12 @@ function parseSegment(text: string, loose = false): ReactNode[] {
     const closeTag = `[/${tagName}]`;
     const innerStart = (m.index ?? 0) + m[0].length;
     const closeIdx = rest.slice(innerStart).toLowerCase().indexOf(closeTag);
+    // [dice=1d20] 自闭合写法：无 [/dice] 时直接渲染骰子（表达式在标签 value 里）
+    if (closeIdx === -1 && rawTag.toLowerCase().startsWith('dice=')) {
+      nodes.push(<DiceRoll key={nodes.length} expr={rawTag.slice(5).trim()} />);
+      rest = rest.slice(innerStart);
+      continue;
+    }
     if (closeIdx === -1) {
       if (loose) {
         // 摘要截断在标签中间：丢弃残缺标签，继续解析后续文本
@@ -67,7 +192,18 @@ function parseSegment(text: string, loose = false): ReactNode[] {
     else if (tagName === 's') nodes.push(<s key={key}>{children}</s>);
     else if (tagName === 'big') nodes.push(<span key={key} style={{ fontSize: '1.25em' }}>{children}</span>);
     else if (tagName === 'small') nodes.push(<span key={key} style={{ fontSize: '0.8em' }}>{children}</span>);
-    else {
+    else if (tagName === 'copy') {
+      // 可复制文本块：纯文本内容（stripBBCode 得复制文本，显示层仍渲染 BBCode）
+      nodes.push(
+        <CopyBlock key={key} text={stripBBCode(inner)}>
+          {children}
+        </CopyBlock>
+      );
+    } else if (tagName === 'dice') {
+      // 骰子：内容即表达式（不解析内部 BBCode）；支持 [dice]1d20[/dice] 与 [dice=1d20] 两种写法
+      const expr = rawTag.startsWith('dice=') ? rawTag.slice('dice='.length).trim() : inner.trim();
+      nodes.push(<DiceRoll key={key} expr={expr} />);
+    } else {
       // color=值：严格校验，非法值忽略颜色（按普通文本显示）
       const value = rawTag.slice('color'.length + 1).trim();
       nodes.push(

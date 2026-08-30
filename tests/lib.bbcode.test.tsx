@@ -81,6 +81,35 @@ describe('parseBBCode（安全渲染）', () => {
     expect(screen.getByText(/\[b\]/)).toBeInTheDocument();
   });
 
+  it('可复制文本块：渲染内容 + 复制按钮（内容纯文本可复制）', () => {
+    const { container } = render(parseBBCode('[copy]秘密台词[/copy]'));
+    expect(container.textContent).toContain('秘密台词');
+    expect(screen.getByRole('button', { name: '复制' })).toBeInTheDocument();
+  });
+
+  it('骰子 [dice]1d20[/dice]：渲染按钮，点击掷出', () => {
+    const { container } = render(parseBBCode('[dice]1d20[/dice]'));
+    const btn = screen.getByRole('button', { name: /🎲 1d20/ });
+    expect(btn).toBeInTheDocument();
+    btn.click();
+    // 结果在 1-20 之间
+    const m = container.textContent!.match(/\d+/g)!.map(Number).filter((n) => n <= 20);
+    expect(m.length).toBeGreaterThan(0);
+    expect(Math.min(...m)).toBeGreaterThanOrEqual(1);
+  });
+
+  it('骰子 [dice=2d6+1] 自闭合写法', () => {
+    render(parseBBCode('[dice=2d6+1]'));
+    expect(screen.getByRole('button', { name: /🎲 2d6\+1/ })).toBeInTheDocument();
+  });
+
+  it('非法骰子表达式 → 显示原表达式（不掷出）', () => {
+    wrap(parseBBCode('[dice]999d9999[/dice]'));
+    // 渲染为 🎲 [表达式]（parseDiceExpr 校验失败），不生成可点击骰子按钮
+    expect(screen.getByText(/999d9999/)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /🎲/ })).toBeNull();
+  });
+
   it('纯文本不转义破坏（React 自动转义）', () => {
     wrap(parseBBCode('<script>alert(1)</script>'));
     expect(screen.getByText(/<script>/)).toBeInTheDocument();
