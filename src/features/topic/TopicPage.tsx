@@ -565,8 +565,8 @@ export default function TopicPage() {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          marginBottom: 6,
-          minHeight: 26,
+          marginBottom: 4,
+          minHeight: 20,
         }}
       >
         {replyTarget ? (
