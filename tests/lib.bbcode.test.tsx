@@ -109,6 +109,13 @@ describe('parseBBCode（安全渲染）', () => {
     expect(screen.getByText(/🎲 \[999d9999\]/)).toBeInTheDocument();
   });
 
+  it('大面数骰子（BigInt 范畴）注入结果正常显示', () => {
+    const { container } = render(parseBBCode('[dice=d999999999999|123456789|123456789]'));
+    expect(container.textContent).toContain('d999999999999');
+    expect(container.textContent).toContain('123456789');
+    expect(screen.queryByRole('button', { name: /🎲/ })).toBeNull();
+  });
+
   it('纯文本不转义破坏（React 自动转义）', () => {
     wrap(parseBBCode('<script>alert(1)</script>'));
     expect(screen.getByText(/<script>/)).toBeInTheDocument();

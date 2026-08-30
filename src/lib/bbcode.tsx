@@ -28,14 +28,22 @@ export function hasBBCode(text: string): boolean {
   return OPEN_RE.test(text);
 }
 
-/** 校验骰子表达式：NdM 或 NdM+K（N 骰数 1-10，M 面数 2-1000，K 修正 -99~99） */
-export function parseDiceExpr(raw: string): { count: number; sides: number; mod: number } | null {
-  const m = String(raw || '').trim().toLowerCase().match(/^(\d{1,2})?d(\d{1,4})([+-]\d{1,3})?$/);
+/** 校验骰子表达式：NdM 或 NdM+K（N 骰数 1-100，M 面数不限 ≥2（BigInt 范畴），K 修正 ±10^9） */
+export function parseDiceExpr(raw: string): { count: number; sides: bigint; mod: bigint } | null {
+  const m = String(raw || '').trim().toLowerCase().match(/^(\d{1,3})?d(\d+)([+-]\d{1,10})?$/);
   if (!m) return null;
   const count = m[1] ? parseInt(m[1], 10) : 1;
-  const sides = parseInt(m[2], 10);
-  const mod = m[3] ? parseInt(m[3], 10) : 0;
-  if (count < 1 || count > 10 || sides < 2 || sides > 1000) return null;
+  if (count < 1 || count > 100) return null;
+  if (m[2].length > 1000) return null; // 面数位数上限（与后端一致，防滥用）
+  let sides: bigint;
+  try {
+    sides = BigInt(m[2]);
+  } catch {
+    return null;
+  }
+  if (sides < 2n) return null;
+  const mod = m[3] ? BigInt(m[3]) : 0n;
+  if (mod > 1000000000n || mod < -1000000000n) return null;
   return { count, sides, mod };
 }
 
