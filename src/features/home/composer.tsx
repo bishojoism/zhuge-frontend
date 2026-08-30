@@ -134,6 +134,13 @@ export function ComposerContent({ user, tags, onPosted }: ComposerContentProps) 
     const next = tagIds.includes(id) ? tagIds.filter((x) => x !== id) : [...tagIds, id];
     setTagIds(next);
     scheduleSave(title, content, next, imageUrl);
+    // 选中时把该标签滚进列表可见区域（标签多时需要滚动才能看到）
+    if (!tagIds.includes(id)) {
+      requestAnimationFrame(() => {
+        const chip = document.querySelector(`.comp-tag[data-tagid="${id}"]`);
+        chip?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      });
+    }
   };
 
   const handleSubmit = async () => {
@@ -307,6 +314,51 @@ export function ComposerContent({ user, tags, onPosted }: ComposerContentProps) 
           申请
         </Button>
       </Group>
+      {/* 已选标签固定显示：滚动/搜索/云存档恢复后始终能看到选中的是哪些，点 ✕ 取消 */}
+      {tagIds.length > 0 ? (
+        <div
+          style={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: 6,
+            border: '1px solid var(--primary-soft)',
+            borderRadius: 8,
+            padding: '6px 8px',
+            background: 'var(--primary-soft)',
+          }}
+        >
+          {tagIds.map((id) => {
+            const t = tags.find((x) => x.id === id);
+            if (!t) return null;
+            return (
+              <span
+                key={id}
+                className="tagchip active comp-tag"
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 4, paddingRight: 8 }}
+              >
+                {t.name}
+                <button
+                  type="button"
+                  aria-label={`移除标签 ${t.name}`}
+                  onClick={() => toggleTag(id)}
+                  style={{
+                    border: 'none',
+                    background: 'transparent',
+                    color: 'inherit',
+                    cursor: 'pointer',
+                    fontSize: 12,
+                    padding: 0,
+                    lineHeight: 1,
+                    opacity: 0.8,
+                  }}
+                >
+                  ✕
+                </button>
+              </span>
+            );
+          })}
+        </div>
+      ) : null}
       <TextInput
         placeholder="搜索标签…"
         autoComplete="off"
@@ -329,6 +381,7 @@ export function ComposerContent({ user, tags, onPosted }: ComposerContentProps) 
           <button
             type="button"
             key={t.id}
+            data-tagid={t.id}
             className={`tagchip comp-tag${primaryIds.has(t.id) ? ' comp-tag-primary' : ''}${
               tagIds.includes(t.id) ? ' active' : ''
             }`}
