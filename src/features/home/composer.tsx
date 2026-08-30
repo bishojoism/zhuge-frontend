@@ -381,7 +381,9 @@ export function ComposerContent({ user, tags, onPosted }: ComposerContentProps) 
       />
       <div
         style={{
-          maxHeight: 280,
+          // 固定 420px 而非 vh：iOS Safari 键盘弹出时 vh 缩小 → 标签区变矮
+          maxHeight: 420,
+          minHeight: 200,
           overflowY: 'auto',
           border: '1px solid var(--border)',
           borderRadius: 8,
@@ -389,6 +391,7 @@ export function ComposerContent({ user, tags, onPosted }: ComposerContentProps) 
           display: 'flex',
           flexWrap: 'wrap',
           gap: 8,
+          alignContent: 'flex-start',
         }}
       >
         {filteredTags.map((t) => (

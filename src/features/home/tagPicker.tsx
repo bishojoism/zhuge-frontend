@@ -60,8 +60,10 @@ export function TagPickerContent({ tags, activeTag, onPick }: TagPickerContentPr
       </Text>
       <div
         style={{
-          maxHeight: 'min(48vh, 420px)',
-          minHeight: 200,
+          // 固定 420px 而非 vh 单位：iOS Safari 键盘弹出时 vh 视口被压缩，
+          // 48vh 会随键盘变小导致标签区"变矮"；固定像素不受键盘影响
+          maxHeight: 420,
+          minHeight: 260,
           overflowY: 'auto',
           border: '1px solid var(--border)',
           borderRadius: 8,
