@@ -1,8 +1,8 @@
-// bbcode 测试：解析 / 剥离 / 颜色白名单 / 禁用外链
+// bbcode 测试：解析 / 剥离 / 颜色白名单 / 禁用外链 / 摘要宽容模式
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { MantineProvider } from '@mantine/core';
-import { hasBBCode, isSafeColor, parseBBCode, stripBBCode } from '../src/lib/bbcode';
+import { hasBBCode, isSafeColor, parseBBCode, parseBBCodeExcerpt, stripBBCode } from '../src/lib/bbcode';
 
 function wrap(node: React.ReactNode) {
   return render(<MantineProvider>{node}</MantineProvider>);
@@ -87,5 +87,33 @@ describe('stripBBCode', () => {
   });
   it('未知/外链标签也剥离', () => {
     expect(stripBBCode('[url]https://e.com[/url] 内容')).toBe('https://e.com 内容');
+  });
+});
+
+describe('parseBBCodeExcerpt（列表摘要宽容渲染）', () => {
+  it('完整标签渲染样式', () => {
+    wrap(parseBBCodeExcerpt('[b]摘要加粗[/b] 和 [color=red]红[/color]'));
+    expect(screen.getByText('摘要加粗').tagName).toBe('B');
+    const span = screen.getByText('红');
+    expect(span.style.color).toBe('red');
+  });
+
+  it('截断在标签中间 → 丢弃残缺标签，不显示原始标签文本', () => {
+    wrap(parseBBCodeExcerpt('开场[color=red]红色文字还没写完'));
+    // 不显示 [color=red] 原始标签
+    expect(screen.queryByText(/\[color/)).toBeNull();
+    // 内容仍可见
+    expect(screen.getByText(/红色文字还没写完/)).toBeInTheDocument();
+  });
+
+  it('截断在 [b] 后 → 内容保留且无标签文本', () => {
+    wrap(parseBBCodeExcerpt('标题 [b]加粗内容'));
+    expect(screen.queryByText(/\[b\]/)).toBeNull();
+    expect(screen.getByText(/加粗内容/)).toBeInTheDocument();
+  });
+
+  it('普通文本原样', () => {
+    wrap(parseBBCodeExcerpt('普通摘要'));
+    expect(screen.getByText('普通摘要')).toBeInTheDocument();
   });
 });

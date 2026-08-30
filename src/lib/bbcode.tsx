@@ -28,7 +28,9 @@ export function hasBBCode(text: string): boolean {
 }
 
 // 递归解析一段文本为 React 节点（支持嵌套）
-function parseSegment(text: string): ReactNode[] {
+// loose=true（列表摘要用）：遇到未闭合标签时丢弃标签标记本身、保留后续文本，
+// 避免摘要截断在标签中间时把 "[color=red]" 这类半截标签当原文显示
+function parseSegment(text: string, loose = false): ReactNode[] {
   const nodes: ReactNode[] = [];
   let rest = text;
   while (rest.length > 0) {
@@ -45,6 +47,11 @@ function parseSegment(text: string): ReactNode[] {
     const innerStart = (m.index ?? 0) + m[0].length;
     const closeIdx = rest.slice(innerStart).toLowerCase().indexOf(closeTag);
     if (closeIdx === -1) {
+      if (loose) {
+        // 摘要截断在标签中间：丢弃残缺标签，继续解析后续文本
+        rest = rest.slice(innerStart);
+        continue;
+      }
       // 无闭合：原文显示（不解析，避免把 [b] 吃掉）
       nodes.push(rest.slice(m.index ?? 0, innerStart));
       rest = rest.slice(innerStart);
@@ -52,7 +59,7 @@ function parseSegment(text: string): ReactNode[] {
     }
     const inner = rest.slice(innerStart, innerStart + closeIdx);
     const after = rest.slice(innerStart + closeIdx + closeTag.length);
-    const children = parseSegment(inner); // 嵌套递归
+    const children = parseSegment(inner, loose); // 嵌套递归
     const key = nodes.length;
     if (tagName === 'b') nodes.push(<b key={key}>{children}</b>);
     else if (tagName === 'i') nodes.push(<i key={key}>{children}</i>);
@@ -79,6 +86,11 @@ function parseSegment(text: string): ReactNode[] {
 /** 渲染 BBCode 内容为 React 节点（禁用的外链标签不识别 → 原文显示） */
 export function parseBBCode(text: string): ReactNode {
   return <>{parseSegment(text)}</>;
+}
+
+/** 渲染 BBCode 摘要（列表/feed 用）：未闭合标签宽容处理，不显示残缺标签文本 */
+export function parseBBCodeExcerpt(text: string): ReactNode {
+  return <>{parseSegment(text, true)}</>;
 }
 
 /** 剥离 BBCode 得纯文本（列表摘要/导出用） */

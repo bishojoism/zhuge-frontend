@@ -3,7 +3,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNo
 import type { Discussion, Tag } from '../../types';
 import { displayName, tagColorOf, tagTextColorOf, timeAgo } from '../../lib/utils';
 import { collapseIosUrlBar, isIosUrlBarCollapsing } from '../../lib/iosUrlBar';
-import { stripBBCode } from '../../lib/bbcode';
+import { parseBBCodeExcerpt } from '../../lib/bbcode';
 import Avatar from '../../components/Avatar';
 import { openAuthorDidiStats } from '../private/authorDidiStats';
 
@@ -483,7 +483,7 @@ function FeedCard({
   active: boolean;
   onOpenTopic: (id: number) => void;
 }) {
-  const excerpt = stripBBCode((d.excerpt || '').replace(/\s+/g, ' ').trim());
+  const excerpt = (d.excerpt || '').replace(/\s+/g, ' ').trim();
   const tagNames = (d.tags || '')
     .split(' / ')
     .map((s) => s.trim())
@@ -536,7 +536,9 @@ function FeedCard({
           </div>
         </div>
         <div className="feed-card-title">{d.title}</div>
-        {excerpt ? <div className="feed-card-excerpt">{excerpt}</div> : null}
+        {excerpt ? (
+          <div className="feed-card-excerpt">{parseBBCodeExcerpt(excerpt)}</div>
+        ) : null}
         {d.image_url ? (
           <img
             src={d.image_url}

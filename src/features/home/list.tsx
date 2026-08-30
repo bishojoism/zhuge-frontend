@@ -5,7 +5,7 @@ import { displayName, tagColorOf, tagTextColorOf, timeAgo } from '../../lib/util
 import Avatar from '../../components/Avatar';
 import { openShareModal } from '../share/shareModals';
 import { openAuthorDidiStats } from '../private/authorDidiStats';
-import { stripBBCode } from '../../lib/bbcode';
+import { parseBBCodeExcerpt } from '../../lib/bbcode';
 
 interface ListViewProps {
   items: Discussion[];
@@ -65,7 +65,7 @@ export function TopicCard({
   tags: Tag[];
   onOpenTopic: (id: number) => void;
 }) {
-  const excerpt = stripBBCode((d.excerpt || '').replace(/\s+/g, ' ').trim());
+  const excerpt = (d.excerpt || '').replace(/\s+/g, ' ').trim();
   const tagNames = (d.tags || '')
     .split(' / ')
     .map((s) => s.trim())
@@ -97,7 +97,9 @@ export function TopicCard({
           loading="lazy"
         />
       ) : null}
-      {excerpt ? <div className="topic-excerpt">{excerpt}</div> : null}
+      {excerpt ? (
+        <div className="topic-excerpt">{parseBBCodeExcerpt(excerpt)}</div>
+      ) : null}
       <div className="topic-meta">
         <span className="avatar-wrap">
           <Avatar user={d} size="sm" showGender />
