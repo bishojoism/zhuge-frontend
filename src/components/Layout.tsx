@@ -107,6 +107,11 @@ export default function Layout({ children }: { children: ReactNode }) {
     if (wasTopic && !nowTopic) {
       // 刚从主题页离开 → 开启守卫窗口（5 秒）
       leaveTopicAtRef.current = Date.now();
+      // 仅推荐模式（feed）主页需要回顶：列表模式（最新/热门）允许自由滚动，
+      // 只清一次主题页的滚动残留即可（不持续拦截，避免"看门狗"阻止下滑）
+      const sort = new URLSearchParams(guardLocation.search).get('sort');
+      const isFeedHome = !sort && /^\/(tag\/\d+)?$/.test(guardLocation.pathname);
+      if (!isFeedHome) return;
       const reset = () => {
         const sy = window.scrollY || document.documentElement.scrollTop || document.body.scrollTop || 0;
         if (sy !== 0) {
@@ -115,10 +120,10 @@ export default function Layout({ children }: { children: ReactNode }) {
       };
       reset();
     }
-  }, [guardLocation.pathname]);
+  }, [guardLocation.pathname, guardLocation.search]);
 
-  // 常驻定时器：守卫窗口内（离开主题页后 5 秒）持续归零滚动；窗口过期自动停止。
-  // 补充：主页推荐模式（feed）页面本就不应滚动，无论是否从主题页返回都持续归零，
+  // 常驻定时器：仅推荐模式（feed）主页持续归零滚动（该模式页面本就不应滚动）；
+  // 列表模式（最新/热门）不拦截任何滚动——从主题返回后可直接下滑浏览，无"看门狗"。
   // 覆盖"点 Logo 回主页/整页刷新后 feed 未挂载"等守卫历史路径判断不到的场景。
   useEffect(() => {
     const iv = window.setInterval(() => {
@@ -126,13 +131,12 @@ export default function Layout({ children }: { children: ReactNode }) {
       // 推荐模式主页判断：路径是 / 或 /tag/:id，且 sort 非 latest/hot
       const sort = new URLSearchParams(guardLocation.search).get('sort');
       const isFeedHome = !isTopic && !sort && (/^\/(tag\/\d+)?$/.test(guardLocation.pathname));
-      // 守卫窗口内（从主题页离开后 5 秒）→ 任何非主题页都归零（列表模式返回也回顶部）
-      const inWindow = leaveTopicAtRef.current !== 0 && Date.now() - leaveTopicAtRef.current <= 5000;
-      if (inWindow && Date.now() - leaveTopicAtRef.current > 5000) {
+      // 清除过期的守卫窗口标记（不再用于拦截，仅清理状态）
+      if (leaveTopicAtRef.current !== 0 && Date.now() - leaveTopicAtRef.current > 5000) {
         leaveTopicAtRef.current = 0;
       }
       if (isTopic) return; // 主题页内允许滚动
-      if (!inWindow && !isFeedHome) return; // 窗口外且非 feed 主页 → 不动（列表浏览可滚动）
+      if (!isFeedHome) return; // 列表模式（最新/热门）主页自由滚动，不拦截
       const sy = window.scrollY || document.documentElement.scrollTop || document.body.scrollTop || 0;
       if (sy !== 0) {
         try { window.scrollTo(0, 0); } catch { /* 忽略 */ }
