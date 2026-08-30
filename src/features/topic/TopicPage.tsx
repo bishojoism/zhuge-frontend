@@ -399,24 +399,24 @@ export default function TopicPage() {
     if (!id) return;
     setSubmitting(true);
     const prevData = data; // 记录乐观前数据（失败回滚用）
+    // 乐观更新：构造本地新帖，先更新缓存立即显示（不等网络），POST 并行发出
+    const optimisticPost: TopicPost = {
+      id: Date.now() * -1, // 临时负 id 标记乐观帖
+      discussion_id: Number(id),
+      number: (data?.posts?.length ?? 1) + 1,
+      created_at: new Date().toISOString().replace('T', ' ').slice(0, 19),
+      user_id: user.id,
+      content: trimmed,
+      image_url: imageUrl || null,
+      edited_at: null,
+      is_private: 0,
+      reply_to_post_id: replyTarget ? replyTarget.postId : null,
+      author: user.username,
+      author_gender: user.gender || null,
+      author_avatar: user.avatar_url || null,
+      character_id: replyCharacterId ? Number(replyCharacterId) : null,
+    };
     try {
-      // 乐观更新：构造本地新帖，先更新缓存立即显示（不等网络），POST 并行发出
-      const optimisticPost: TopicPost = {
-        id: Date.now() * -1, // 临时负 id 标记乐观帖
-        discussion_id: Number(id),
-        number: (data?.posts?.length ?? 1) + 1,
-        created_at: new Date().toISOString().replace('T', ' ').slice(0, 19),
-        user_id: user.id,
-        content: trimmed,
-        image_url: imageUrl || null,
-        edited_at: null,
-        is_private: 0,
-        reply_to_post_id: replyTarget ? replyTarget.postId : null,
-        author: user.username,
-        author_gender: user.gender || null,
-        author_avatar: user.avatar_url || null,
-        character_id: replyCharacterId ? Number(replyCharacterId) : null,
-      };
       // 本地立即显示（追加 + 评论数 +1）
       if (data) {
         await mutate(
@@ -438,42 +438,51 @@ export default function TopicPage() {
           ...(replyCharacterId ? { characterId: Number(replyCharacterId) } : {}),
         },
       });
-      if (draftTimer.current) window.clearTimeout(draftTimer.current);
-      try {
-        await clearDraft(draftKey);
-        void mutateDrafts();
-      } catch {
-        /* 草稿清理失败不影响回复成功 */
-      }
-      setContent('');
-      setImageUrl(null);
-      setReplyTarget(null);
-      setDraftStatus('');
-      notifications.show({ message: '回复成功' });
-      // 焦点还给输入框，方便连续接戏（效率）
-      try {
-        textareaRef.current?.focus();
-      } catch {
-        /* 忽略 */
-      }
-      // 用真实数据替换乐观帖（拿回真实 id/楼层/时间）
-      await mutate();
-      // 刷新讨论列表缓存（评论数变化）
-      await globalMutate(
-        (k) => typeof k === 'string' && k.startsWith('/discussions'),
-        undefined,
-        { revalidate: true }
-      );
     } catch (e) {
-      // 失败：回滚乐观更新（恢复原数据）
+      // POST 失败：回滚乐观更新（恢复原数据）
       if (prevData) {
-        await mutate(prevData, { revalidate: false }).catch(() => {});
-        void mutate(); // 后台重拉确保与服务端一致
+        try {
+          await mutate(prevData, { revalidate: false });
+        } catch {
+          /* 回滚失败忽略 */
+        }
       }
-      notifications.show({ message: e instanceof Error ? e.message : '回复失败', color: 'red' });
-    } finally {
       setSubmitting(false);
+      notifications.show({ message: e instanceof Error ? e.message : '回复失败', color: 'red' });
+      return;
     }
+    // POST 成功：清理草稿 + 刷新（刷新失败不影响"回复成功"，不误报）
+    if (draftTimer.current) window.clearTimeout(draftTimer.current);
+    try {
+      await clearDraft(draftKey);
+      void mutateDrafts();
+    } catch {
+      /* 草稿清理失败不影响回复成功 */
+    }
+    setContent('');
+    setImageUrl(null);
+    setReplyTarget(null);
+    setDraftStatus('');
+    notifications.show({ message: '回复成功' });
+    // 焦点还给输入框，方便连续接戏（效率）
+    try {
+      textareaRef.current?.focus();
+    } catch {
+      /* 忽略 */
+    }
+    // 用真实数据替换乐观帖（拿回真实 id/楼层/时间）；失败仅静默（乐观帖仍在，下次进入重拉）
+    try {
+      await mutate();
+    } catch {
+      /* 刷新失败不影响已提交的回复 */
+    }
+    // 刷新讨论列表缓存（评论数变化）
+    void globalMutate(
+      (k) => typeof k === 'string' && k.startsWith('/discussions'),
+      undefined,
+      { revalidate: true }
+    ).catch(() => {});
+    setSubmitting(false);
   }, [user, content, imageUrl, id, replyTarget, replyCharacterId, draftKey, mutate, mutateDrafts, data]);
 
   const handleCopyLink = useCallback(async () => {
