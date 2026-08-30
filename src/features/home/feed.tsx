@@ -52,6 +52,10 @@ function writeFeedPos(v: number): void {
 // 标记 FeedView 是否挂载过（模块级，重挂载不清零）：用于区分"首次进入 feed"与"返回导航"
 let FEED_MOUNTED = false;
 
+// 窗口化渲染：只挂载当前卡 ±WINDOW 张（虚拟化），其余用同高占位。
+// 滑 N 张后 DOM 不再无限增长（旧实现所有卡常驻 DOM：BBCode 解析/图片/样式全量维护 → 越滑越卡）。
+const WINDOW = 2; // 当前卡前后各保留 2 张真实卡
+
 interface FeedViewProps {
   items: Discussion[];
   tags: Tag[];
@@ -80,6 +84,8 @@ export default function FeedView({
   const viewportRef = useRef<HTMLDivElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
+  // 窗口内真实卡的 ref 映射（index → DOM），updateFeedPosition 只处理窗口内卡，不全量遍历
+  const cardElsRef = useRef<Map<number, HTMLDivElement>>(new Map());
 
   // feedIndex 初始化：若之前进入过 feed 且未切换列表（sessionStorage 记忆有效），恢复位置；
   // 否则从第 1 张开始。用 state 初始值保证任何重挂载（返回导航/门控重挂）都恢复
@@ -123,20 +129,22 @@ export default function FeedView({
   }, []);
 
   // 卡片高度 = viewport 实际高度；translateY 定位当前卡；transition transform .35s ease
+  // 只处理窗口内已挂载的真实卡（占位符用 CSS var 统一高度），不遍历全量
   const updateFeedPosition = useCallback((animate: boolean) => {
     const vp = viewportRef.current;
     const track = trackRef.current;
     if (!vp || !track) return;
     const h = vp.clientHeight;
-    const cards = track.querySelectorAll<HTMLDivElement>('.feed-card');
-    cards.forEach((card) => {
+    const cur = indexRef.current;
+    // 占位符（窗口外卡）高度 = 视口高：用 CSS 变量一次性设置，避免遍历几百个占位符
+    track.style.setProperty('--feed-h', h + 'px');
+    const map = cardElsRef.current;
+    map.forEach((card, i) => {
       card.style.height = h + 'px';
+      card.classList.toggle('active', i === cur);
     });
     track.style.transition = animate ? 'transform .35s ease' : 'none';
-    track.style.transform = `translateY(${-indexRef.current * h}px)`;
-    cards.forEach((card, i) => {
-      card.classList.toggle('active', i === indexRef.current);
-    });
+    track.style.transform = `translateY(${-cur * h}px)`;
   }, []);
 
   const goTo = useCallback(
@@ -450,15 +458,28 @@ export default function FeedView({
         <div className="feed-topbar">{tagbar}</div>
         <div className="feed-viewport" id="feed-viewport" ref={viewportRef}>
           <div className="feed-track" id="feed-track" ref={trackRef}>
-            {items.map((d, i) => (
-              <FeedCard
-                key={d.id}
-                d={d}
-                tags={tags}
-                active={i === feedIndex}
-                onOpenTopic={onOpenTopic}
-              />
-            ))}
+            {items.map((d, i) => {
+              // 窗口化：只有当前卡 ±WINDOW 在窗口内才渲染真实卡，其余渲染同高占位。
+              // 占位高度与真实卡一致（updateFeedPosition 统一设为视口高），轨道总高度不变，
+              // translateY 定位不受影响；滑到窗口内才挂载真实卡（BBCode/图片按需）。
+              const inWindow = Math.abs(i - feedIndex) <= WINDOW;
+              return inWindow ? (
+                <FeedCard
+                  key={d.id}
+                  d={d}
+                  tags={tags}
+                  active={i === feedIndex}
+                  onOpenTopic={onOpenTopic}
+                  index={i}
+                  registerEl={(el) => {
+                    if (el) cardElsRef.current.set(i, el);
+                    else cardElsRef.current.delete(i);
+                  }}
+                />
+              ) : (
+                <div key={d.id} className="feed-card feed-card-ph" data-feed-idx={i} />
+              );
+            })}
             <div ref={sentinelRef} className="feed-sentinel" style={{ height: 1 }} />
           </div>
           {/* 上下滑动提示：常驻（viewport 底部绝对定位，不随卡片移动） */}
@@ -477,11 +498,17 @@ function FeedCard({
   tags,
   active,
   onOpenTopic,
+  index,
+  registerEl,
 }: {
   d: Discussion;
   tags: Tag[];
   active: boolean;
   onOpenTopic: (id: number) => void;
+  /** 卡片在列表中的下标（窗口化注册/注销用） */
+  index: number;
+  /** 挂载/卸载时注册 DOM（updateFeedPosition 只处理窗口内卡） */
+  registerEl: (el: HTMLDivElement | null) => void;
 }) {
   const excerpt = (d.excerpt || '').replace(/\s+/g, ' ').trim();
   const tagNames = (d.tags || '')
@@ -496,7 +523,12 @@ function FeedCard({
   };
 
   return (
-    <div className={`feed-card${active ? ' active' : ''}`} onClick={handleClick}>
+    <div
+      ref={registerEl}
+      data-feed-idx={index}
+      className={`feed-card${active ? ' active' : ''}`}
+      onClick={handleClick}
+    >
       <div className="feed-card-inner">
         <div className="feed-card-head">
           <Avatar user={d} showGender />

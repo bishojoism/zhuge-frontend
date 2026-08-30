@@ -604,6 +604,11 @@
       padding: min(168px, 14vh) 20px; display: flex; flex-direction: column;
       justify-content: center; cursor: pointer;
     }
+    /* 窗口化虚拟滚动：窗口外的卡渲染为同高占位（高度由 --feed-h 驱动，轨道总高不变） */
+    .feed-card-ph {
+      height: var(--feed-h, 100vh); flex-shrink: 0; box-sizing: border-box;
+      pointer-events: none;
+    }
     .feed-card-inner {
       background:
         radial-gradient(420px 220px at 92% 0%, rgba(124,142,163,.06), transparent 60%),
