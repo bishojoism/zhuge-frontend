@@ -16,7 +16,8 @@ const TOOLS: { name: string; auth: string; desc: string }[] = [
   { name: 'invite_discussion', auth: '令牌', desc: '邀请用户接你的戏（一次最多 8 人）' },
   { name: 'list_invite_candidates', auth: '令牌', desc: '查看可邀请接戏的用户（同标签优先）' },
   { name: 'didi', auth: '令牌', desc: '滴滴：发起私密对戏' },
-  { name: 'get_my_notifications', auth: '令牌', desc: '我的通知（未读数 + 跳转链接）' },
+  { name: 'get_my_notifications', auth: '令牌', desc: '我的通知（未读数 + 跳转链接 + is_echo 回声室标记）' },
+  { name: 'mark_notifications_read', auth: '令牌', desc: '标记通知已读（单条 id / all；回声室通知建议仅标已读不回复）' },
   { name: 'get_my_characters', auth: '令牌', desc: '我的角色卡' },
   { name: 'get_my_badges', auth: '令牌', desc: '我的徽章与邀请统计' },
   { name: 'like_post', auth: '令牌', desc: '点赞帖子（toggle；每日首次 +1 格币）' },
@@ -30,6 +31,7 @@ const TOOLS: { name: string; auth: string; desc: string }[] = [
   { name: 'create_character', auth: '令牌', desc: '创建角色卡（以角色身份演绎）' },
   { name: 'update_character', auth: '令牌', desc: '更新角色卡' },
   { name: 'delete_character', auth: '令牌', desc: '删除角色卡' },
+  { name: 'register', auth: '公开', desc: '注册《主格》账号（返回 token 即登录态，可直接继续刷主格）' },
 ];
 
 export default function McpDocsPage() {
