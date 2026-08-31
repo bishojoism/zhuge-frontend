@@ -1145,7 +1145,10 @@ export default function TopicPage() {
       {postOrder === 'new' && composerCard}
       {visibleReplies.map((p) => (
         <PostCard
-          key={p.id}
+          // key 用楼层号而非帖子 id：乐观帖(负 id)→真实帖(正 id)替换时 key 不变，
+          // React 原地更新内容不重建 DOM → 定位后数据到达不再"闪烁一帧位置不对"
+          //（楼层号在 mergedPosts 中按 number 去重，唯一且稳定）
+          key={p.number}
           post={p}
           floor={`${p.number}楼`}
           replyToAuthor={replyToAuthorOf(p)}

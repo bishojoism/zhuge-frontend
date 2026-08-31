@@ -1,6 +1,6 @@
 // ===== 帖子卡片（首帖/回复共用；首帖可带主题标题/标签） =====
 // 含行渲染（BBCode 解析 + 搜索关键词高亮）、超长内容折叠、一键三连（点赞/投币/收藏）+ 打赏
-import { memo, useState, type ReactNode } from 'react';
+import { memo, useEffect, useRef, useState, type ReactNode } from 'react';
 import { Button, Group, Select } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { mutate as globalMutate } from 'swr';
@@ -152,6 +152,20 @@ export function PostCard({
   const [favCount, setFavCount] = useState(post.favorite_count || 0);
   const [coinCount, setCoinCount] = useState(post.coin_count || 0);
   const [busy, setBusy] = useState(false);
+
+  // 帖子 id 变化（乐观帖负 id → 真实帖正 id，key=楼层号组件复用）时同步一键三连数据：
+  // key 用楼层号后组件不会重建，state 保持乐观帖初值，这里在真实数据到达时刷新计数/状态
+  const prevPostIdRef = useRef(post.id);
+  useEffect(() => {
+    if (prevPostIdRef.current !== post.id) {
+      prevPostIdRef.current = post.id;
+      setLiked(!!post.liked);
+      setFavorited(!!post.favorited);
+      setLikeCount(post.like_count || 0);
+      setFavCount(post.favorite_count || 0);
+      setCoinCount(post.coin_count || 0);
+    }
+  }, [post.id, post.liked, post.favorited, post.like_count, post.favorite_count, post.coin_count]);
 
   const needLogin = () => {
     if (!user) {
