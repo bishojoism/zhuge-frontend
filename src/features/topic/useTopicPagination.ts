@@ -188,6 +188,12 @@ export function useTopicPagination(id: string | undefined) {
   // 且目标楼上方的楼层陆续插入 → 目标楼位置会漂移。mergedPosts 变化会重跑本 effect，
   // found 仍命中 → 重新滚动到目标楼校正；3 秒无变化视为数据稳定，清空定位结束校正。
   const jumpSettleTimerRef = useRef<number | null>(null);
+  // 首次定位用平滑滚动；数据到达触发的校正重滚用瞬时跳转（避免 smooth 追赶动画像闪烁）
+  const firstScrollRef = useRef(true);
+  useEffect(() => {
+    // 新目标（pendingTarget 变化）→ 重置为首次（平滑滚动）
+    firstScrollRef.current = true;
+  }, [pendingTarget]);
   useEffect(() => {
     if (!pendingTarget || !id) return;
     const found = 'id' in pendingTarget
@@ -215,7 +221,11 @@ export function useTopicPagination(id: string | undefined) {
         const el = document.querySelector(`[data-num="${num}"]`);
         console.log(`[zhuge-jump] tryScroll num=${num} tries=${tries} el=${!!el}`);
         if (el) {
-          (el as HTMLElement).scrollIntoView({ behavior: 'smooth', block: 'start' });
+          (el as HTMLElement).scrollIntoView({
+            behavior: firstScrollRef.current ? 'smooth' : 'auto',
+            block: 'start',
+          });
+          firstScrollRef.current = false;
           const node = el as HTMLElement;
           node.classList.add('post-flash');
           window.setTimeout(() => node.classList.remove('post-flash'), 1600);
