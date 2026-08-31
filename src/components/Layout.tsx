@@ -577,7 +577,9 @@ export default function Layout({ children }: { children: ReactNode }) {
       <Modal opened={notifOpen} onClose={() => setNotifOpen(false)} title="通知" size={480} centered transitionProps={{ transition: 'pop', duration: 0 }}>
         <NotificationsModalContent onClose={() => setNotifOpen(false)} />
       </Modal>
-      <div className="container">{children}</div>
+      {/* 内容区：key=路径 → 路由切换时强制重建整个内容区（清掉旧页残留的 DOM，
+          如主题页的帖子卡片在水合/协调后残留在主页顶部） */}
+      <div className="container" key={location.pathname}>{children}</div>
     </>
   );
 }
