@@ -579,19 +579,24 @@ function FeedCard({
           void globalMutate<CoinInfo>('/me/coins');
         }
       } else {
-        await api(`/posts/${postId}/coin`, { method: 'POST' });
         setCoinCount((c) => c + 1);
-        notifications.show({ message: '已投币 1 格币' });
-        void globalMutate<CoinInfo>('/me/coins');
+        try {
+          await api(`/posts/${postId}/coin`, { method: 'POST' });
+          notifications.show({ message: '已投币 1 格币' });
+          void globalMutate<CoinInfo>('/me/coins');
+        } catch (e) {
+          setCoinCount((c) => Math.max(0, c - 1));
+          notifications.show({ message: e instanceof Error ? e.message : '投币失败', color: 'red' });
+        }
       }
     } catch (e) {
       // 失败回滚
       if (kind === 'like') {
         setLiked((v) => !v);
-        setLikeCount((c) => Math.max(0, c + (liked ? -1 : 1)));
+        setLikeCount((c) => Math.max(0, c + (liked ? 1 : -1)));
       } else if (kind === 'favorite') {
         setFavorited((v) => !v);
-        setFavCount((c) => Math.max(0, c + (favorited ? -1 : 1)));
+        setFavCount((c) => Math.max(0, c + (favorited ? 1 : -1)));
       }
       notifications.show({ message: e instanceof Error ? e.message : '操作失败', color: 'red' });
     } finally {
@@ -601,7 +606,7 @@ function FeedCard({
 
   const lv = levelOf(d.author_earned);
 
-  // 一键三连：点赞 + 收藏 + 投币（已做的跳过；投币消耗 1 币；允许给自己）
+  // 一键三连：点赞 + 收藏 + 投币（已做的跳过；投币消耗 1 币；允许给自己）——全乐观：先本地点亮/计数，再后台请求，失败单项回滚
   const doTriple = async () => {
     if (!postId) return;
     if (!user) {
@@ -610,31 +615,57 @@ function FeedCard({
     }
     setBusy(true);
     let coinOk = true;
+    const needLike = !liked;
+    const needFav = !favorited;
+    // 乐观：立即点亮状态与计数
+    if (needLike) {
+      setLiked(true);
+      setLikeCount((c) => c + 1);
+    }
+    if (needFav) {
+      setFavorited(true);
+      setFavCount((c) => c + 1);
+    }
+    setCoinCount((c) => c + 1);
     try {
-      if (!liked) {
-        const r = await api<{ active: boolean; coinReward?: number | null }>(`/posts/${postId}/like`, { method: 'POST' });
-        setLiked(r.active);
-        setLikeCount((c) => Math.max(0, c + (r.active ? 1 : 0)));
-        if (r.coinReward) {
-          notifications.show({ message: `🎉 首次点赞 +${r.coinReward} 格币`, color: 'green' });
-          void globalMutate<CoinInfo>('/me/coins');
+      if (needLike) {
+        try {
+          const r = await api<{ active: boolean; coinReward?: number | null }>(`/posts/${postId}/like`, { method: 'POST' });
+          if (!r.active) {
+            setLiked(false);
+            setLikeCount((c) => Math.max(0, c - 1));
+          }
+          if (r.coinReward) {
+            notifications.show({ message: `🎉 首次点赞 +${r.coinReward} 格币`, color: 'green' });
+            void globalMutate<CoinInfo>('/me/coins');
+          }
+        } catch {
+          setLiked(false);
+          setLikeCount((c) => Math.max(0, c - 1));
         }
       }
-      if (!favorited) {
-        const r = await api<{ active: boolean; coinReward?: number | null }>(`/posts/${postId}/favorite`, { method: 'POST' });
-        setFavorited(r.active);
-        setFavCount((c) => Math.max(0, c + (r.active ? 1 : 0)));
-        if (r.coinReward) {
-          notifications.show({ message: `🎉 首次收藏 +${r.coinReward} 格币`, color: 'green' });
-          void globalMutate<CoinInfo>('/me/coins');
+      if (needFav) {
+        try {
+          const r = await api<{ active: boolean; coinReward?: number | null }>(`/posts/${postId}/favorite`, { method: 'POST' });
+          if (!r.active) {
+            setFavorited(false);
+            setFavCount((c) => Math.max(0, c - 1));
+          }
+          if (r.coinReward) {
+            notifications.show({ message: `🎉 首次收藏 +${r.coinReward} 格币`, color: 'green' });
+            void globalMutate<CoinInfo>('/me/coins');
+          }
+        } catch {
+          setFavorited(false);
+          setFavCount((c) => Math.max(0, c - 1));
         }
       }
       try {
         await api(`/posts/${postId}/coin`, { method: 'POST' });
-        setCoinCount((c) => c + 1);
         void globalMutate<CoinInfo>('/me/coins');
       } catch {
         coinOk = false;
+        setCoinCount((c) => Math.max(0, c - 1));
       }
       notifications.show({
         message: coinOk ? '一键三连完成 🎉' : '已点赞收藏，投币失败（余额不足？）',

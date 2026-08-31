@@ -197,16 +197,17 @@ export function PostCard({
     }
   };
 
-  // 投币（固定 1 币，10% 税；被投币会通知作者；允许给自己）
+  // 投币（固定 1 币，10% 税；被投币会通知作者；允许给自己）——乐观：先计数，失败回滚
   const doCoin = async () => {
     if (needLogin()) return;
     setBusy(true);
+    setCoinCount((c) => c + 1);
     try {
       await api(`/posts/${post.id}/coin`, { method: 'POST' });
-      setCoinCount((c) => c + 1);
       notifications.show({ message: '已投币 1 格币' });
       void globalMutate<CoinInfo>('/me/coins');
     } catch (e) {
+      setCoinCount((c) => Math.max(0, c - 1));
       notifications.show({ message: e instanceof Error ? e.message : '投币失败', color: 'red' });
     } finally {
       setBusy(false);
@@ -218,36 +219,62 @@ export function PostCard({
     openTipModal(post.id, author, () => setCoinCount((c) => c + 1));
   };
 
-  // 一键三连：一次点击完成 点赞 + 收藏 + 投币（已点赞/已收藏的跳过；投币消耗 1 币；允许给自己）
+  // 一键三连：一次点击完成 点赞 + 收藏 + 投币（已点赞/已收藏的跳过；投币消耗 1 币；允许给自己）——全乐观：先本地点亮/计数，再后台请求，失败单项回滚
   const doTriple = async () => {
     if (needLogin()) return;
     setBusy(true);
     let coinOk = true;
+    const needLike = !liked;
+    const needFav = !favorited;
+    // 乐观：立即点亮状态与计数
+    if (needLike) {
+      setLiked(true);
+      setLikeCount((c) => c + 1);
+    }
+    if (needFav) {
+      setFavorited(true);
+      setFavCount((c) => c + 1);
+    }
+    setCoinCount((c) => c + 1);
     try {
-      if (!liked) {
-        const r = await api<{ active: boolean; coinReward?: number | null }>(`/posts/${post.id}/like`, { method: 'POST' });
-        setLiked(r.active);
-        setLikeCount((c) => Math.max(0, c + (r.active ? 1 : 0)));
-        if (r.coinReward) {
-          notifications.show({ message: `🎉 首次点赞 +${r.coinReward} 格币`, color: 'green' });
-          void globalMutate<CoinInfo>('/me/coins');
+      if (needLike) {
+        try {
+          const r = await api<{ active: boolean; coinReward?: number | null }>(`/posts/${post.id}/like`, { method: 'POST' });
+          if (!r.active) {
+            setLiked(false);
+            setLikeCount((c) => Math.max(0, c - 1));
+          }
+          if (r.coinReward) {
+            notifications.show({ message: `🎉 首次点赞 +${r.coinReward} 格币`, color: 'green' });
+            void globalMutate<CoinInfo>('/me/coins');
+          }
+        } catch {
+          setLiked(false);
+          setLikeCount((c) => Math.max(0, c - 1));
         }
       }
-      if (!favorited) {
-        const r = await api<{ active: boolean; coinReward?: number | null }>(`/posts/${post.id}/favorite`, { method: 'POST' });
-        setFavorited(r.active);
-        setFavCount((c) => Math.max(0, c + (r.active ? 1 : 0)));
-        if (r.coinReward) {
-          notifications.show({ message: `🎉 首次收藏 +${r.coinReward} 格币`, color: 'green' });
-          void globalMutate<CoinInfo>('/me/coins');
+      if (needFav) {
+        try {
+          const r = await api<{ active: boolean; coinReward?: number | null }>(`/posts/${post.id}/favorite`, { method: 'POST' });
+          if (!r.active) {
+            setFavorited(false);
+            setFavCount((c) => Math.max(0, c - 1));
+          }
+          if (r.coinReward) {
+            notifications.show({ message: `🎉 首次收藏 +${r.coinReward} 格币`, color: 'green' });
+            void globalMutate<CoinInfo>('/me/coins');
+          }
+        } catch {
+          setFavorited(false);
+          setFavCount((c) => Math.max(0, c - 1));
         }
       }
       try {
         await api(`/posts/${post.id}/coin`, { method: 'POST' });
-        setCoinCount((c) => c + 1);
         void globalMutate<CoinInfo>('/me/coins');
       } catch {
         coinOk = false; // 投币失败（如余额不足），点赞收藏仍完成
+        setCoinCount((c) => Math.max(0, c - 1));
       }
       notifications.show({
         message: coinOk ? '一键三连完成 🎉' : '已点赞收藏，投币失败（余额不足？）',
