@@ -655,6 +655,32 @@
       color: #fff;
       font-weight: 600;
     }
+    /* 列表卡片三连按钮行（点击不触发卡片跳转） */
+    .topic-actions {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px dashed var(--border, rgba(127,142,163,.25));
+    }
+    .topic-act {
+      border: none;
+      background: rgba(127,142,163,.14);
+      color: var(--text);
+      border-radius: 16px;
+      padding: 3px 12px;
+      font-size: 12px;
+      cursor: pointer;
+      font-family: inherit;
+    }
+    .topic-act.on { background: rgba(255,90,90,.18); color: #e05555; }
+    .topic-act.triple-main {
+      background: var(--primary, #c98a6b);
+      color: #fff;
+      font-weight: 600;
+    }
     /* 涓婁笅婊戝姩鎻愮ず锛堝皬瀛楀父椹伙級 */
     .feed-hint {
       position: absolute; left: 50%; bottom: 16px;
