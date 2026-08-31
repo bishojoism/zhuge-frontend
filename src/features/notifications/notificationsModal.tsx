@@ -134,7 +134,14 @@ export function NotificationsModalContent({ onClose }: { onClose: () => void }) 
     mutate('/me');
     if (n.url) {
       // 主题类通知（接戏/滴滴）→ 先种乐观缓存再跳转；管理类（举报/标签申请）→ 直接跳
-      if (n.url.startsWith('/d/')) seedTopicFromNotif(n);
+      if (n.url.startsWith('/d/')) {
+        // 已在同一主题页时【跳过种子】：详情缓存里已是真实数据（含已加载楼层），
+        // 种子会把 page1 覆盖成"3 条乐观帖"→ 页面闪变、目标楼 DOM 短暂消失，反而定位不到。
+        // 只在跨页面进入（缓存无该主题真实数据）时才种乐观首帧。
+        const targetPath = n.url.split('?')[0];
+        const alreadyHere = window.location.pathname === targetPath;
+        if (!alreadyHere) seedTopicFromNotif(n);
+      }
       navigate(n.url);
     } else if (n.discussion_id) {
       seedTopicFromNotif(n);

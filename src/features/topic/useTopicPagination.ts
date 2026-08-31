@@ -146,17 +146,24 @@ export function useTopicPagination(id: string | undefined) {
       ? mergedPosts.find((p) => p.id === pendingTarget.id)
       : mergedPosts.find((p) => p.number === pendingTarget.number);
     if (found) {
-      setPendingTarget(null);
+      // 数据已到位但 DOM 可能还没渲染（通知点入时 page1 缓存被乐观种子短暂覆盖又强制重验，
+      // 真实楼层可能延后出现）：轮询等目标楼 DOM 出现再滚动，最多 ~2s，超时才放弃。
       const num = found.number;
-      window.setTimeout(() => {
+      let tries = 0;
+      const tryScroll = () => {
         const el = document.querySelector(`[data-num="${num}"]`);
         if (el) {
           (el as HTMLElement).scrollIntoView({ behavior: 'smooth', block: 'start' });
           const node = el as HTMLElement;
           node.classList.add('post-flash');
           window.setTimeout(() => node.classList.remove('post-flash'), 1600);
+          return;
         }
-      }, 250); // 等该楼 DOM 渲染完成
+        tries += 1;
+        if (tries < 20) window.setTimeout(tryScroll, 100);
+      };
+      tryScroll();
+      setPendingTarget(null);
       return;
     }
     if (targetFetchingRef.current) return; // 定位请求进行中，等结果

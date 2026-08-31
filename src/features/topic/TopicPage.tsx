@@ -263,8 +263,9 @@ export default function TopicPage() {
       author: replyAuthor || (targetPost ? displayName(targetPost) : ''),
     });
     // 滚动定位统一交给 pendingTarget：目标楼已加载（用户在其他楼层浏览过，缓存里有）也要滚过去，
-    // 已加载立即滚动高亮，未加载先拉所在页再滚 —— 不再区分"找到/未找到"，否则在主题页点通知不跳楼
-    setPendingTarget((prev) => prev ?? { id: replyPostId });
+    // 已加载立即滚动高亮，未加载先拉所在页再滚 —— 不再区分"找到/未找到"，否则在主题页点通知不跳楼。
+    // 无条件覆盖（不用 prev ?? ）：上一次定位未完成（pendingTarget 非 null）时，新通知必须替换旧目标
+    setPendingTarget({ id: replyPostId });
     // 清除 state + query：仅首次进入时生效，刷新/返回不重复触发
     navigate(routeLocation.pathname, { replace: true, state: null });
     // eslint-disable-next-line react-hooks/exhaustive-deps
