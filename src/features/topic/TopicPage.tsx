@@ -286,10 +286,12 @@ export default function TopicPage() {
     });
   }, []);
 
-  // 从通知点入：自动引用对方（接戏/滴滴通知 → 回复框自动 @对方并滚动过去，不抢焦点）
+  // 从通知点入：自动引用对方（公开主题的接戏/滴滴通知 → 回复框自动 @对方并滚动过去，不抢焦点）
   // 支持两种来源：站内通知弹窗（location.state.replyPostId）与系统推送通知（URL ?reply=&replyAuthor=）
+  // 私密主题（滴滴/一对一私聊）不自动接戏（无"接戏某楼"概念，通知 url 也不带 reply，这里兜底）
   useEffect(() => {
     if (!user || !data) return;
+    if (data.discussion.is_private) return; // 私密主题：不自动接戏
     const st = (routeLocation.state || {}) as { replyPostId?: number; replyAuthor?: string };
     const sp = new URLSearchParams(routeLocation.search);
     const qReply = sp.get('reply');
