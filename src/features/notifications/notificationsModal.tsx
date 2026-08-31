@@ -110,7 +110,14 @@ export function NotificationsModalContent({ onClose }: { onClose: () => void }) 
       extraPosts.push({ number, content, author, ...extra });
     };
     if (Array.isArray(targetPagePosts)) {
-      for (const p of targetPagePosts) pushPost(p.number, p.content, p.author || '有人');
+      for (const p of targetPagePosts) {
+        // 整个帖子对象透传（created_at/author_badges/author_earned/reply_to_*/配图/三连计数全带），
+        // 不能只拆 number/content/author —— 否则首帧时间/徽章/等级/回复引用缺失，替换时"变一下"
+        if (!seen.has(p.number)) {
+          seen.add(p.number);
+          extraPosts.push({ ...p });
+        }
+      }
     }
     if (n.target_reply_to_number && n.target_reply_to_excerpt) {
       pushPost(n.target_reply_to_number, n.target_reply_to_excerpt, n.target_reply_to_author || '有人');

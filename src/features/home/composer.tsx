@@ -559,82 +559,85 @@ export function seedTopicCacheFromList(
         }
       );
     });
-  const optimistic: DiscussionDetail = {
-    discussion: {
-      id: d.id,
-      title: d.title,
-      comment_count: d.comment_count || 1,
+    // 附加乐观帖（回复链：被回复的那楼 + 触发回复；或通知预取的目标页楼层）：负 id，
+    // 楼层号用真实值（后端通知/预取带），mergedPosts 按 number 排序显示在正确位置。
+    // 全字段透传（...p）：created_at/author_badges/author_earned/reply_to_*/配图/三连计数等
+    // 一并带入，首帧与真实数据视觉完全一致（时间/徽章/等级/回复引用不"变一下"）
+    const extraList = (extraPosts || []).map((p, i) => ({
+      ...p,
+      id: -Date.now() - i - 1, // 负 id 标记乐观
+      discussion_id: d.id,
+      created_at: p.created_at || now,
+      user_id: p.user_id ?? 0,
+      edited_at: p.edited_at ?? null,
+      is_private: p.is_private ?? 0,
+      reply_to_post_id: p.reply_to_post_id ?? null,
+      image_url: p.image_url ?? null,
+      author_badges: p.author_badges ?? null,
+      author_earned: p.author_earned ?? null,
+    }));
+    // 首帖（1楼）：extraPosts 含 1 楼时用预取的完整数据（真实时间/徽章/等级/回复引用），
+    // 否则退回内置构造（列表摘要字段）。避免内置 1 楼在 optimistic Map 里先出现而丢弃完整版。
+    const extraFloor1 = extraList.find((p) => p.number === 1);
+    const builtFirstPost = extraFloor1 ?? {
+      id: -Date.now(), // 负 id = 乐观帖（详情页据此识别）
+      discussion_id: d.id,
+      number: 1,
       created_at: d.created_at || now,
       user_id: d.user_id || 0,
-      first_post_id: d.first_post_id ?? null,
-      last_posted_at: d.last_posted_at || d.created_at || now,
-      last_posted_user_id: d.last_posted_user_id ?? null,
-      slug: d.slug ?? null,
-      is_private: d.is_private || 0,
-      is_sticky: d.is_sticky || 0,
-      is_locked: d.is_locked || 0,
-      didi_count: d.didi_count || 0,
-      hot_score: d.hot_score || 0,
-      didi_status: d.didi_status,
-      first_character_id: d.first_character_id ?? null,
-      author: d.author || '',
-      author_avatar: d.author_avatar ?? null,
-      author_gender: d.author_gender,
-      excerpt,
+      // 列表只有摘要没有全文：用摘要填充（足够首帧展示，后台替换为全文）
+      content: excerpt || d.title,
+      edited_at: null,
+      is_private: 0,
+      reply_to_post_id: null,
       image_url: d.image_url ?? null,
-      tags: d.tags,
+      author: d.author || '',
+      author_gender: d.author_gender,
+      author_avatar: d.author_avatar ?? null,
+      character_id: d.first_character_id ?? null,
       author_badges: d.author_badges,
-    },
-    posts: [
-      {
-        id: -Date.now(), // 负 id = 乐观帖（详情页据此识别）
-        discussion_id: d.id,
-        number: 1,
+      // 一键三连计数/状态 + 作者等级 + 滴滴数：列表接口已返回，乐观首帧即显示（真实数据到达后替换）
+      like_count: d.like_count || 0,
+      favorite_count: d.favorite_count || 0,
+      coin_count: d.coin_count || 0,
+      liked: d.liked ?? null,
+      favorited: d.favorited ?? null,
+      author_earned: d.author_earned ?? null,
+      didi_count: d.post_didi_count || 0,
+    };
+    const extraWithoutFloor1 = extraList.filter((p) => p.number !== 1);
+    const optimistic: DiscussionDetail = {
+      discussion: {
+        id: d.id,
+        title: d.title,
+        comment_count: d.comment_count || 1,
         created_at: d.created_at || now,
         user_id: d.user_id || 0,
-        // 列表只有摘要没有全文：用摘要填充（足够首帧展示，后台替换为全文）
-        content: excerpt || d.title,
-        edited_at: null,
-        is_private: 0,
-        reply_to_post_id: null,
-        image_url: d.image_url ?? null,
+        first_post_id: d.first_post_id ?? null,
+        last_posted_at: d.last_posted_at || d.created_at || now,
+        last_posted_user_id: d.last_posted_user_id ?? null,
+        slug: d.slug ?? null,
+        is_private: d.is_private || 0,
+        is_sticky: d.is_sticky || 0,
+        is_locked: d.is_locked || 0,
+        didi_count: d.didi_count || 0,
+        hot_score: d.hot_score || 0,
+        didi_status: d.didi_status,
+        first_character_id: d.first_character_id ?? null,
         author: d.author || '',
-        author_gender: d.author_gender,
         author_avatar: d.author_avatar ?? null,
-        character_id: d.first_character_id ?? null,
+        author_gender: d.author_gender,
+        excerpt,
+        image_url: d.image_url ?? null,
+        tags: d.tags,
         author_badges: d.author_badges,
-        // 一键三连计数/状态 + 作者等级 + 滴滴数：列表接口已返回，乐观首帧即显示（真实数据到达后替换）
-        like_count: d.like_count || 0,
-        favorite_count: d.favorite_count || 0,
-        coin_count: d.coin_count || 0,
-        liked: d.liked ?? null,
-        favorited: d.favorited ?? null,
-        author_earned: d.author_earned ?? null,
-        didi_count: d.post_didi_count || 0,
       },
-      // 附加乐观帖（回复链：被回复的那楼 + 触发回复；或通知预取的目标页楼层）：负 id，
-      // 楼层号用真实值（后端通知/预取带），mergedPosts 按 number 排序显示在正确位置。
-      // 全字段透传（...p）：created_at/author_badges/author_earned/reply_to_*/配图/三连计数等
-      // 一并带入，首帧与真实数据视觉完全一致（时间/徽章/等级/回复引用不"变一下"）
-      ...(extraPosts || []).map((p, i) => ({
-        ...p,
-        id: -Date.now() - i - 1, // 负 id 标记乐观
-        discussion_id: d.id,
-        created_at: p.created_at || now,
-        user_id: p.user_id ?? 0,
-        edited_at: p.edited_at ?? null,
-        is_private: p.is_private ?? 0,
-        reply_to_post_id: p.reply_to_post_id ?? null,
-        image_url: p.image_url ?? null,
-        author_badges: p.author_badges ?? null,
-        author_earned: p.author_earned ?? null,
-      })),
-    ],
-    totalPosts: d.comment_count || 1,
-    page: 1,
-    pageSize: 20,
-    tags: tagArray,
-  };
+      posts: [builtFirstPost, ...extraWithoutFloor1],
+      totalPosts: d.comment_count || 1,
+      page: 1,
+      pageSize: 20,
+      tags: tagArray,
+    };
   void globalMutate(`/discussions/${d.id}?page=1&order=new`, optimistic, { revalidate: true });
   void globalMutate(`/discussions/${d.id}?page=1&order=old`, optimistic, { revalidate: true });
 }
