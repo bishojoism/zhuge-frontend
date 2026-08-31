@@ -245,6 +245,14 @@
       padding: 6px 14px; font-size: 13px; color: var(--text-soft);
       transition: all .2s ease; box-shadow: var(--shadow-sm);
       white-space: nowrap; flex-shrink: 0;
+      /* 去掉浏览器默认 focus outline（点击后出现方形方框，不跟随圆角）：
+         用自定义 focus-visible 圆角高亮替代，键盘导航仍可辨识 */
+      outline: none;
+    }
+    .tagchip:focus-visible {
+      outline: 2px solid var(--primary);
+      outline-offset: 2px;
+      border-radius: 18px;
     }
     .tagchip:hover { border-color: var(--primary); color: var(--primary-deep); transform: translateY(-1px); box-shadow: var(--shadow-md); }
     .tagchip.active {
