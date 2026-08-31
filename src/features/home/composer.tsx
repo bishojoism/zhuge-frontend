@@ -10,7 +10,7 @@ import useSWR, { mutate as globalMutate } from 'swr';
 import { clearDraft, saveDraft } from '../../lib/drafts';
 import { pickImageFile, uploadImageFile } from '../../lib/utils';
 import BBCodeEditor from '../../components/BBCodeEditor';
-import type { CharacterItem, DiscussionDetail, Gender, Tag, User } from '../../types';
+import type { CharacterItem, Discussion, DiscussionDetail, Gender, Tag, User } from '../../types';
 
 // 角色性别显示
 const GENDER_LABEL: Record<string, string> = { male: '男', female: '女', other: '其他', secret: '保密' };
@@ -498,4 +498,62 @@ export function seedTopicCache(
     tags: pickedTags,
   };
   void globalMutate(`/discussions/${newId}`, optimistic, { revalidate: true });
+}
+
+// 主题列表点进主题时乐观种入详情缓存：用列表已有数据（标题/作者/摘要/配图）构造乐观详情，
+// 详情页跳转后首帧直接渲染（不闪骨架屏），后台 revalidate 拉真实数据（完整首帖/回复）替换。
+// 首帖 content 用列表摘要（excerpt）填充——不是全文，但足够首帧展示；帖子 id 用负值标记乐观帖。
+// 参数用宽松类型（Partial<Discussion>）：首页 feed/list、搜索、我的主题、私密列表的条目都可传。
+export function seedTopicCacheFromList(d: Partial<Discussion> & { id: number; title: string }): void {
+  const now = new Date().toISOString().replace('T', ' ').slice(0, 19);
+  const excerpt = (d.excerpt || '').trim();
+  const optimistic: DiscussionDetail = {
+    discussion: {
+      id: d.id,
+      title: d.title,
+      comment_count: d.comment_count || 1,
+      created_at: d.created_at || now,
+      user_id: d.user_id || 0,
+      first_post_id: d.first_post_id ?? null,
+      last_posted_at: d.last_posted_at || d.created_at || now,
+      last_posted_user_id: d.last_posted_user_id ?? null,
+      slug: d.slug ?? null,
+      is_private: d.is_private || 0,
+      is_sticky: d.is_sticky || 0,
+      is_locked: d.is_locked || 0,
+      didi_count: d.didi_count || 0,
+      hot_score: d.hot_score || 0,
+      didi_status: d.didi_status,
+      first_character_id: d.first_character_id ?? null,
+      author: d.author || '',
+      author_avatar: d.author_avatar ?? null,
+      author_gender: d.author_gender,
+      excerpt,
+      image_url: d.image_url ?? null,
+      tags: d.tags,
+      author_badges: d.author_badges,
+    },
+    posts: [
+      {
+        id: -Date.now(), // 负 id = 乐观帖（详情页据此识别）
+        discussion_id: d.id,
+        number: 1,
+        created_at: d.created_at || now,
+        user_id: d.user_id || 0,
+        // 列表只有摘要没有全文：用摘要填充（足够首帧展示，后台替换为全文）
+        content: excerpt || d.title,
+        edited_at: null,
+        is_private: 0,
+        reply_to_post_id: null,
+        image_url: d.image_url ?? null,
+        author: d.author || '',
+        author_gender: d.author_gender,
+        author_avatar: d.author_avatar ?? null,
+        character_id: d.first_character_id ?? null,
+        author_badges: d.author_badges,
+      },
+    ],
+    tags: [],
+  };
+  void globalMutate(`/discussions/${d.id}`, optimistic, { revalidate: true });
 }

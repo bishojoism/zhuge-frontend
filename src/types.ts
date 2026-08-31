@@ -45,6 +45,7 @@ export interface Discussion {
   first_character_id?: number | null;
   // 联表字段（列表接口返回）
   author?: string;
+  author_avatar?: string | null;
   author_gender?: Gender;
   excerpt?: string;
   image_url?: string | null;

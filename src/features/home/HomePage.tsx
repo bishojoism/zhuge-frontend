@@ -16,6 +16,7 @@ import TagBar, { type SortKey } from './tagbar';
 import FeedView from './feed';
 import ListView from './list';
 import { ComposerContent } from './composer';
+import { seedTopicCacheFromList } from './composer';
 import { TagPickerContent } from './tagPicker';
 
 // 推荐随机种子：换标签/进入推荐时重置，让推荐顺序每次不同（同一次浏览内分页稳定）
@@ -202,9 +203,14 @@ export default function HomePage() {
     [navigate, urlTag, urlSort]
   );
 
-  // 打开主题：记录来源（返回时回到上一级即该标签/列表）
+  // 打开主题：记录来源（返回时回到上一级即该标签/列表）+ 乐观种入详情缓存
+  // （用列表已有数据预填充详情页，跳转后首帧直接渲染不闪骨架屏）
   const openTopic = useCallback(
     (id: number) => {
+      const d = itemsRef2.current.find((x) => x.id === id);
+      if (d) seedTopicCacheFromList(d);
+      // 预加载详情页 chunk（点击时并行下载，跳转后零等待）
+      void import('../topic/TopicPage');
       navigate(`/d/${id}`, { state: { from: location.pathname + location.search } });
     },
     [navigate, location.pathname, location.search]

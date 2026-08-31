@@ -8,6 +8,7 @@ import { openModalOnce } from '../../lib/modals';
 import { focusOnEnter } from '../../lib/modalFocus';
 import { TagPickerContent } from '../home/tagPicker';
 import { TopicCard } from '../home/list';
+import { seedTopicCacheFromList } from '../home/composer';
 import type { Discussion } from '../../types';
 
 function SearchModalContent() {
@@ -120,6 +121,11 @@ function SearchModalContent() {
 
   const openTopic = (id: number) => {
     modals.closeAll();
+    // 乐观种入详情缓存（用搜索结果数据预填充，跳转后不闪骨架屏）
+    const d = items.find((x) => x.id === id);
+    if (d) seedTopicCacheFromList(d);
+    // 预加载详情页 chunk
+    void import('../topic/TopicPage');
     navigate(`/d/${id}`, { state: { from: location.pathname + location.search } });
   };
   const pickTag = (id: number | null) => {
