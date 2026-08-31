@@ -156,22 +156,25 @@ export function NotificationsModalContent({ onClose }: { onClose: () => void }) 
         const alreadyHere = window.location.pathname === targetPath;
         console.log('[zhuge-jump] markReadAndGo', { url: n.url, targetPath, alreadyHere, cur: window.location.pathname + window.location.search, targetNumber: n.target_number });
         if (!alreadyHere) {
-          // 预取目标楼之前的楼层 + 目标楼所在页：合并去重后乐观帧楼层完整（首帖 + 1..N），
-          // 页面高度从一开始就与真实一致 → 首帧定位直接到位（不再"乐观帧太矮定位不到位、
-          // 等真实楼层到达再跳"）。失败静默 → 退回仅种回复链的乐观帧（原行为）。
-          // 只拉目标页不够：目标楼若在最后一页（如 25 楼主题），该页仅含少数楼层，
-          // 乐观帧仍缺大部分楼层、页面太矮。补 asc 第 1 页（1-20 楼）覆盖常见主题。
+          // 预取三页合并成完整乐观帧：
+          // 1) asc page1（1-20 楼，目标楼之前常见范围）
+          // 2) around 目标页（目标楼所在页，含目标楼前后同页楼层）
+          // 3) desc page1（最新 20 楼，目标楼之后的楼层）
+          // 合并去重后乐观帧楼层 = 目标楼前 + 目标页 + 最新页，与真实数据最终形态一致 →
+          // 首帧定位直接到位，且后续楼层（目标楼之后）不再"第一帧缺失、加载后插入"跳变。
+          // 失败静默 → 退回仅种回复链的乐观帧（原行为）。
           let targetPagePosts: OptimisticExtraPost[] | undefined;
           if (n.post_id && n.discussion_id) {
             try {
-              const [page1Res, aroundRes] = await Promise.allSettled([
+              const [page1Res, aroundRes, latestRes] = await Promise.allSettled([
                 api<{ data: DiscussionDetail }>(`/discussions/${n.discussion_id}?page=1&order=old`),
                 api<{ data: DiscussionDetail }>(
                   `/discussions/${n.discussion_id}?page=1&order=old&aroundPostId=${n.post_id}`
                 ),
+                api<{ data: DiscussionDetail }>(`/discussions/${n.discussion_id}?page=1&order=new`),
               ]);
               const merged = new Map<number, OptimisticExtraPost>();
-              for (const r of [page1Res, aroundRes]) {
+              for (const r of [page1Res, aroundRes, latestRes]) {
                 if (r.status !== 'fulfilled') continue;
                 for (const p of (r.value.data.posts || []) as TopicPost[]) {
                   if (!merged.has(p.number)) {
