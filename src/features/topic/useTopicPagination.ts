@@ -111,10 +111,14 @@ export function useTopicPagination(id: string | undefined) {
   }, [id, page, postOrder, hasMore]);
 
   // 滚动到底部哨兵 → 加载下一页
+  // 注意：乐观首帧（含 id<0 乐观帖）时不自动翻页——乐观数据只有 1 条（首帖占位），
+  // 页面内容不足一屏会让底部哨兵立即触发翻页，把当前页推到 page=2、绕开 page=1 的乐观缓存
+  // （通知点入时种子只种了 page=1）→ 骨架屏。等真实数据（强制重验）替换乐观帖后再翻。
   const loadMoreRef = useRef<HTMLDivElement | null>(null);
   const [loadingMore, setLoadingMore] = useState(false);
   useEffect(() => {
     if (!hasMore) return;
+    if (data && (data.posts || []).some((p) => p.id < 0)) return; // 乐观首帧不翻页
     setLoadingMore(true);
     const el = loadMoreRef.current;
     if (!el) return;
@@ -126,7 +130,7 @@ export function useTopicPagination(id: string | undefined) {
     );
     obs.observe(el);
     return () => obs.disconnect();
-  }, [hasMore, page, postOrder, id]);
+  }, [hasMore, page, postOrder, id, data]);
 
   // 目标帖定位：目标不在已加载楼层时，请求其所在页（around）并入，到位后滚动高亮。
   // id 目标用 aroundPostId，楼层目标用 aroundNumber（后端算页码）。
