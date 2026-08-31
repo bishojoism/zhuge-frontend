@@ -96,8 +96,12 @@ export function useTopicPagination(id: string | undefined) {
     // loadedPages → 同一个乐观 1 楼会被合并两次 → 顶部主题卡之外再渲染一个 1 楼。
     // 按 number 去重后只剩一个；真实数据（正 id）到达后同楼覆盖，行为不变。
     const optimistic = new Map<number, TopicPost>();
-    for (const d of Object.values(loadedPages)) {
-      for (const p of (d?.posts || []) as TopicPost[]) {
+    // 直接并入当前页 data 与首帖页 headData，再并已加载的其它页（loadedPages）：
+    // loadedPages 的并入是 effect（挂载后首次渲染才跑），SSR fallback 首帧 data 已有 20 条
+    // 但 loadedPages 还是空 → 若只依赖 loadedPages，首帧 mergedPosts 为空 → 闪"暂无内容"再恢复。
+    for (const d of [data, headData, ...Object.values(loadedPages)]) {
+      if (!d) continue;
+      for (const p of (d.posts || []) as TopicPost[]) {
         if (p.id > 0) real.set(p.number, p);
         else if (!optimistic.has(p.number)) optimistic.set(p.number, p);
       }
@@ -109,7 +113,7 @@ export function useTopicPagination(id: string | undefined) {
     const out = [...real.values()];
     for (const p of optimistic.values()) if (!real.has(p.number)) out.push(p);
     return out.sort((a, b) => a.number - b.number);
-  }, [loadedPages, optimisticPosts]);
+  }, [data, headData, loadedPages, optimisticPosts]);
 
   // 【诊断】mergedPosts 与 loadedPages 推导
   useEffect(() => {
