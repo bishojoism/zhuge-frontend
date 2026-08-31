@@ -49,12 +49,20 @@ export interface PostCardProps {
   highlight?: string;
 }
 
-// 超长戏文折叠：超过阈值才折叠，折叠用 CSS 行数截断（-webkit-line-clamp）按渲染高度缩略
-//（按字数 slice 会切坏 BBCode 标签结构，样式渲染错误）
-const LONG_POST_CHARS = 300; // 回复超过 300 字即折叠（原 600）
+// 超长戏文折叠：超过阈值才折叠，折叠用 max-height 按渲染高度截断（完整渲染，不切坏 BBCode）。
+// 触发条件 = 字数超阈值 **或 行数超可显示行数**（短句多行时字少但渲染高，如 200 字 × 11 行）。
+const LONG_POST_CHARS = 300; // 回复超过 300 字即折叠
 const FIRST_POST_FOLD_CHARS = 300; // 首帖超过 300 字即折叠
-const REPLY_CLAMP_LINES = 3; // 回复折叠后显示前 3 行（原 300 字约 5-6 行）
+const REPLY_CLAMP_LINES = 3; // 回复折叠后显示前 3 行
 const FIRST_POST_CLAMP_LINES = 2; // 首帖折叠后显示前 2 行（更短，操作按钮免滚动）
+
+// 判断帖子是否该折叠：字数超阈值，或行数超过可显示行数（行多则渲染高，需折叠）
+function shouldFold(content: string, charThreshold: number, clampLines: number): boolean {
+  if (content.length > charThreshold) return true;
+  const lineCount = content.split('\n').length;
+  // 超过可显示行数 + 1 才折叠（恰好等于可显示行数时无需折叠）
+  return lineCount > clampLines + 1;
+}
 
 // 按关键词把一行内容拆成高亮片段（大小写不敏感）
 export function renderLine(line: string, kw?: string): ReactNode {
@@ -439,7 +447,7 @@ export function PostCard({
       )}
 
       <div className="post-body">
-        {post.content.length > (isFirstPost ? FIRST_POST_FOLD_CHARS : LONG_POST_CHARS) ? (
+        {shouldFold(post.content, isFirstPost ? FIRST_POST_FOLD_CHARS : LONG_POST_CHARS, isFirstPost ? FIRST_POST_CLAMP_LINES : REPLY_CLAMP_LINES) ? (
           <LongContent
             content={post.content}
             highlight={highlight}
