@@ -192,9 +192,10 @@ export function useSecurity() {
   });
 }
 
-// 我的格币（余额/累计/等级）；每日打开自动领币在 Layout 挂载时调 /me/daily-claim
-export function useCoins() {
-  return useSWR<CoinInfo>('/me/coins', async (p: string) => {
+// 我的格币（余额/累计/等级）；每日打开自动领币在 Layout 挂载时调 /me/daily-claim。
+// enabled=false（未登录）时 key 为 null 不请求——避免未登录时打 /api/me/coins 返回 401 报错
+export function useCoins(enabled: boolean = true) {
+  return useSWR<CoinInfo>(enabled ? '/me/coins' : null, async (p: string) => {
     const r = await api<{ data: CoinInfo }>(p);
     return r.data;
   });

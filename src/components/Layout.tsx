@@ -95,7 +95,7 @@ export default function Layout({ children }: { children: ReactNode }) {
   const navigate = useNavigate();
   // 未登录不请求通知（首屏零 API）
   const { unread, mutate: refreshUnread } = useUnread(!!user);
-  const { data: coinData, mutate: mutateCoins } = useCoins();
+  const { data: coinData, mutate: mutateCoins } = useCoins(!!user);
   // 每日打开应用自动领格币（+10；当天已领则 no-op，领到提示）
   useEffect(() => {
     if (!user) return;
