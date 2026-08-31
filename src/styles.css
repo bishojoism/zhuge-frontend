@@ -593,7 +593,6 @@
     .feed-topbar {
       position: absolute; top: 0; left: 0; right: 0; z-index: 6;
       padding: 0 14px 30px;
-      background: linear-gradient(180deg, rgba(246,245,242,.96), rgba(246,245,242,0));
       pointer-events: none;
     }
     .feed-topbar .tagbar, .feed-topbar .toolbar { margin-bottom: 8px; pointer-events: auto; }
