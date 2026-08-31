@@ -18,7 +18,23 @@ export function useTopicPagination(id: string | undefined) {
   const { data, error, isLoading, mutate } = useTopic(id, page, postOrder);
   // 首帖页：'new'（从新到旧）时最新一页不含首帖（1楼），恒拉 asc 第 1 页补首帖；
   // 'old' 模式与主 hook 的 page=1 同 key，SWR dedupe 不重复请求
-  const { data: headData } = useTopic(id, 1, 'old');
+  const { data: headData, mutate: mutateHead } = useTopic(id, 1, 'old');
+
+  // 乐观种子强制重验：从列表点进主题时（seedTopicCacheFromList / seedTopicCache）会往 SWR
+  // 缓存写入"只有 1 条首帖（id 为负值）"的乐观数据，而全局 revalidateIfStale:false 会抑制
+  // 挂载后的自动重新验证 → 详情永远停留在乐观数据，回复列表为空。
+  // 检测到乐观帖（id < 0）时主动强制重验 data 与 headData 两个 key，拉真实数据替换。
+  // （SSR 直接访问/已有真实缓存时 id > 0，不触发，保持"首帧零 API"优化）
+  useEffect(() => {
+    if (!id) return;
+    const hasOptimistic = (d: DiscussionDetail | undefined) =>
+      !!d && (d.posts || []).some((p) => p.id < 0);
+    if (hasOptimistic(data) || hasOptimistic(headData)) {
+      void mutate();
+      void mutateHead();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, data, headData]);
 
   // loadedPages：已加载的各页数据（key=页码）。当前页（data）与首帖页（headData）变化时自动并入，
   // mergedPosts 按楼层合并去重（真实帖覆盖同楼乐观帖）。切换排序时清空重载。
