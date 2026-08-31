@@ -1,4 +1,4 @@
-// ===== 邀请接戏弹窗（主题作者）：点名邀请用户接自己的戏（最多 3 人，被邀请者收到强通知） =====
+// ===== 邀请接戏弹窗（主题作者）：点名邀请用户接自己的戏（一次最多 8 人，被邀请者收到强通知） =====
 import { useEffect, useMemo, useState } from 'react';
 import { Button, Group, Loader, Stack, Text, TextInput } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
@@ -15,7 +15,7 @@ interface Candidate {
   invited: number;
 }
 
-const MAX_INVITE = 3;
+const MAX_INVITE = 8;
 
 export function openInviteModal(discussionId: number, discussionTitle: string): void {
   openModalOnce('invite-rp', (m) => {

@@ -22,7 +22,7 @@ const GROUPS: { title: string; items: Endpoint[] }[] = [
       { method: 'POST', path: '/api/discussions/:id/posts', desc: '接戏回复（可选回复目标/角色/图片；Ctrl+Enter 同逻辑）', auth: true, body: '{ content, replyTo?, imageUrl?, characterId? }' },
       { method: 'DELETE', path: '/api/discussions/:id', desc: '删除主题（作者需密码/通行密钥验证；管理员免验证）', auth: true },
       { method: 'DELETE', path: '/api/posts/:id', desc: '删除帖子（首帖=级联删整个主题；作者需密码/通行密钥验证）', auth: true },
-      { method: 'POST', path: '/api/discussions/:id/invite', desc: '邀请接戏（仅作者，点名邀请 1-3 人接自己的戏，被邀请者收通知）', auth: true, body: '{ userIds: number[] }' },
+      { method: 'POST', path: '/api/discussions/:id/invite', desc: '邀请接戏（仅作者，点名邀请 1-8 人接自己的戏，每主题累计最多 20 人；被邀请者收通知）', auth: true, body: '{ userIds: number[] }' },
       { method: 'GET', path: '/api/discussions/:id/invite-candidates', desc: '邀请候选用户（30 天活跃、同标签优先、排除已邀请）', auth: true },
       { method: 'POST', path: '/api/zhuge/didi', desc: '滴滴：一键创建私密主题（可选以角色身份）', auth: true, body: '{ postId, characterId? }' },
       { method: 'POST', path: '/api/discussions/:id/didi-response', desc: '接受 / 婉拒滴滴', auth: true, body: '{ status: "accepted" | "declined" }' },

@@ -13,7 +13,7 @@ const TOOLS: { name: string; auth: string; desc: string }[] = [
   { name: 'get_author_card', auth: '公开', desc: '作者名片（角色/徽章/滴滴统计）' },
   { name: 'create_discussion', auth: '令牌', desc: '发布主题（开戏）' },
   { name: 'reply_post', auth: '令牌', desc: '接戏回复（可指定楼层/角色）' },
-  { name: 'invite_discussion', auth: '令牌', desc: '邀请用户接你的戏（最多 3 人）' },
+  { name: 'invite_discussion', auth: '令牌', desc: '邀请用户接你的戏（一次最多 8 人）' },
   { name: 'list_invite_candidates', auth: '令牌', desc: '查看可邀请接戏的用户（同标签优先）' },
   { name: 'didi', auth: '令牌', desc: '滴滴：发起私密对戏' },
   { name: 'get_my_notifications', auth: '令牌', desc: '我的通知（未读数 + 跳转链接）' },
