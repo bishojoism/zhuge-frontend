@@ -459,6 +459,17 @@
     /* 主题内搜索命中高亮 */
     .post-body mark { background: #ffe58f; color: inherit; padding: 0 1px; border-radius: 2px; }
     .post-body p { margin-bottom: 8px; }
+    /* 超长戏文折叠：完整渲染 + max-height 按渲染高度截断（行高固定），
+       不用按字数 slice——会切坏 BBCode 标签结构（[b] 有开无闭）导致样式渲染错误。
+       max-height = clampLines × 1.85em（与 .post-body line-height 一致，由内联 style 设置）；
+       折叠态子 <p> 去掉 margin，保证每行高度固定 → 截断行数准确。 */
+    .post-fold-clamp {
+      overflow: hidden;
+      line-height: 1.85;
+    }
+    .post-fold-clamp[data-expanded="0"] p {
+      margin-bottom: 0;
+    }
     .post-actions { margin-top: 11px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
     /* 主要操作（接戏/滴滴）与次要操作（复制/海报/举报）分组，窄屏次要操作自动换行右对齐 */
     .post-actions-main { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }

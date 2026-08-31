@@ -49,13 +49,12 @@ export interface PostCardProps {
   highlight?: string;
 }
 
-// 超长戏文折叠：超过阈值只显示前段，点击展开
-// 阈值与预览都压得更狠：长戏文（首帖/回复）折叠后只留 2-3 行，让卡片底部的
-// 一键三连/滴滴/复制链接等操作按钮不用滚动就能看到（300 字预览约 5-6 行仍会挤出首屏）
+// 超长戏文折叠：超过阈值才折叠，折叠用 CSS 行数截断（-webkit-line-clamp）按渲染高度缩略
+//（按字数 slice 会切坏 BBCode 标签结构，样式渲染错误）
 const LONG_POST_CHARS = 300; // 回复超过 300 字即折叠（原 600）
 const FIRST_POST_FOLD_CHARS = 300; // 首帖超过 300 字即折叠
-const PREVIEW_CHARS = 120; // 回复折叠后只显示前 120 字（约 2-3 行，原 300）
-const FIRST_POST_PREVIEW_CHARS = 120; // 首帖折叠后显示前 120 字（约 2-3 行）
+const REPLY_CLAMP_LINES = 3; // 回复折叠后显示前 3 行（原 300 字约 5-6 行）
+const FIRST_POST_CLAMP_LINES = 2; // 首帖折叠后显示前 2 行（更短，操作按钮免滚动）
 
 // 按关键词把一行内容拆成高亮片段（大小写不敏感）
 export function renderLine(line: string, kw?: string): ReactNode {
@@ -84,24 +83,31 @@ export function renderLine(line: string, kw?: string): ReactNode {
 }
 
 // memo：排序切换/搜索等父组件重渲染时，content/highlight 不变则跳过重渲染（避免 BBCode 重解析）
+// 折叠用 max-height 按渲染高度截断（行高固定）而非按字数 slice：
+// 按字数截断会切坏 BBCode 标签结构（如 [b] 只有开标签没有闭标签）→ 渲染样式错误。
+// 完整渲染 + 高度截断：BBCode 结构完整、显示高度由实际渲染行数决定。
+// 折叠态子 <p> 去掉 margin，行高固定 → max-height = clampLines 行高，截断行数准确。
 export const LongContent = memo(function LongContent({
   content,
   highlight,
-  previewChars = PREVIEW_CHARS,
+  clampLines = 3,
 }: {
   content: string;
   highlight?: string;
-  previewChars?: number;
+  clampLines?: number;
 }) {
   const [expanded, setExpanded] = useState(false);
-  const lines = content.split('\n');
-  const head = content.slice(0, previewChars);
-  const headLines = head.split('\n');
   return (
     <>
-      {(expanded ? lines : headLines).map((line, i) => (
-        <p key={i}>{renderLine(line, highlight)}</p>
-      ))}
+      <div
+        className="post-fold-clamp"
+        data-expanded={expanded ? '1' : '0'}
+        style={expanded ? undefined : { maxHeight: `${clampLines * 1.85}em` }}
+      >
+        {content.split('\n').map((line, i) => (
+          <p key={i}>{renderLine(line, highlight)}</p>
+        ))}
+      </div>
       {!expanded ? (
         <button type="button" className="expand-post-btn" onClick={() => setExpanded(true)}>
           展开全文（{content.length} 字）▾
@@ -437,7 +443,7 @@ export function PostCard({
           <LongContent
             content={post.content}
             highlight={highlight}
-            previewChars={isFirstPost ? FIRST_POST_PREVIEW_CHARS : PREVIEW_CHARS}
+            clampLines={isFirstPost ? FIRST_POST_CLAMP_LINES : REPLY_CLAMP_LINES}
           />
         ) : (
           post.content.split('\n').map((line, i) => <p key={i}>{renderLine(line, highlight)}</p>)
