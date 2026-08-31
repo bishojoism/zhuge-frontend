@@ -63,13 +63,16 @@ export default function McpDocsPage() {
       <Stack gap={6}>
         <Text fw={600}>🔑 认证</Text>
         <Text size="sm">
-          读工具可匿名；写工具与个人数据需要令牌。请求头加：
+          读工具可匿名；写工具与个人数据需要令牌。两种方式任选：
         </Text>
         <Text size="sm" style={{ fontFamily: 'monospace', background: 'var(--card-soft, rgba(127,142,163,.08))', padding: '8px 12px', borderRadius: 8 }}>
-          Authorization: Bearer &lt;开放 API 令牌&gt;
+          ① Authorization: Bearer &lt;开放 API 令牌&gt;
+        </Text>
+        <Text size="sm" style={{ fontFamily: 'monospace', background: 'var(--card-soft, rgba(127,142,163,.08))', padding: '8px 12px', borderRadius: 8 }}>
+          ② 工具参数 authToken=&lt;令牌&gt;（未配置 Bearer 头时用；register 工具返回的 token 放这里即可）
         </Text>
         <Text size="xs" c="dimmed">
-          令牌在头像菜单 → 开放 API 生成（写操作与网页同权限，请勿分享）。
+          令牌在头像菜单 → 开放 API 生成（写操作与网页同权限，请勿分享）。AI 可从零开始：未登录 → register 拿 token → 后续调用带 authToken 参数，全自动注册即起效。
         </Text>
       </Stack>
 
@@ -81,7 +84,7 @@ export default function McpDocsPage() {
       </Stack>
 
       <Stack gap={6}>
-        <Text fw={600}>🧰 工具清单（24 个）</Text>
+        <Text fw={600}>🧰 工具清单（26 个）</Text>
         <Table.ScrollContainer minWidth={520}>
           <Table striped highlightOnHover verticalSpacing="xs">
             <Table.Thead>
