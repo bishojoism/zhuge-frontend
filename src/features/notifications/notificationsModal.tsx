@@ -9,7 +9,7 @@ import { useNotifications, useMe, useTags } from '../../api/hooks';
 import { requireLogin } from '../auth/authModals';
 import { seedTopicCacheFromList } from '../home/composer';
 import { timeAgo } from '../../lib/utils';
-import type { NotificationItem, NotifListResult, NotifType } from '../../types';
+import type { DiscussionDetail, NotificationItem, NotifListResult, NotifType } from '../../types';
 
 // 通知图标：didi → 📨；invite → 🎭（邀请接戏）；coin → 🪙（投币/打赏）；report/report_result → ⚑；其余（reply）→ 💬
 function notifIcon(type: NotifType): string {
@@ -90,26 +90,32 @@ export function NotificationsModalContent({ onClose }: { onClose: () => void }) 
   // 接戏/滴滴通知：带 state 让主题页自动引用对方（回复框自动 @对方）
   const [navigating, setNavigating] = useState(false);
 
-  // 通知点入乐观渲染：用通知携带的主题上下文种入详情缓存（首帖 + 回复链乐观帖，负 id 标记），
-  // 主题页首帧直接显示标题/首帖摘要 + 触发回复 + 被回复的那楼（不用等真实数据），后台 revalidate 拉真实替换。
+  // 通知点入乐观渲染：用通知携带的主题上下文种入详情缓存（首帖 + 目标楼所在页楼层 + 回复链，
+  // 负 id 标记），主题页首帧直接显示完整楼层序列（目标楼前后楼层都在 → 页面高度正确，
+  // 定位直接到位，不等真实数据也不跳变），后台 revalidate 拉真实替换。
   // useTopicPagination 检测到乐观帖会强制重验，与列表点进主题同机制。
-  const seedTopicFromNotif = (n: NotificationItem) => {
+  // targetPagePosts：目标楼所在页的真实楼层（预取），并入乐观帧让页面高度与真实一致。
+  const seedTopicFromNotif = (
+    n: NotificationItem,
+    targetPagePosts?: Array<{ number: number; content: string; author: string }>
+  ) => {
     if (!n.discussion_id || !n.discussion_title) return;
-    // 回复链乐观帖：被回复的那楼 + 触发回复（通知已携带楼层号与内容摘要）
+    // 乐观帧楼层：目标楼所在页（含目标楼前后楼层）+ 被回复楼 + 触发回复，去重后按楼层号并入
     const extraPosts: Array<{ number: number; content: string; author: string }> = [];
+    const seen = new Set<number>();
+    const pushPost = (number: number, content: string, author: string) => {
+      if (!number || seen.has(number)) return;
+      seen.add(number);
+      extraPosts.push({ number, content, author });
+    };
+    if (Array.isArray(targetPagePosts)) {
+      for (const p of targetPagePosts) pushPost(p.number, p.content, p.author || '有人');
+    }
     if (n.target_reply_to_number && n.target_reply_to_excerpt) {
-      extraPosts.push({
-        number: n.target_reply_to_number,
-        content: n.target_reply_to_excerpt,
-        author: n.target_reply_to_author || '有人',
-      });
+      pushPost(n.target_reply_to_number, n.target_reply_to_excerpt, n.target_reply_to_author || '有人');
     }
     if (n.target_number && n.target_excerpt) {
-      extraPosts.push({
-        number: n.target_number,
-        content: n.target_excerpt,
-        author: n.target_author || n.actor || n.actor_name || '有人',
-      });
+      pushPost(n.target_number, n.target_excerpt, n.target_author || n.actor || n.actor_name || '有人');
     }
     seedTopicCacheFromList({
       id: n.discussion_id,
@@ -124,7 +130,7 @@ export function NotificationsModalContent({ onClose }: { onClose: () => void }) 
     }, tags, extraPosts.length ? extraPosts : undefined);
   };
 
-  const markReadAndGo = (n: NotificationItem) => {
+  const markReadAndGo = async (n: NotificationItem) => {
     if (navigating) return; // 防重复点击
     setNavigating(true);
     // 标记已读异步化：不等待网络请求完成再跳转（否则每次点通知都有 0.2-0.5s"正在打开…"等待）。
@@ -136,12 +142,33 @@ export function NotificationsModalContent({ onClose }: { onClose: () => void }) 
       // 主题类通知（接戏/滴滴）→ 先种乐观缓存再跳转；管理类（举报/标签申请）→ 直接跳
       if (n.url.startsWith('/d/')) {
         // 已在同一主题页时【跳过种子】：详情缓存里已是真实数据（含已加载楼层），
-        // 种子会把 page1 覆盖成"3 条乐观帖"→ 页面闪变、目标楼 DOM 短暂消失，反而定位不到。
+        // 种子会把 page1 覆盖成"少量乐观帖"→ 页面闪变、目标楼 DOM 短暂消失，反而定位不到。
         // 只在跨页面进入（缓存无该主题真实数据）时才种乐观首帧。
         const targetPath = n.url.split('?')[0];
         const alreadyHere = window.location.pathname === targetPath;
         console.log('[zhuge-jump] markReadAndGo', { url: n.url, targetPath, alreadyHere, cur: window.location.pathname + window.location.search, targetNumber: n.target_number });
-        if (!alreadyHere) seedTopicFromNotif(n);
+        if (!alreadyHere) {
+          // 预取目标楼所在页（含目标楼前后楼层）：并入乐观帧后页面高度与真实一致，
+          // 首帧定位直接到位（不再"乐观帧太矮定位不到位、等真实楼层到达再跳"）。
+          // 失败静默 → 退回仅种回复链的乐观帧（原行为）。
+          let targetPagePosts: Array<{ number: number; content: string; author: string }> | undefined;
+          if (n.post_id && n.discussion_id) {
+            try {
+              const r = await api<{ data: DiscussionDetail }>(
+                `/discussions/${n.discussion_id}?page=1&order=old&aroundPostId=${n.post_id}`
+              );
+              targetPagePosts = (r.data.posts || []).map((p) => ({
+                number: p.number,
+                content: p.content,
+                author: p.author || '',
+              }));
+              console.log('[zhuge-jump] prefetched target page', { postId: n.post_id, posts: targetPagePosts.length, numbers: targetPagePosts.slice(0, 3).map((p) => p.number) });
+            } catch {
+              /* 预取失败：走原乐观帧 */
+            }
+          }
+          seedTopicFromNotif(n, targetPagePosts);
+        }
         // 相同 URL 时 React Router navigate 是 no-op（不触发 TopicPage 定位 effect）：
         // 发自定义事件强制定位（TopicPage 监听 'zhuge:jump'）
         if (n.url === window.location.pathname + window.location.search) {
