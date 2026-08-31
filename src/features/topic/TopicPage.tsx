@@ -254,11 +254,17 @@ export default function TopicPage() {
       autoReplyHandledRef.current = null;
       return;
     }
+    // 通知带的目标楼层号（?replyNumber=）：定位优先按楼层号找——乐观种子里的目标回复帖是
+    // 负 id 但带真实楼层号，按 number 立即命中 → 直接滚动零请求（不用等 around 拉目标页）
+    const qReplyNumber = sp.get('replyNumber');
+    const replyNumber = qReplyNumber && /^\d+$/.test(qReplyNumber) ? Number(qReplyNumber) : undefined;
     const targetPost = mergedPosts.find((p) => p.id === replyPostId);
     console.log('[zhuge-jump] TopicPage auto-reply effect', {
       replyPostId,
+      replyNumber,
       ref: autoReplyHandledRef.current,
       targetFound: !!targetPost,
+      targetByNumber: replyNumber ? mergedPosts.some((p) => p.number === replyNumber) : false,
       search: routeLocation.search,
       state: routeLocation.state,
       mergedLen: mergedPosts.length,
@@ -277,8 +283,9 @@ export default function TopicPage() {
     });
     // 滚动定位统一交给 pendingTarget：目标楼已加载（用户在其他楼层浏览过，缓存里有）也要滚过去，
     // 已加载立即滚动高亮，未加载先拉所在页再滚 —— 不再区分"找到/未找到"，否则在主题页点通知不跳楼。
-    // 无条件覆盖（不用 prev ?? ）：上一次定位未完成（pendingTarget 非 null）时，新通知必须替换旧目标
-    setPendingTarget({ id: replyPostId });
+    // 无条件覆盖（不用 prev ?? ）：上一次定位未完成（pendingTarget 非 null）时，新通知必须替换旧目标。
+    // 优先按楼层号定位（乐观种子命中 → 零请求）；无楼层号时退回按帖子 id
+    setPendingTarget(replyNumber ? { number: replyNumber } : { id: replyPostId });
     // 清除 state + query：仅首次进入时生效，刷新/返回不重复触发
     navigate(routeLocation.pathname, { replace: true, state: null });
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -289,7 +296,7 @@ export default function TopicPage() {
   useEffect(() => {
     if (!user) return;
     const onJump = (e: Event) => {
-      const d = (e as CustomEvent).detail as { replyPostId?: number; replyAuthor?: string };
+      const d = (e as CustomEvent).detail as { replyPostId?: number; replyNumber?: number; replyAuthor?: string };
       if (!d?.replyPostId) return;
       console.log('[zhuge-jump] zhuge:jump event', d);
       const targetPost = mergedPosts.find((p) => p.id === d.replyPostId);
@@ -297,7 +304,8 @@ export default function TopicPage() {
         postId: d.replyPostId,
         author: d.replyAuthor || (targetPost ? displayName(targetPost) : ''),
       });
-      setPendingTarget({ id: d.replyPostId });
+      // 优先按楼层号定位（乐观种子命中 → 零请求）
+      setPendingTarget(d.replyNumber ? { number: d.replyNumber } : { id: d.replyPostId });
     };
     window.addEventListener('zhuge:jump', onJump);
     return () => window.removeEventListener('zhuge:jump', onJump);

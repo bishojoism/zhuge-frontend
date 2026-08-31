@@ -140,7 +140,7 @@ export function NotificationsModalContent({ onClose }: { onClose: () => void }) 
         // 只在跨页面进入（缓存无该主题真实数据）时才种乐观首帧。
         const targetPath = n.url.split('?')[0];
         const alreadyHere = window.location.pathname === targetPath;
-        console.log('[zhuge-jump] markReadAndGo', { url: n.url, targetPath, alreadyHere, cur: window.location.pathname + window.location.search });
+        console.log('[zhuge-jump] markReadAndGo', { url: n.url, targetPath, alreadyHere, cur: window.location.pathname + window.location.search, targetNumber: n.target_number });
         if (!alreadyHere) seedTopicFromNotif(n);
         // 相同 URL 时 React Router navigate 是 no-op（不触发 TopicPage 定位 effect）：
         // 发自定义事件强制定位（TopicPage 监听 'zhuge:jump'）
@@ -148,11 +148,19 @@ export function NotificationsModalContent({ onClose }: { onClose: () => void }) 
           console.log('[zhuge-jump] same URL → dispatch zhuge:jump', n.post_id);
           window.dispatchEvent(
             new CustomEvent('zhuge:jump', {
-              detail: { replyPostId: n.post_id, replyAuthor: n.actor_name || undefined },
+              detail: { replyPostId: n.post_id, replyNumber: n.target_number ?? undefined, replyAuthor: n.actor_name || undefined },
             })
           );
         } else {
-          navigate(n.url);
+          // 追加楼层号：TopicPage 定位优先按楼层号命中乐观种子（负 id 帖也带真实楼层号），
+          // 直接滚动零请求，不再等 around 拉目标页
+          if (n.target_number) {
+            const u = new URL(n.url, window.location.origin);
+            u.searchParams.set('replyNumber', String(n.target_number));
+            navigate(u.pathname + u.search);
+          } else {
+            navigate(n.url);
+          }
         }
       } else {
         navigate(n.url);
@@ -165,6 +173,8 @@ export function NotificationsModalContent({ onClose }: { onClose: () => void }) 
         // React Router navigate state 在弹窗场景偶发丢失，query 方式可靠
         const qs = new URLSearchParams({ reply: String(n.post_id) });
         if (n.actor_name) qs.set('replyAuthor', n.actor_name);
+        // 楼层号：定位优先按楼层号命中乐观种子（负 id 帖也带真实楼层号），直接滚动零请求
+        if (n.target_number) qs.set('replyNumber', String(n.target_number));
         navigate(`/d/${n.discussion_id}?${qs.toString()}`);
       } else {
         navigate(`/d/${n.discussion_id}`);
