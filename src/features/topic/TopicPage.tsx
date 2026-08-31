@@ -1,5 +1,5 @@
 // ===== 主题详情页 /d/:id：首帖 + 回复、接戏、滴滴、举报、管理、海报、分享 =====
-import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
+import { memo, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { Button, Group, Menu, Modal, SegmentedControl, Select, Skeleton, Stack, Text, TextInput } from '@mantine/core';
 import { modals } from '@mantine/modals';
@@ -85,7 +85,8 @@ function DidiResponseBar({ status, discussionId, onChanged }: { status: 'accepte
 
 // 超长戏文折叠：超过阈值只显示前段，点击展开
 const LONG_POST_CHARS = 600;
-function LongContent({ content, highlight }: { content: string; highlight?: string }) {
+// memo：排序切换/搜索等父组件重渲染时，content/highlight 不变则跳过重渲染（避免 BBCode 重解析）
+const LongContent = memo(function LongContent({ content, highlight }: { content: string; highlight?: string }) {
   const [expanded, setExpanded] = useState(false);
   const lines = content.split('\n');
   const head = content.slice(0, 300);
@@ -102,7 +103,7 @@ function LongContent({ content, highlight }: { content: string; highlight?: stri
       )}
     </>
   );
-}
+});
 
 export default function TopicPage() {
   const { id } = useParams<{ id: string }>();
@@ -629,15 +630,21 @@ export default function TopicPage() {
   const isPrivate = !!d.is_private;
   // 从新到旧：首帖（1楼）在最前，第二个是（最新）回复卡片，其后依次是更早的回复；
   // 从旧到新：首帖在前，回复按楼层正序。默认从新到旧
-  const replies = (posts.slice(1) as TopicPost[]).slice().sort((a, b) =>
-    postOrder === 'new' ? b.number - a.number : a.number - b.number
+  // useMemo 缓存排序结果：切换排序/其他状态变化时只重算必要部分（长戏几百楼时避免无谓重排）
+  const replies = useMemo(
+    () =>
+      (posts.slice(1) as TopicPost[]).slice().sort((a, b) =>
+        postOrder === 'new' ? b.number - a.number : a.number - b.number
+      ),
+    [posts, postOrder]
   );
   // 主题内搜索：首帖（开场内容）与回复都参与匹配；首帖作为主题上下文始终显示，命中则高亮并计入
   const kw = searchQ.trim().toLowerCase();
   const firstMatched = !!firstPost && (!kw || (firstPost.content || '').toLowerCase().includes(kw));
-  const visibleReplies = kw
-    ? replies.filter((p) => (p.content || '').toLowerCase().includes(kw))
-    : replies;
+  const visibleReplies = useMemo(
+    () => (kw ? replies.filter((p) => (p.content || '').toLowerCase().includes(kw)) : replies),
+    [kw, replies]
+  );
   const totalMatched = kw ? (firstMatched ? 1 : 0) + visibleReplies.length : posts.length;
 
   // 导出：图片记录（自选样式）/ 文字记录（全部帖子）

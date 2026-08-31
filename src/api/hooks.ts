@@ -147,7 +147,10 @@ export function useUnread(enabled: boolean = true): { unread: number; mutate: ()
   // 与 useNotifications 共用同一个 SWR key 和 fetcher（/me/notifications → {data, meta}），
   // 否则两个 hook 用不同 fetcher/结构写同一个缓存，弹窗会读到"数字"导致列表永远为空
   // enabled=false（未登录）时 key 为 null → 不请求（首屏零 API）
-  const { data, mutate } = useSWR<NotifListResult>(enabled ? '/me/notifications' : null, fetcher);
+  // refreshInterval 60s：所有界面后台定期刷新通知数据，通知弹窗随时打开都是最新
+  const { data, mutate } = useSWR<NotifListResult>(enabled ? '/me/notifications' : null, fetcher, {
+    refreshInterval: enabled ? 60000 : 0,
+  });
   return { unread: data?.meta?.unread || 0, mutate: () => mutate() };
 }
 
