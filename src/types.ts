@@ -81,6 +81,14 @@ export interface DiscussionDetail {
   tags: Tag[];
   /** 私密主题：当前用户是否为收件人（被滴滴方）。仅收件人可看到"接受/婉拒"响应条 */
   isRecipient?: boolean;
+  /** 私密主题（滴滴）：被滴滴的原帖信息（定位原帖用） */
+  originPost?: {
+    postId: number;
+    discussionId: number;
+    discussionTitle?: string | null;
+    author?: string | null;
+    excerpt?: string | null;
+  } | null;
 }
 
 export type NotifType = 'didi' | 'reply' | 'report' | 'report_result';

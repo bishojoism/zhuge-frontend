@@ -650,6 +650,21 @@ export default function TopicPage() {
     }
   };
 
+  // 定位原帖跳入：?focusPost=<帖id>（私密主题"定位原帖"按钮带此参数），
+  // 数据就绪后跳转到该楼并高亮，然后清除 query（刷新/返回不重复触发）
+  useEffect(() => {
+    if (!data) return;
+    const sp = new URLSearchParams(routeLocation.search);
+    const fp = sp.get('focusPost');
+    if (!fp || !/^\d+$/.test(fp)) return;
+    const targetId = Number(fp);
+    // 数据 + DOM 渲染完成后跳转（帖子可能未渲染完，稍作延迟）
+    const t = window.setTimeout(() => jumpToPost(targetId), 300);
+    navigate(routeLocation.pathname, { replace: true, state: null });
+    return () => window.clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data, routeLocation.search, navigate]);
+
   // 回复引用：优先用后端 reply_to_author，缺失时按 id 查帖子
   const replyToAuthorOf = (p: TopicPost): string | null => {
     if (!p.reply_to_post_id) return null;
@@ -918,6 +933,28 @@ export default function TopicPage() {
           }}
         />
       )}
+
+      {/* 私密主题（滴滴）：定位原帖——跳到被滴滴的帖子所在公开主题并高亮该楼 */}
+      {isPrivate && data.originPost && (() => {
+        const origin = data.originPost!;
+        return (
+          <Group mb="sm" gap={8}>
+            <Button
+              size="compact-sm"
+              variant="light"
+              leftSection={<span>↩</span>}
+              onClick={() =>
+                navigate(`/d/${origin.discussionId}?focusPost=${origin.postId}`)
+              }
+            >
+              定位原帖
+              {origin.discussionTitle
+                ? `：「${String(origin.discussionTitle).slice(0, 12)}」`
+                : ''}
+            </Button>
+          </Group>
+        );
+      })()}
 
       {/* 主题内搜索 / 导出记录 */}
       <Group justify="flex-end" mb="sm" gap={6}>
