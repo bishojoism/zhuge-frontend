@@ -1,6 +1,6 @@
 // ===== 主题详情页 /d/:id：首帖 + 回复、接戏、滴滴、举报、管理、海报、分享 =====
 // 页面编排 + 交互逻辑；帖子卡片/弹窗/分页/小部件已拆分到本目录独立文件
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { Button, Group, Menu, SegmentedControl, Select, Skeleton, Text, TextInput } from '@mantine/core';
 import { modals } from '@mantine/modals';
@@ -240,7 +240,10 @@ export default function TopicPage() {
   // 从通知点入：自动引用对方（公开主题的接戏/滴滴通知 → 回复框自动 @对方并滚动过去，不抢焦点）
   // 支持两种来源：站内通知弹窗（location.state.replyPostId）与系统推送通知（URL ?reply=&replyAuthor=）
   // 私密主题（滴滴/一对一私聊）不自动接戏（无"接戏某楼"概念，通知 url 也不带 reply，这里兜底）
-  useEffect(() => {
+  // 用 useLayoutEffect：乐观帧已渲染（含目标楼），在浏览器绘制前 setPendingTarget →
+  // useTopicPagination 的 useLayoutEffect 定位同步执行，首帧绘制出来就是目标楼位置
+  //（useEffect 会晚一帧：先 paint 页面顶部再跳）
+  useLayoutEffect(() => {
     if (!user || !data) return;
     if (data.discussion.is_private) return; // 私密主题：不自动接戏
     const st = (routeLocation.state || {}) as { replyPostId?: number; replyAuthor?: string };
