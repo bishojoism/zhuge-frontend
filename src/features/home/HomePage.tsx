@@ -137,6 +137,26 @@ export default function HomePage() {
     seed: sort === 'recommend' ? feedSeed : undefined,
   });
 
+  // 【诊断】回首页列表为空排查
+  useEffect(() => {
+    console.log('[zhuge-home] mounted', {
+      url: window.location.pathname + window.location.search,
+      initSeed: initSnap.seed,
+      initItems: initSnap.items.length,
+      feedSeed,
+      key,
+      result: result ? { len: result.data.length, hasMore: result.meta.hasMore } : null,
+      initDataSeed: readInitData<InitData>()?.seed,
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (result) {
+      console.log('[zhuge-home] result arrived', { key, len: result.data.length, hasMore: result.meta.hasMore });
+    }
+  }, [result, key]);
+
   // 切标签/排序/换 seed → 重置分页并清空当前列表。
   // SSR 内联 seed 与前端请求 seed 一致（同 key 同序列），整体替换后内容一致，无跳变
   useEffect(() => {
@@ -297,12 +317,17 @@ export default function HomePage() {
   // ===== 推荐模式（feed）=====
   if (sort === 'recommend') {
     const ready = itemsBase === baseKey;
-    // 预加载缓存命中：切换标签后 result 立即就绪（SWR 同步读缓存），但 itemsBase 门控与 items
-    // state 要等数据就绪 effect 下一轮才同步 → 第一帧直接用 result.data 渲染，消除"加载中"闪帧；
-    // 数据就绪 effect 随后把 items/itemsBase 对齐（cacheHit 只作用于切换瞬间的中间帧）
     const cacheHit = !!result && !ready;
-    const displayItems = cacheHit ? result.data : items;
-    const displayHasMore = cacheHit ? result.meta.hasMore : hasMore;
+    // 空态兜底：items 为空但 result 已有数据（整页访问详情页后点 logo 回首页时，
+    // initSnap 用详情页残留（无 discussions）初始化 → items=[]，但 SWR result 同步
+    // 就绪有数据）→ 直接用 result.data 渲染，避免停在空态"还没有主题"
+    const displayItems = cacheHit ? result.data : items.length > 0 ? items : result?.data || [];
+    const displayHasMore = cacheHit ? result.meta.hasMore : items.length > 0 ? hasMore : result?.meta.hasMore || false;
+    // 【诊断】渲染门控：空态排查
+    console.log('[zhuge-home] render gate', {
+      ready, cacheHit, itemsLen: items.length, resultLen: result?.data.length, displayLen: displayItems.length,
+      itemsBase, baseKey, appliedKey: appliedKeyRef.current,
+    });
     // 有可显示内容（旧 items 或新 result）→ 直接渲染；仅首次加载/切换中（无内容）显示加载中
     if (displayItems.length === 0) {
       // 空态（首次加载 / 切换中 / 无数据）：不挂 feed，保持页面正常滚动。
@@ -337,8 +362,9 @@ export default function HomePage() {
   const listReady = itemsBase === baseKey;
   // 同推荐模式：预加载缓存命中时第一帧直接用 result.data，避免"加载中"闪帧
   const listCacheHit = !!result && !listReady;
-  const listItems = listCacheHit ? result.data : items;
-  const listHasMore = listCacheHit ? result.meta.hasMore : hasMore;
+  // 空态兜底：items 空但 result 有数据（整页访问详情页后回首页）→ 用 result.data
+  const listItems = listCacheHit ? result.data : items.length > 0 ? items : result?.data || [];
+  const listHasMore = listCacheHit ? result.meta.hasMore : items.length > 0 ? hasMore : result?.meta.hasMore || false;
   return (
     <>
       {hero}
