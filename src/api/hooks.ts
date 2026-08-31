@@ -201,6 +201,15 @@ export function useCoins(enabled: boolean = true) {
   });
 }
 
+// 下一步引导（首页横幅）：调用 /api/me/next-step——未登录返回"注册《主格》"，
+// 已登录返回首个未完成建议任务 / 全部完成 🎉。与 MCP get_daily_todo 同一 action 逻辑。
+export function useNextStep() {
+  return useSWR<{ next?: string }>('/me/next-step', async (p: string) => {
+    const r = await api<{ data: { next?: string } }>(p);
+    return r.data;
+  });
+}
+
 export function useDrafts() {
   return useSWR<Record<string, unknown>>('/me/drafts', async (p: string) => {
     const r = await api<{ data: Record<string, unknown> }>(p);

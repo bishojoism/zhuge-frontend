@@ -7,7 +7,7 @@ import { modals } from '@mantine/modals';
 import { mutate } from 'swr';
 import { useAuth } from '../auth/AuthContext';
 import { requireLogin } from '../auth/authModals';
-import { useDiscussions, useTags, refreshListsAfterWrite, preloadAllPrimaryLists, useCoins } from '../../api/hooks';
+import { useDiscussions, useTags, refreshListsAfterWrite, preloadAllPrimaryLists, useNextStep } from '../../api/hooks';
 import { readInitData } from '../../api/client';
 import { openModalOnce } from '../../lib/modals';
 import { focusOnEnter } from '../../lib/modalFocus';
@@ -26,29 +26,16 @@ const newSeed = () => Math.floor(Date.now() / 60000) + 1;
 
 const SORT_KEYS: SortKey[] = ['recommend', 'latest', 'hot'];
 
-// 扁横幅：显示「下一步」引导——已登录取首个未完成且建议自动的任务（复用 get_daily_todo 逻辑，
-// /api/me/coins 同源数据）；未登录显示"注册"；任务全部完成显示 🎉
+// 扁横幅：显示「下一步」引导——调用 /api/me/next-step（与 MCP get_daily_todo 同一 action 逻辑：
+// 未登录→"注册《主格》"；已登录→首个未完成建议任务；全部完成→🎉）
 function Hero() {
-  const { user } = useAuth();
-  // 登录时才请求格币/任务（未登录 key=null 零请求）
-  const { data: coins } = useCoins(!!user);
-  // 建议自动完成的任务顺序（与 get_daily_todo 的 suggested 一致：滴滴/投币/打赏建议手动，不引导）
-  const next = (coins?.tasks || []).find((t) => !t.done && t.key !== 'didi' && t.key !== 'coin' && t.key !== 'tip');
+  const { data: nextData } = useNextStep();
+  const next = nextData?.next;
   return (
     <div className="hero hero-slim">
-      {user ? (
-        <p>
-          下一步：<b>{next ? next.label : '今日任务已全部完成 🎉'}</b>
-          <span style={{ opacity: 0.8, marginLeft: 8, fontSize: 12 }}>
-            {next ? `（+${next.amount} 格币）` : ''}
-          </span>
-        </p>
-      ) : (
-        <p>
-          下一步：<b>注册《主格》，开始你的故事</b>
-          <span style={{ opacity: 0.8, marginLeft: 8, fontSize: 12 }}>（免费 · 支持指纹/面容登录）</span>
-        </p>
-      )}
+      <p>
+        下一步：<b>{next || '…'}</b>
+      </p>
     </div>
   );
 }
