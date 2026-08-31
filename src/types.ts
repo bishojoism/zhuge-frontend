@@ -298,6 +298,9 @@ export interface InitData {
   // 页面级内联数据
   topicId?: number;
   topicData?: DiscussionDetail | null;
+  // 首帖页（asc page1，含 1 楼）：SSR 一并内联，前端种入 order=old fallback，
+  // 首帧即有 1 楼（不闪"无首帖卡片"），headData 请求零等待
+  topicHead?: DiscussionDetail | null;
   topicError?: string;
   privateList?: PrivateItem[];
   myDiscussions?: MyTopicItem[];

@@ -91,6 +91,9 @@ function buildSwrFallback(): Record<string, unknown> {
 
   // 主题详情页（useTopic 解析 r.data → topicData；SSR 内联 page=1&order=new）
   if (d.topicData) fb[`/discussions/${d.topicId}?page=1&order=new`] = d.topicData;
+  // 首帖页（SSR 内联 asc page1，含 1 楼）：种入 order=old fallback →
+  // useTopicPagination 的 headData（恒拉 order=old page1 补首帖）首帧即命中，不闪"无首帖卡片"
+  if (d.topicHead) fb[`/discussions/${d.topicId}?page=1&order=old`] = d.topicHead;
   // 我的滴滴（usePrivateList 解析 r.data → privateList）
   if (Array.isArray(d.privateList)) fb['/me/private'] = d.privateList;
   // 我的主题（useMyDiscussions 解析 r.data → myDiscussions）
