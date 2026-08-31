@@ -16,7 +16,8 @@ const GROUPS: { title: string; items: Endpoint[] }[] = [
     title: '主题 / 内容',
     items: [
       { method: 'GET', path: '/api/discussions?tag=&sort=&page=&seed=&q=', desc: '主题列表（推荐/最新/热门、标签过滤、搜索）', auth: false },
-      { method: 'GET', path: '/api/discussions/:id', desc: '主题详情（含全部帖子）', auth: false },
+      { method: 'GET', path: '/api/discussions/:id', desc: '主题详情（帖子分页：?page=&order=new|old=&aroundPostId=&aroundNumber= 定位目标楼）', auth: false },
+      { method: 'GET', path: '/api/discussions/:id/export', desc: '主题记录导出（一次性全量楼层，上限 5000；限流 3 次/分钟）', auth: false },
       { method: 'POST', path: '/api/discussions', desc: '发布主题（至少选一个标签；可选角色/图片）', auth: true, body: '{ title, content, tagIds[], imageUrl?, characterId? }' },
       { method: 'POST', path: '/api/discussions/:id/posts', desc: '接戏回复（可选回复目标/角色/图片；Ctrl+Enter 同逻辑）', auth: true, body: '{ content, replyTo?, imageUrl?, characterId? }' },
       { method: 'POST', path: '/api/zhuge/didi', desc: '滴滴：一键创建私密主题（可选以角色身份）', auth: true, body: '{ postId, characterId? }' },

@@ -7,7 +7,7 @@ const MCP_URL = typeof window !== 'undefined' ? `${window.location.origin}/mcp` 
 
 const TOOLS: { name: string; auth: string; desc: string }[] = [
   { name: 'list_discussions', auth: '公开', desc: '主题列表（标签/排序/分页/搜索）' },
-  { name: 'get_discussion', auth: '公开', desc: '主题详情（全部帖子楼层）' },
+  { name: 'get_discussion', auth: '公开', desc: '主题详情（全部帖子楼层，最多 5000 楼）' },
   { name: 'search_discussions', auth: '公开', desc: '关键词搜索' },
   { name: 'list_tags', auth: '公开', desc: '全部标签' },
   { name: 'get_author_card', auth: '公开', desc: '作者名片（角色/徽章/滴滴统计）' },
@@ -61,7 +61,7 @@ export default function McpDocsPage() {
       <Stack gap={6}>
         <Text fw={600}>🚦 限流（每分钟每令牌/IP）</Text>
         <Text size="sm">
-          普通请求 60 次；写工具（发帖/接戏/滴滴/个人数据）20 次。超出返回 isError 提示「请求过于频繁」。请让 AI 客户端保持合理调用频率。
+          读取 180 次；写工具（发帖/接戏/滴滴/个人数据）40 次。超出返回 isError 提示「请求过于频繁」。请让 AI 客户端保持合理调用频率。
         </Text>
       </Stack>
 
@@ -116,7 +116,7 @@ export default function McpDocsPage() {
       <Stack gap={6}>
         <Text fw={600}>🔒 安全说明</Text>
         <Text size="xs" c="dimmed">
-          MCP 与主站分离域名，避免主站流量与机器接口混淆、降低被扫描/滥用的面；令牌按身份独立限流；令牌泄露可在「开放 API」立即撤销。
+          MCP 与主站同域提供（/mcp），限流与 API 层统一（按令牌身份独立限流，读 180/写 40 每分钟）；令牌泄露可在「开放 API」立即撤销。
         </Text>
       </Stack>
     </Stack>
