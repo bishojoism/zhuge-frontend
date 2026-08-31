@@ -34,8 +34,6 @@ export interface PostCardProps {
   onCopyLink?: () => void;
   /** 查看帖子源码（原始 BBCode 文本） */
   onSource?: () => void;
-  /** 编辑自己的帖子（作者本人或管理员可见） */
-  onEdit?: () => void;
   /** 删除自己的帖子/主题（作者本人或管理员可见；首帖删除 = 删主题） */
   onDelete?: () => void;
   /** 点击回复引用 → 跳转到被回复的帖子 */
@@ -117,7 +115,6 @@ export function PostCard({
   onPoster,
   onCopyLink,
   onSource,
-  onEdit,
   onDelete,
   onJumpToReply,
   onAuthorStats,
@@ -347,11 +344,6 @@ export function PostCard({
           </div>
           <div className="post-time">
             {floor} · {timeAgo(post.created_at)}
-            {post.edited_at ? (
-              <span title={`编辑于 ${post.edited_at}`} style={{ opacity: 0.8 }}>
-                {' '}· 已编辑
-              </span>
-            ) : null}
           </div>
         </div>
       </div>
@@ -524,11 +516,6 @@ export function PostCard({
           {onSource && (
             <Button size="compact-sm" variant="subtle" onClick={onSource}>
               源码
-            </Button>
-          )}
-          {onEdit && (
-            <Button size="compact-sm" variant="subtle" onClick={onEdit}>
-              编辑
             </Button>
           )}
           {onDelete && (

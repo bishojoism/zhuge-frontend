@@ -22,7 +22,7 @@ import BBCodeEditor from '../../components/BBCodeEditor';
 import { clearDraft, saveDraft } from '../../lib/drafts';
 import type { CharacterItem, DiscussionDetail, User } from '../../types';
 import { PostCard } from './PostCard';
-import { EditPostModal, SourceCodeModal } from './postModals';
+import { SourceCodeModal } from './postModals';
 import { DidiResponseBar } from './topicWidgets';
 import { useTopicPagination } from './useTopicPagination';
 import { openInviteModal } from './inviteModal';
@@ -100,8 +100,6 @@ export default function TopicPage() {
   });
   const [showJump, setShowJump] = useState(false);
 
-  // 帖子编辑：editingPost 非空时打开编辑弹窗
-  const [editingPost, setEditingPost] = useState<TopicPost | null>(null);
   // 查看源码：sourcePost 非空时打开源码弹窗（显示原始 BBCode 文本）
   const [sourcePost, setSourcePost] = useState<TopicPost | null>(null);
 
@@ -910,11 +908,6 @@ export default function TopicPage() {
               },
             })
           }
-          onEdit={
-            user && (user.id === firstPost.user_id || user.isAdmin)
-              ? () => setEditingPost(firstPost)
-              : undefined
-          }
           onDelete={
             user && (user.id === firstPost.user_id || user.isAdmin)
               ? () => handleDelete(firstPost)
@@ -1107,9 +1100,6 @@ export default function TopicPage() {
           onJumpToReply={(targetId) => jumpToPost(targetId)}
           onAuthorStats={openAuthorStats}
           onSource={() => setSourcePost(p)}
-          onEdit={
-            user && (user.id === p.user_id || user.isAdmin) ? () => setEditingPost(p) : undefined
-          }
           onDelete={
             user && (user.id === p.user_id || user.isAdmin) ? () => handleDelete(p) : undefined
           }
@@ -1131,20 +1121,6 @@ export default function TopicPage() {
       ) : null}
       {/* 从旧到新：接戏输入卡片放在最末尾（所有回复之后） */}
       {postOrder === 'old' && composerCard}
-
-      {/* 编辑帖子弹窗 */}
-      {editingPost && (
-        <EditPostModal
-          post={editingPost}
-          isFirstPost={editingPost.number === 1}
-          discussionTitle={d.title}
-          onClose={() => setEditingPost(null)}
-          onSaved={() => {
-            void mutate(); // 详情立即刷新（编辑内容/标题即时显示）
-            void refreshListsAfterWrite(); // 列表摘要/标题同步，无需刷新网页
-          }}
-        />
-      )}
 
       {/* 查看源码弹窗 */}
       {sourcePost && <SourceCodeModal post={sourcePost} onClose={() => setSourcePost(null)} />}
