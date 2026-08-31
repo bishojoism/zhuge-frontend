@@ -294,11 +294,16 @@ export default function FeedView({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [items, resetKey, recenterPage]);
 
-  // 窗口移动（feedIndex 变化）：React 重渲染后新挂载的真实卡/占位符已就位，
-  // 重设 active 类与 transform（goTo 里同步调用 updateFeedPosition 时 React 尚未重渲染，
-  // 用的还是旧窗口 Map；这里在渲染提交后修正，避免 active 标错/位置残留）
+  // 窗口移动（feedIndex 变化）：React 重渲染后新挂载的真实卡已就位，
+  // 只修正 active 类（goTo 里同步调用时 React 尚未重渲染、用的旧窗口 Map）。
+  // 注意：不能调 updateFeedPosition——它会重置 transition:'none' 覆盖 goTo 设置的动画；
+  // transform/高度已在 goTo 与 CSS var 中正确设置。
   useLayoutEffect(() => {
-    updateFeedPosition(false);
+    const map = cardElsRef.current;
+    const cur = indexRef.current;
+    map.forEach((card, i) => {
+      card.classList.toggle('active', i === cur);
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [feedIndex]);
 
