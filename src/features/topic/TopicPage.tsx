@@ -15,6 +15,7 @@ import { hasBBCode, parseBBCode } from '../../lib/bbcode';
 import { exportTextLog, openImageExportModal } from './exportLog';
 import { openReportModal, type ReportTargetType } from './reportModal';
 import { openPostAdminModal, type AdminTargetType } from './postAdminModal';
+import { openDeleteVerifyModal } from './deleteVerifyModal';
 import { copyText, displayName, imgSrc, pickImageFile, tagTextColorOf, timeAgo, uploadImageFile } from '../../lib/utils';
 import Avatar from '../../components/Avatar';
 import BBCodeEditor from '../../components/BBCodeEditor';
@@ -565,9 +566,38 @@ export default function TopicPage() {
   const firstPost = posts[0] || null;
 
   // 删除自己的帖子/主题（作者本人或管理员；首帖删除 = 删整个主题）
+  // 作者自删需验证身份（密码或通行密钥），管理员删除无需验证
   const handleDelete = useCallback(
     (post: TopicPost) => {
       const isFirst = post.number === 1;
+      const isAdmin = !!user?.isAdmin;
+      const targetLabel = isFirst ? '主题' : '帖子';
+      const doDelete = async (verify?: { password?: string; reauthToken?: string }) => {
+        try {
+          if (isFirst) {
+            await api(`/discussions/${Number(id)}`, {
+              method: 'DELETE',
+              body: verify || {},
+            });
+            notifications.show({ message: '主题已删除' });
+            void refreshListsAfterWrite();
+            navigate('/');
+          } else {
+            await api(`/posts/${post.id}`, {
+              method: 'DELETE',
+              body: verify || {},
+            });
+            notifications.show({ message: '帖子已删除' });
+            void mutate(); // 刷新详情（删除的帖消失）
+            void refreshListsAfterWrite();
+          }
+        } catch (e) {
+          notifications.show({
+            message: e instanceof Error ? e.message : '删除失败',
+            color: 'red',
+          });
+        }
+      };
       modals.openConfirmModal({
         title: isFirst ? '删除主题' : '删除帖子',
         centered: true,
@@ -581,28 +611,18 @@ export default function TopicPage() {
         labels: { confirm: '删除', cancel: '取消' },
         confirmProps: { color: 'red' },
         onConfirm: async () => {
-          try {
-            if (isFirst) {
-              await api(`/discussions/${Number(id)}`, { method: 'DELETE' });
-              notifications.show({ message: '主题已删除' });
-              void refreshListsAfterWrite();
-              navigate('/');
-            } else {
-              await api(`/posts/${post.id}`, { method: 'DELETE' });
-              notifications.show({ message: '帖子已删除' });
-              void mutate(); // 刷新详情（删除的帖消失）
-              void refreshListsAfterWrite();
-            }
-          } catch (e) {
-            notifications.show({
-              message: e instanceof Error ? e.message : '删除失败',
-              color: 'red',
-            });
+          if (isAdmin) {
+            // 管理员删除：直接删（管理操作已有权限体系）
+            await doDelete();
+          } else {
+            // 作者自删：先验证身份（密码或通行密钥）
+            const verify = await openDeleteVerifyModal(targetLabel);
+            if (verify) await doDelete(verify);
           }
         },
       });
     },
-    [id, d, mutate, navigate]
+    [id, d, user, mutate, navigate]
   );
 
   // 私密主题（滴滴）：不显示误导性的接戏/滴滴按钮，底部输入区用"回复"措辞
