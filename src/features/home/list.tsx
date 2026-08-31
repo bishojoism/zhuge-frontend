@@ -11,7 +11,7 @@ import { useAuth } from '../auth/AuthContext';
 import Avatar from '../../components/Avatar';
 import { openShareModal } from '../share/shareModals';
 import { openAuthorDidiStats } from '../private/authorDidiStats';
-import { parseBBCodeExcerpt } from '../../lib/bbcode';
+import { stripBBCode } from '../../lib/bbcode';
 
 interface ListViewProps {
   items: Discussion[];
@@ -246,7 +246,7 @@ export function TopicCard({
         />
       ) : null}
       {excerpt ? (
-        <div className="topic-excerpt">{parseBBCodeExcerpt(excerpt)}</div>
+        <div className="topic-excerpt">{stripBBCode(excerpt)}</div>
       ) : null}
       <div className="topic-meta">
         <span className="avatar-wrap">

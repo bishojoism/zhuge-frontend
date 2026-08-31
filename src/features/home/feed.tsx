@@ -3,7 +3,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNo
 import type { CoinInfo, Discussion, Tag } from '../../types';
 import { displayName, imgSrc, tagColorOf, tagTextColorOf, timeAgo } from '../../lib/utils';
 import { collapseIosUrlBar, isIosUrlBarCollapsing } from '../../lib/iosUrlBar';
-import { parseBBCodeExcerpt } from '../../lib/bbcode';
+import { stripBBCode } from '../../lib/bbcode';
 import { api } from '../../api/client';
 import { notifications } from '@mantine/notifications';
 import { mutate as globalMutate } from 'swr';
@@ -729,7 +729,7 @@ function FeedCard({
         </div>
         <div className="feed-card-title">{d.title}</div>
         {excerpt ? (
-          <div className="feed-card-excerpt">{parseBBCodeExcerpt(excerpt)}</div>
+          <div className="feed-card-excerpt">{stripBBCode(excerpt)}</div>
         ) : null}
         {d.image_url ? (
           <img
