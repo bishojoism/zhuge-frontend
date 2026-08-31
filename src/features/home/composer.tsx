@@ -25,6 +25,8 @@ interface ComposerDraft {
 interface ComposerContentProps {
   user: User;
   tags: Tag[];
+  /** 当前所在标签（如从 /tag/:id 打开开戏弹窗 → 默认选中该标签；null=全部页不默认） */
+  defaultTagId?: number | null;
   /** 提交成功回调：由首页负责 closeAll + 刷新 + 跳转 */
   onPosted: (id: number) => void;
 }
@@ -40,7 +42,7 @@ function normalizeDraft(raw: unknown): ComposerDraft | null {
   };
 }
 
-export function ComposerContent({ user, tags, onPosted }: ComposerContentProps) {
+export function ComposerContent({ user, tags, defaultTagId, onPosted }: ComposerContentProps) {
   // 草稿恢复：优先 /me/drafts（实时，保存后 mutate 同步）；SSR 内联 init 作 fallback
   // （页面加载时 init 的 drafts 是旧快照，若优先会用旧草稿覆盖新草稿 → 云同步失效）
   const { data: initData } = useInitData();
@@ -54,7 +56,10 @@ export function ComposerContent({ user, tags, onPosted }: ComposerContentProps) 
 
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
-  const [tagIds, setTagIds] = useState<number[]>([]);
+  // 初始标签：当前标签页默认选中（仅当该标签在列表中存在；"全部"页不默认）
+  const [tagIds, setTagIds] = useState<number[]>(() =>
+    defaultTagId != null && tags.some((t) => t.id === defaultTagId) ? [defaultTagId] : []
+  );
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
   const [uploading, setUploading] = useState(false);

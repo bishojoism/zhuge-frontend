@@ -235,12 +235,19 @@ export default function HomePage() {
           centered: true,
           size: 'md',
           ...focusOnEnter('input'), // 标题输入框（弹窗内第一个输入框）
-          children: <ComposerContent user={user} tags={tags} onPosted={handlePosted} />,
+          children: (
+            <ComposerContent
+              user={user}
+              tags={tags}
+              defaultTagId={tag}
+              onPosted={handlePosted}
+            />
+          ),
         });
       },
       true // 手势内同步叫醒键盘（iOS）
     );
-  }, [user, tags, handlePosted]);
+  }, [user, tags, tag, handlePosted]);
   const openTagPicker = useCallback(() => {
     // 打开"更多标签"弹窗前拉全量标签（SSR 首屏只内联了主标签）
     void mutate('/tags');
