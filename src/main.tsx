@@ -5,10 +5,10 @@ import { localStorageColorSchemeManager, MantineProvider } from '@mantine/core';
 import { ModalsProvider } from '@mantine/modals';
 import { Notifications } from '@mantine/notifications';
 import { SWRConfig } from 'swr';
-// Mantine 7 cascade layers 版样式（官方推荐：CSS 优先级分层，避免全量样式与项目样式互相覆盖，
-// 并加速 CSSOM 构建；与 styles.css 同源同内容，仅打包方式不同）
-import '@mantine/core/styles.layer.css';
-import '@mantine/notifications/styles.layer.css';
+// Mantine 全量样式（标准版）。注意：不要用 styles.layer.css——Vite 直接打包 layer 版会丢失
+// Mantine 组件样式（.mantine-Menu-item / .mantine-Modal 等），导致菜单项/弹窗边距空白失效
+import '@mantine/core/styles.css';
+import '@mantine/notifications/styles.css';
 import { theme } from './theme';
 import App from './App';
 import { AuthProvider } from './features/auth/AuthContext';
