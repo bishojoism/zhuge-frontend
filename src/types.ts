@@ -117,6 +117,18 @@ export interface NotificationItem {
   actor_character_gender?: string | null;
   /** 后端算好的跳转目标（接戏/滴滴→主题；标签申请→管理批准页；举报→管理举报页） */
   url?: string | null;
+  /** 主题上下文（通知点入乐观渲染用）：标题/作者/头像/私密/评论数/标签 + 首帖摘要与配图 */
+  discussion_title?: string | null;
+  discussion_author?: string | null;
+  discussion_author_avatar?: string | null;
+  discussion_is_private?: number;
+  discussion_comment_count?: number;
+  discussion_excerpt?: string | null;
+  discussion_image_url?: string | null;
+  discussion_tags?: string | null;
+  /** 被回复/被滴滴帖子的上下文（"回复了什么"） */
+  target_excerpt?: string | null;
+  target_author?: string | null;
 }
 
 export interface NotifListResult {

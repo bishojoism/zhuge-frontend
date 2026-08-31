@@ -7,6 +7,7 @@ import { mutate } from 'swr';
 import { api } from '../../api/client';
 import { useNotifications, useMe } from '../../api/hooks';
 import { requireLogin } from '../auth/authModals';
+import { seedTopicCacheFromList } from '../home/composer';
 import { timeAgo } from '../../lib/utils';
 import type { NotificationItem, NotifListResult, NotifType } from '../../types';
 
@@ -51,6 +52,25 @@ export function NotificationsModalContent({ onClose }: { onClose: () => void }) 
   // 点击单条：立即显示"正在打开…"加载反馈（跳转前）→ 标记已读 → 刷新 → 跳转 → 关闭弹窗
   // 接戏/滴滴通知：带 state 让主题页自动引用对方（回复框自动 @对方）
   const [navigating, setNavigating] = useState(false);
+
+  // 通知点入乐观渲染：用通知携带的主题上下文种入详情缓存（首帖 id 负值标记乐观帖），
+  // 主题页首帧直接显示标题/作者/摘要/配图（不闪骨架屏），后台 revalidate 拉真实数据替换。
+  // useTopicPagination 检测到乐观帖会强制重验，与列表点进主题同机制。
+  const seedTopicFromNotif = (n: NotificationItem) => {
+    if (!n.discussion_id || !n.discussion_title) return;
+    seedTopicCacheFromList({
+      id: n.discussion_id,
+      title: n.discussion_title,
+      author: n.discussion_author || undefined,
+      author_avatar: n.discussion_author_avatar ?? undefined,
+      excerpt: n.discussion_excerpt || undefined,
+      image_url: n.discussion_image_url ?? null,
+      is_private: n.discussion_is_private || 0,
+      comment_count: n.discussion_comment_count || 1,
+      tags: n.discussion_tags || undefined,
+    });
+  };
+
   const markReadAndGo = async (n: NotificationItem) => {
     if (navigating) return; // 防重复点击
     setNavigating(true);
@@ -62,8 +82,11 @@ export function NotificationsModalContent({ onClose }: { onClose: () => void }) 
     mutate('/me/notifications'); // 列表 + 未读徽标（同一 SWR key）
     mutate('/me');
     if (n.url) {
+      // 主题类通知（接戏/滴滴）→ 先种乐观缓存再跳转；管理类（举报/标签申请）→ 直接跳
+      if (n.url.startsWith('/d/')) seedTopicFromNotif(n);
       navigate(n.url);
     } else if (n.discussion_id) {
+      seedTopicFromNotif(n);
       const isReply = n.type === 'reply' || n.type === 'didi';
       if (isReply && n.post_id) {
         // 用 URL query 传回复目标（系统推送同款方式，TopicPage 读 ?reply=&replyAuthor=）：
@@ -144,6 +167,23 @@ export function NotificationsModalContent({ onClose }: { onClose: () => void }) 
                 )}
                 <div className="notif-body">
                   <div className="notif-text">{notifText(n)}</div>
+                  {/* 被回复/被滴滴帖子的内容摘要（"回复了什么"）：通知更完整，点入前先看到上下文 */}
+                  {n.target_excerpt ? (
+                    <div
+                      style={{
+                        fontSize: 12,
+                        color: 'var(--muted)',
+                        marginTop: 2,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                        maxWidth: 260,
+                      }}
+                    >
+                      {n.target_author ? `@${n.target_author}：` : ''}
+                      {n.target_excerpt}
+                    </div>
+                  ) : null}
                   <div className="notif-time">
                     {n.actor_character_name ? `${n.actor_character_name} · ` : ''}
                     {timeAgo(n.created_at)}
