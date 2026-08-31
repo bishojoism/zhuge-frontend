@@ -2,7 +2,7 @@
 import { useNavigate } from 'react-router-dom';
 import { Button, Group, Loader, Stack, Text } from '@mantine/core';
 import { useAuth } from '../auth/AuthContext';
-import { usePrivateList } from '../../api/hooks';
+import { usePrivateList, useTags } from '../../api/hooks';
 import { seedTopicCacheFromList } from '../home/composer';
 import { openLoginModal, openRegisterModal } from '../auth/authModals';
 import { timeAgo } from '../../lib/utils';
@@ -20,6 +20,7 @@ export default function PrivatePage() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
   const { data, isLoading } = usePrivateList();
+  const { tags } = useTags();
   const list = data?.data ?? [];
   const stats: DidiStats | undefined = data?.meta?.didiStats;
 
@@ -53,7 +54,7 @@ export default function PrivatePage() {
 
   const openTopic = (d: PrivateItem) => {
     // 乐观种入详情缓存（私密主题列表数据预填充，跳转后不闪骨架屏）
-    seedTopicCacheFromList({ ...d, is_private: 1 });
+    seedTopicCacheFromList({ ...d, is_private: 1 }, tags);
     // 预加载详情页 chunk
     void import('../topic/TopicPage');
     navigate(`/d/${d.id}`, { state: { from: '/private' } });

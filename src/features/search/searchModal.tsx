@@ -123,7 +123,7 @@ function SearchModalContent() {
     modals.closeAll();
     // 乐观种入详情缓存（用搜索结果数据预填充，跳转后不闪骨架屏）
     const d = items.find((x) => x.id === id);
-    if (d) seedTopicCacheFromList(d);
+    if (d) seedTopicCacheFromList(d, tags);
     // 预加载详情页 chunk
     void import('../topic/TopicPage');
     navigate(`/d/${id}`, { state: { from: location.pathname + location.search } });

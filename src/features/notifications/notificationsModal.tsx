@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { Button, Group, Loader, Stack, Text } from '@mantine/core';
 import { mutate } from 'swr';
 import { api } from '../../api/client';
-import { useNotifications, useMe } from '../../api/hooks';
+import { useNotifications, useMe, useTags } from '../../api/hooks';
 import { requireLogin } from '../auth/authModals';
 import { seedTopicCacheFromList } from '../home/composer';
 import { timeAgo } from '../../lib/utils';
@@ -35,6 +35,7 @@ export function NotificationsModalContent({ onClose }: { onClose: () => void }) 
   const { user } = useMe();
   const navigate = useNavigate();
   const { data, isLoading } = useNotifications();
+  const { tags } = useTags();
   const list = data?.data ?? [];
   // 防重复：StrictMode 下 effect 会执行两次，且 user 在加载中/未登录间跳动时可能连续触发
   const promptedRef = useRef(false);
@@ -70,7 +71,7 @@ export function NotificationsModalContent({ onClose }: { onClose: () => void }) 
       is_private: n.discussion_is_private || 0,
       comment_count: n.discussion_comment_count || 1,
       tags: n.discussion_tags || undefined,
-    });
+    }, tags);
   };
 
   const markReadAndGo = async (n: NotificationItem) => {

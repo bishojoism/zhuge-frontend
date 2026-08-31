@@ -508,30 +508,39 @@ export function seedTopicCache(
 // 主题列表点进主题时乐观种入详情缓存：用列表已有数据（标题/作者/摘要/配图）构造乐观详情，
 // 详情页跳转后首帧直接渲染（不闪骨架屏），后台 revalidate 拉真实数据（完整首帖/回复）替换。
 // 首帖 content 用列表摘要（excerpt）填充——不是全文，但足够首帧展示；帖子 id 用负值标记乐观帖。
+// allTags：全量标签（useTags）用于匹配真实标签颜色，乐观帧即显示正确颜色（不传则用默认色）。
 // 种两个 order 的 key（同 seedTopicCache）。
 // 参数用宽松类型（Partial<Discussion>）：首页 feed/list、搜索、我的主题、私密列表的条目都可传。
-export function seedTopicCacheFromList(d: Partial<Discussion> & { id: number; title: string }): void {
+export function seedTopicCacheFromList(
+  d: Partial<Discussion> & { id: number; title: string },
+  allTags?: Tag[]
+): void {
   const now = new Date().toISOString().replace('T', ' ').slice(0, 19);
   const excerpt = (d.excerpt || '').trim();
-  // 详情标签数组：列表条目只带标签字符串（"标签A / 标签B"），转成占位 Tag[]（id 负值标记占位，
-  // 颜色用默认值），首帧即显示主题标签；真实数据到达后由 revalidate 替换
+  // 详情标签数组：列表条目只带标签字符串（"标签A / 标签B"），转成 Tag[] 占位（id 负值标记占位），
+  // 优先用全局标签匹配真实颜色，首帧即显示正确的标签颜色；真实数据到达后由 revalidate 替换
   const tagArray: Tag[] = (d.tags || '')
     .split('/')
     .map((s) => s.trim())
     .filter(Boolean)
-    .map((name, i) => ({
-      id: -i - 1,
-      name,
-      slug: null,
-      description: null,
-      color: '#8b9cb0',
-      position: null,
-      is_restricted: 0,
-      is_hidden: 0,
-      discussion_count: 0,
-      icon: null,
-      is_primary: 0,
-    }));
+    .map((name, i) => {
+      const real = allTags?.find((t) => t.name === name);
+      return (
+        real ?? {
+          id: -i - 1,
+          name,
+          slug: null,
+          description: null,
+          color: '#8b9cb0',
+          position: null,
+          is_restricted: 0,
+          is_hidden: 0,
+          discussion_count: 0,
+          icon: null,
+          is_primary: 0,
+        }
+      );
+    });
   const optimistic: DiscussionDetail = {
     discussion: {
       id: d.id,

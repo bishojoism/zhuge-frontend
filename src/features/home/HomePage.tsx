@@ -216,7 +216,7 @@ export default function HomePage() {
   const openTopic = useCallback(
     (id: number) => {
       const d = itemsRef2.current.find((x) => x.id === id);
-      if (d) seedTopicCacheFromList(d);
+      if (d) seedTopicCacheFromList(d, tags);
       // 预加载详情页 chunk（点击时并行下载，跳转后零等待）
       void import('../topic/TopicPage');
       navigate(`/d/${id}`, { state: { from: location.pathname + location.search } });
