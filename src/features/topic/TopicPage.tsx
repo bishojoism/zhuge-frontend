@@ -109,9 +109,11 @@ export default function TopicPage() {
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const draftTimer = useRef<number | null>(null);
   const restored = useRef(false);
-  // 通知点入/定位跳转的 query 处理守卫：只处理一次（data 变化/navigate 清除 query 的竞态会导致 effect 反复重跑）
-  const autoReplyHandledRef = useRef(false);
-  const focusPostHandledRef = useRef(false);
+  // 通知点入/定位跳转的 query 处理守卫：只处理一次（data 变化/navigate 清除 query 的竞态会导致 effect 反复重跑）。
+  // 记录的是"已处理的 帖子 id"而非布尔：用户已在主题页时再点【另一条】通知（新 reply/focusPost 参数）
+  // 会重新定位；同一条通知的重复重跑（清 query 后 effect 再触发）仍被挡住。
+  const autoReplyHandledRef = useRef<number | null>(null);
+  const focusPostHandledRef = useRef<number | null>(null);
 
   const draftKey = id ? `reply:${id}` : '';
 
@@ -249,19 +251,20 @@ export default function TopicPage() {
       (qReply && /^\d+$/.test(qReply) ? Number(qReply) : undefined);
     if (!replyPostId) return;
     const targetPost = mergedPosts.find((p) => p.id === replyPostId);
-    if (!targetPost) {
-      // 目标楼未加载（分页）：先定位加载其所在页，到位后再接戏（不置 handled，等数据到达重跑）
-      setPendingTarget((prev) => prev ?? { id: replyPostId });
-      return;
-    }
     // 只处理一次：navigate 清 query 与 data 更新（乐观→真实）的竞态会让本 effect 反复重跑
-    // （注意：在找到目标帖后才置位——乐观数据可能没有该帖，需等真实数据到达）
-    if (autoReplyHandledRef.current) return;
-    autoReplyHandledRef.current = true;
+    // （记录的是 replyPostId 而非布尔：用户已在主题页时再点【另一条】通知（新 reply=）会重新定位；
+    //   同一条通知的重复重跑（清 query 后 effect 再触发）仍被挡住）
+    if (autoReplyHandledRef.current === replyPostId) return;
+    autoReplyHandledRef.current = replyPostId;
     const replyAuthor = st.replyAuthor || sp.get('replyAuthor') || undefined;
-    // 自动 @对方（顶部回复框显示"接 xxx"）；滚动定位交给 useTopicPagination 的 pendingTarget 定位
-    //（滚到目标楼层并高亮）——这里不再滚动到回复框，否则会把定位滚动又拉回顶部（"跳了又跳回一楼"）
-    setReplyTarget({ postId: replyPostId, author: replyAuthor || displayName(targetPost) });
+    // 自动 @对方（顶部回复框显示"接 xxx"）；targetPost 未加载（分页）时用通知带的 replyAuthor
+    setReplyTarget({
+      postId: replyPostId,
+      author: replyAuthor || (targetPost ? displayName(targetPost) : ''),
+    });
+    // 滚动定位统一交给 pendingTarget：目标楼已加载（用户在其他楼层浏览过，缓存里有）也要滚过去，
+    // 已加载立即滚动高亮，未加载先拉所在页再滚 —— 不再区分"找到/未找到"，否则在主题页点通知不跳楼
+    setPendingTarget((prev) => prev ?? { id: replyPostId });
     // 清除 state + query：仅首次进入时生效，刷新/返回不重复触发
     navigate(routeLocation.pathname, { replace: true, state: null });
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -645,9 +648,10 @@ export default function TopicPage() {
       setPendingTarget({ id: targetId });
       return;
     }
-    // 只处理一次：navigate 清 query 与 data 更新（乐观→真实）的竞态会让本 effect 反复重跑 → 无限更新循环
-    if (focusPostHandledRef.current) return;
-    focusPostHandledRef.current = true;
+    // 只处理一次：navigate 清 query 与 data 更新（乐观→真实）的竞态会让本 effect 反复重跑 → 无限更新循环。
+    // 记录 targetId 而非布尔：已在主题页时再点另一条定位通知（新 focusPost=）会重新跳转
+    if (focusPostHandledRef.current === targetId) return;
+    focusPostHandledRef.current = targetId;
     // 数据 + DOM 渲染完成后跳转（帖子可能未渲染完，稍作延迟）
     const t = window.setTimeout(() => jumpToPost(targetId), 300);
     navigate(routeLocation.pathname, { replace: true, state: null });
