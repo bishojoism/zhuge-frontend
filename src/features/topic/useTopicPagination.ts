@@ -184,6 +184,10 @@ export function useTopicPagination(id: string | undefined) {
   // id 目标用 aroundPostId，楼层目标用 aroundNumber（后端算页码）。
   const [pendingTarget, setPendingTarget] = useState<PendingTarget | null>(null);
   const targetFetchingRef = useRef(false);
+  // 定位后的"校正窗口"：乐观帖(负 id)随后被真实帖(正 id)替换（React key=id → DOM 重建），
+  // 且目标楼上方的楼层陆续插入 → 目标楼位置会漂移。mergedPosts 变化会重跑本 effect，
+  // found 仍命中 → 重新滚动到目标楼校正；3 秒无变化视为数据稳定，清空定位结束校正。
+  const jumpSettleTimerRef = useRef<number | null>(null);
   useEffect(() => {
     if (!pendingTarget || !id) return;
     const found = 'id' in pendingTarget
@@ -197,6 +201,14 @@ export function useTopicPagination(id: string | undefined) {
     if (found) {
       // 数据已到位但 DOM 可能还没渲染（通知点入时 page1 缓存被乐观种子短暂覆盖又强制重验，
       // 真实楼层可能延后出现）：轮询等目标楼 DOM 出现再滚动，最多 ~2s，超时才放弃。
+      // 不立即清空 pendingTarget：mergedPosts 后续变化（乐观→真实替换/楼层插入）会
+      // 重跑本 effect 校正滚动位置；3 秒无变化视为稳定，清空结束校正窗口。
+      // timer 在轮询前就设好：即使 2s 内 DOM 一直没出现（轮询耗尽），3s 后也自动清空。
+      if (jumpSettleTimerRef.current) window.clearTimeout(jumpSettleTimerRef.current);
+      jumpSettleTimerRef.current = window.setTimeout(() => {
+        jumpSettleTimerRef.current = null;
+        setPendingTarget(null);
+      }, 3000);
       const num = found.number;
       let tries = 0;
       const tryScroll = () => {
@@ -213,7 +225,6 @@ export function useTopicPagination(id: string | undefined) {
         if (tries < 20) window.setTimeout(tryScroll, 100);
       };
       tryScroll();
-      setPendingTarget(null);
       return;
     }
     if (targetFetchingRef.current) return; // 定位请求进行中，等结果
@@ -234,6 +245,14 @@ export function useTopicPagination(id: string | undefined) {
         targetFetchingRef.current = false;
       });
   }, [pendingTarget, id, mergedPosts]);
+
+  // 卸载时清掉定位校正 timer（避免组件卸载后 setState 警告）
+  useEffect(
+    () => () => {
+      if (jumpSettleTimerRef.current) window.clearTimeout(jumpSettleTimerRef.current);
+    },
+    []
+  );
 
   return {
     data: stableData,
