@@ -94,14 +94,17 @@ export default function Layout({ children }: { children: ReactNode }) {
   const navigate = useNavigate();
   // 未登录不请求通知（首屏零 API）
   const { unread, mutate: refreshUnread } = useUnread(!!user);
-  const { mutate: mutateCoins } = useCoins();
-  // 每日打开应用自动领格币（+10；当天已领则 no-op，静默）
+  const { data: coinData, mutate: mutateCoins } = useCoins();
+  // 每日打开应用自动领格币（+10；当天已领则 no-op，领到提示）
   useEffect(() => {
     if (!user) return;
     let cancelled = false;
     void api<{ claimed: boolean; amount: number }>('/me/daily-claim', { method: 'POST' })
       .then((r) => {
-        if (r.claimed && !cancelled) void mutateCoins();
+        if (r.claimed && !cancelled) {
+          void mutateCoins();
+          notifications.show({ message: `每日格币 +${r.amount} 🪙`, color: 'green' });
+        }
       })
       .catch(() => {});
     return () => {
@@ -395,7 +398,12 @@ export default function Layout({ children }: { children: ReactNode }) {
                   </span>
                 </Menu.Target>
                 <Menu.Dropdown>
-                  <Menu.Label>{user.username}</Menu.Label>
+                  <Menu.Label>
+                    {user.username}
+                    <Text component="span" size="xs" style={{ color: 'var(--primary)' }} ml={6}>
+                      🪙 {coinData?.balance ?? ''}
+                    </Text>
+                  </Menu.Label>
                   {/* 功能宫格：图标 + 短文字（去掉副信息，防菜单过宽过长） */}
                   <div className="menu-grid">
                     {[

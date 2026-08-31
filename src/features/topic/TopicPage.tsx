@@ -282,16 +282,21 @@ export default function TopicPage() {
       if (didiLoading !== null) return; // 已有滴滴请求进行中
       setDidiLoading(postId);
       try {
-        const res = await api<{ discussionId: number }>('/zhuge/didi', {
+        const res = await api<{ data: { discussionId: number; coinReward?: number | null } }>('/zhuge/didi', {
           method: 'POST',
           body: characterId ? { postId, characterId: Number(characterId) } : { postId },
         });
         notifications.show({ message: '已滴滴' });
+        // 每日首次滴滴奖励格币
+        if (res.data?.coinReward) {
+          notifications.show({ message: `🎉 首次滴滴 +${res.data.coinReward} 格币`, color: 'green' });
+          void globalMutate('/me/coins');
+        }
         refreshUnread();
         void mutate(); // 刷新滴滴数
         void refreshListsAfterWrite(); // 私密列表/滴滴统计同步，回列表页无需刷新网页
         // 进入创建的私密主题（返回 = 上一级 = 当前主题）
-        navigate(`/d/${res.discussionId}`, {
+        navigate(`/d/${res.data.discussionId}`, {
           state: { from: routeLocation.pathname + routeLocation.search },
         });
       } catch (e) {
@@ -382,7 +387,7 @@ export default function TopicPage() {
         );
       }
       // 后端真实请求（并行，乐观显示期间完成）
-      await api(`/discussions/${id}/posts`, {
+      const r = await api<{ data: { coinReward?: number | null } }>(`/discussions/${id}/posts`, {
         method: 'POST',
         body: {
           content: trimmed,
@@ -391,6 +396,11 @@ export default function TopicPage() {
           ...(replyCharacterId ? { characterId: Number(replyCharacterId) } : {}),
         },
       });
+      // 每日首次接戏奖励格币
+      if (r.data?.coinReward) {
+        notifications.show({ message: `🎉 首次接戏 +${r.data.coinReward} 格币`, color: 'green' });
+        void globalMutate('/me/coins');
+      }
     } catch (e) {
       // POST 失败：回滚乐观更新（恢复原数据）
       if (prevData) {

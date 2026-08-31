@@ -154,10 +154,14 @@ export function PostCard({
     setLikeCount((c) => Math.max(0, c + (next ? 1 : -1)));
     setBusy(true);
     try {
-      const r = await api<{ active: boolean }>(`/posts/${post.id}/like`, { method: 'POST' });
+      const r = await api<{ active: boolean; coinReward?: number | null }>(`/posts/${post.id}/like`, { method: 'POST' });
       if (r.active !== next) {
         setLiked(r.active);
         setLikeCount((c) => Math.max(0, c + (r.active ? 1 : -1)));
+      }
+      if (r.coinReward) {
+        notifications.show({ message: `🎉 首次点赞 +${r.coinReward} 格币`, color: 'green' });
+        void globalMutate<CoinInfo>('/me/coins');
       }
     } catch (e) {
       setLiked(!next);
@@ -175,10 +179,14 @@ export function PostCard({
     setFavCount((c) => Math.max(0, c + (next ? 1 : -1)));
     setBusy(true);
     try {
-      const r = await api<{ active: boolean }>(`/posts/${post.id}/favorite`, { method: 'POST' });
+      const r = await api<{ active: boolean; coinReward?: number | null }>(`/posts/${post.id}/favorite`, { method: 'POST' });
       if (r.active !== next) {
         setFavorited(r.active);
         setFavCount((c) => Math.max(0, c + (r.active ? 1 : -1)));
+      }
+      if (r.coinReward) {
+        notifications.show({ message: `🎉 首次收藏 +${r.coinReward} 格币`, color: 'green' });
+        void globalMutate<CoinInfo>('/me/coins');
       }
     } catch (e) {
       setFavorited(!next);

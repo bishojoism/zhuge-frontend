@@ -167,7 +167,7 @@ export function ComposerContent({ user, tags, onPosted }: ComposerContentProps) 
       // 预加载详情页 chunk（发帖提交期间并行下载，跳转后零等待，不闪转圈/骨架屏）
       void import('../../features/topic/TopicPage');
       // 后端契约（src/index.js）：body { title, content, tagIds, imageUrl, characterId }
-      const res = await api<{ data: { id: number } }>('/discussions', {
+      const res = await api<{ data: { id: number; coinReward?: number | null } }>('/discussions', {
         method: 'POST',
         body: {
           title: t,
@@ -177,6 +177,11 @@ export function ComposerContent({ user, tags, onPosted }: ComposerContentProps) 
           characterId: characterId ? Number(characterId) : undefined,
         },
       });
+      // 每日首次发帖奖励格币
+      if (res.data?.coinReward) {
+        notifications.show({ message: `🎉 首次发帖 +${res.data.coinReward} 格币`, color: 'green' });
+        void globalMutate('/me/coins');
+      }
       cancelPendingSave();
       try {
         await clearDraft('composer');
