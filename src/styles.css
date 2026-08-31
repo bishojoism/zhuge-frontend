@@ -66,8 +66,7 @@
     :root[data-mantine-color-scheme="dark"] .search-results { background: rgba(30,34,41,.97); }
     :root[data-mantine-color-scheme="dark"] .modal,
     :root[data-mantine-color-scheme="dark"] .composer,
-    :root[data-mantine-color-scheme="dark"] .topic,
-    :root[data-mantine-color-scheme="dark"] .feed-card { background: var(--card); }
+    :root[data-mantine-color-scheme="dark"] .topic { background: var(--card); }
     :root[data-mantine-color-scheme="dark"] .composer textarea,
     :root[data-mantine-color-scheme="dark"] .modal input,
     :root[data-mantine-color-scheme="dark"] .modal textarea,
