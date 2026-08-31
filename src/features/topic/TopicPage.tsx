@@ -487,30 +487,12 @@ export default function TopicPage() {
     [user, mutate, navigate]
   );
 
-  // ===== 加载中骨架 =====
-  if (isLoading && !data) {
-    return (
-      <>
-        <Skeleton height={36} width={120} radius="md" mb={12} />
-        <Skeleton height={130} radius="md" mb={12} />
-        <Skeleton height={110} radius="md" mb={12} />
-        <Skeleton height={110} radius="md" mb={12} />
-      </>
-    );
-  }
-
-  // ===== 404 / 无权限（有数据（含 SSR 内联 fallback）时优先渲染，后台重验证失败不覆盖） =====
-  if (!data?.discussion) {
-    return (
-      <div className="empty">
-        {error && error instanceof Error ? error.message || '主题不存在' : '主题不存在'}
-      </div>
-    );
-  }
-
-  const d = data.discussion as TopicDiscussion;
+  // ===== 派生数据与 hooks（必须在所有条件 return 之前声明） =====
+  // 背景：骨架屏/404 的条件 return 会让后面的 hooks 不执行，导致不同渲染分支 hooks 数量
+  // 不一致 → React #300（fewer）/ #310（more）白屏。因此这里把原本在 return 之后的
+  // useCallback/useMemo（handleDelete/replies/visibleReplies）及它们依赖的派生数据全部上移。
   // 分页合并后的全部已加载帖子（按楼层正序；'new' 模式渲染时再倒序）
-  const posts = mergedPosts as TopicPost[];
+  const posts = (data ? mergedPosts : []) as TopicPost[];
   const firstPost = posts.find((p) => p.number === 1) || null;
 
   // 删除自己的帖子/主题（作者本人或管理员；首帖删除 = 删整个主题）
@@ -520,6 +502,7 @@ export default function TopicPage() {
     (post: TopicPost) => {
       const isFirst = post.number === 1;
       const isAdmin = !!user?.isAdmin;
+      const discussionTitle = (data?.discussion as TopicDiscussion | undefined)?.title;
       const doDelete = async (verify?: { password?: string; reauthToken?: string }) => {
         if (isFirst) {
           await api(`/discussions/${Number(id)}`, { method: 'DELETE', body: verify || {} });
@@ -541,7 +524,7 @@ export default function TopicPage() {
           children: (
             <Text size="sm">
               {isFirst
-                ? `确定删除整个主题「${d?.title || ''}」？此操作不可恢复。`
+                ? `确定删除整个主题「${discussionTitle || ''}」？此操作不可恢复。`
                 : '确定删除这条帖子？此操作不可恢复。'}
             </Text>
           ),
@@ -562,7 +545,7 @@ export default function TopicPage() {
         // 作者自删：确认 + 自选验证 + 删除（合并弹窗）
         openDeleteConfirmModal({
           isFirst,
-          title: d?.title,
+          title: discussionTitle,
           onDelete: async (verify) => {
             try {
               await doDelete(verify);
@@ -574,11 +557,11 @@ export default function TopicPage() {
         });
       }
     },
-    [id, d, user, mutate, navigate]
+    [id, data, user, mutate, navigate]
   );
 
   // 私密主题（滴滴）：不显示误导性的接戏/滴滴按钮，底部输入区用"回复"措辞
-  const isPrivate = !!d.is_private;
+  const isPrivate = !!data?.discussion?.is_private;
   // 从新到旧：首帖（1楼）在最前，第二个是（最新）回复卡片，其后依次是更早的回复；
   // 从旧到新：首帖在前，回复按楼层正序。默认从新到旧
   // useMemo 缓存排序结果：切换排序/其他状态变化时只重算必要部分（长戏几百楼时避免无谓重排）
@@ -598,38 +581,7 @@ export default function TopicPage() {
   );
   const totalMatched = kw ? (firstMatched ? 1 : 0) + visibleReplies.length : totalPosts;
 
-  // 导出：图片记录（自选样式）/ 文字记录 —— 需全量楼层，走专用导出接口（一次性全量返回，
-  // 但限流 3 次/分钟，比普通读取严格得多；主题内只加载了分页，不能直接拿已加载的 posts）
-  const fetchAllPosts = async (): Promise<TopicPost[]> => {
-    const r = await api<{ data: DiscussionDetail }>(`/discussions/${Number(id)}/export`);
-    return (r.data.posts || []) as TopicPost[];
-  };
-  const exportImage = async () => {
-    if (exporting) return;
-    setExporting('image');
-    try {
-      const all = await fetchAllPosts();
-      openImageExportModal(d, all);
-    } catch (e) {
-      notifications.show({ message: e instanceof Error ? e.message : '导出失败', color: 'red' });
-    } finally {
-      setExporting(null);
-    }
-  };
-  const exportText = async () => {
-    if (exporting) return;
-    setExporting('text');
-    try {
-      const all = await fetchAllPosts();
-      exportTextLog(d, all);
-      notifications.show({ message: `已导出文字记录（${all.length} 条）` });
-    } catch (e) {
-      notifications.show({ message: e instanceof Error ? e.message : '导出失败', color: 'red' });
-    } finally {
-      setExporting(null);
-    }
-  };
-
+  // 跳楼/定位（普通函数 + focusPost effect：effect 同样必须在条件 return 之前声明）
   const jumpToLast = () => {
     if (lastPos === null) return;
     const el = document.querySelector(`[data-num="${lastPos}"]`);
@@ -680,6 +632,61 @@ export default function TopicPage() {
     return () => window.clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data, mergedPosts, routeLocation.search, navigate]);
+
+  // ===== 加载中骨架 =====
+  if (isLoading && !data) {
+    return (
+      <>
+        <Skeleton height={36} width={120} radius="md" mb={12} />
+        <Skeleton height={130} radius="md" mb={12} />
+        <Skeleton height={110} radius="md" mb={12} />
+        <Skeleton height={110} radius="md" mb={12} />
+      </>
+    );
+  }
+
+  // ===== 404 / 无权限（有数据（含 SSR 内联 fallback）时优先渲染，后台重验证失败不覆盖） =====
+  if (!data?.discussion) {
+    return (
+      <div className="empty">
+        {error && error instanceof Error ? error.message || '主题不存在' : '主题不存在'}
+      </div>
+    );
+  }
+
+  const d = data.discussion as TopicDiscussion;
+
+  // 导出：图片记录（自选样式）/ 文字记录 —— 需全量楼层，走专用导出接口（一次性全量返回，
+  // 但限流 3 次/分钟，比普通读取严格得多；主题内只加载了分页，不能直接拿已加载的 posts）
+  const fetchAllPosts = async (): Promise<TopicPost[]> => {
+    const r = await api<{ data: DiscussionDetail }>(`/discussions/${Number(id)}/export`);
+    return (r.data.posts || []) as TopicPost[];
+  };
+  const exportImage = async () => {
+    if (exporting) return;
+    setExporting('image');
+    try {
+      const all = await fetchAllPosts();
+      openImageExportModal(d, all);
+    } catch (e) {
+      notifications.show({ message: e instanceof Error ? e.message : '导出失败', color: 'red' });
+    } finally {
+      setExporting(null);
+    }
+  };
+  const exportText = async () => {
+    if (exporting) return;
+    setExporting('text');
+    try {
+      const all = await fetchAllPosts();
+      exportTextLog(d, all);
+      notifications.show({ message: `已导出文字记录（${all.length} 条）` });
+    } catch (e) {
+      notifications.show({ message: e instanceof Error ? e.message : '导出失败', color: 'red' });
+    } finally {
+      setExporting(null);
+    }
+  };
 
   // 回复引用：优先用后端 reply_to_author，缺失时按 id 查帖子
   const replyToAuthorOf = (p: TopicPost): string | null => {
