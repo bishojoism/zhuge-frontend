@@ -7,7 +7,8 @@ import { api } from '../../api/client';
 import { openModalOnce } from '../../lib/modals';
 
 // 预设举报理由（与后端 /api/reports 校验列表一致，文案勿改动）
-export const REPORT_REASONS: string[] = ['谩骂/人身攻击', '色情低俗', '广告/垃圾信息', '侵权/抄袭', '剧透', '申请自删', '其他'];
+// 注：内容支持作者自删（帖子/主题均可），不再需要"申请自删"举报理由
+export const REPORT_REASONS: string[] = ['谩骂/人身攻击', '色情低俗', '广告/垃圾信息', '侵权/抄袭', '剧透', '其他'];
 
 export type ReportTargetType = 'discussion' | 'post';
 
@@ -81,9 +82,6 @@ function ReportModalContent({ targetType, targetId }: ReportModalProps) {
           ))}
         </Stack>
       </Radio.Group>
-      <Text size="xs" c="dimmed">
-        📕 选择「申请自删」可申请删除<b>自己的内容</b>
-      </Text>
       <TextInput
         placeholder="或自定义理由……（选理由后可删改）"
         maxLength={200}

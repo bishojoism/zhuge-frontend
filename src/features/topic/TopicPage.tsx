@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { Button, Group, Menu, Modal, SegmentedControl, Select, Skeleton, Stack, Text, TextInput } from '@mantine/core';
+import { modals } from '@mantine/modals';
 import { notifications } from '@mantine/notifications';
 import useSWR, { mutate as globalMutate } from 'swr';
 import { IconArrowLeft, IconCheck } from '@tabler/icons-react';
@@ -563,6 +564,47 @@ export default function TopicPage() {
   const posts = (data.posts || []) as TopicPost[];
   const firstPost = posts[0] || null;
 
+  // 删除自己的帖子/主题（作者本人或管理员；首帖删除 = 删整个主题）
+  const handleDelete = useCallback(
+    (post: TopicPost) => {
+      const isFirst = post.number === 1;
+      modals.openConfirmModal({
+        title: isFirst ? '删除主题' : '删除帖子',
+        centered: true,
+        children: (
+          <Text size="sm">
+            {isFirst
+              ? `确定删除整个主题「${d?.title || ''}」？此操作不可恢复。`
+              : '确定删除这条帖子？此操作不可恢复。'}
+          </Text>
+        ),
+        labels: { confirm: '删除', cancel: '取消' },
+        confirmProps: { color: 'red' },
+        onConfirm: async () => {
+          try {
+            if (isFirst) {
+              await api(`/discussions/${Number(id)}`, { method: 'DELETE' });
+              notifications.show({ message: '主题已删除' });
+              void refreshListsAfterWrite();
+              navigate('/');
+            } else {
+              await api(`/posts/${post.id}`, { method: 'DELETE' });
+              notifications.show({ message: '帖子已删除' });
+              void mutate(); // 刷新详情（删除的帖消失）
+              void refreshListsAfterWrite();
+            }
+          } catch (e) {
+            notifications.show({
+              message: e instanceof Error ? e.message : '删除失败',
+              color: 'red',
+            });
+          }
+        },
+      });
+    },
+    [id, d, mutate, navigate]
+  );
+
   // 私密主题（滴滴）：不显示误导性的接戏/滴滴按钮，底部输入区用"回复"措辞
   const isPrivate = !!d.is_private;
   // 从新到旧：首帖（1楼）在最前，第二个是（最新）回复卡片，其后依次是更早的回复；
@@ -821,6 +863,11 @@ export default function TopicPage() {
               ? () => setEditingPost(firstPost)
               : undefined
           }
+          onDelete={
+            user && (user.id === firstPost.user_id || user.isAdmin)
+              ? () => handleDelete(firstPost)
+              : undefined
+          }
           onSource={() => setSourcePost(firstPost)}
           onAuthorStats={openAuthorStats}
           onCopyLink={handleCopyLink}
@@ -972,6 +1019,9 @@ export default function TopicPage() {
           onEdit={
             user && (user.id === p.user_id || user.isAdmin) ? () => setEditingPost(p) : undefined
           }
+          onDelete={
+            user && (user.id === p.user_id || user.isAdmin) ? () => handleDelete(p) : undefined
+          }
         />
       ))}
       {posts.length === 0 && <div className="empty">暂无内容</div>}
@@ -1021,6 +1071,8 @@ interface PostCardProps {
   onSource?: () => void;
   /** 编辑自己的帖子（作者本人或管理员可见） */
   onEdit?: () => void;
+  /** 删除自己的帖子/主题（作者本人或管理员可见；首帖删除 = 删主题） */
+  onDelete?: () => void;
   /** 点击回复引用 → 跳转到被回复的帖子 */
   onJumpToReply?: (targetPostId: number) => void;
   /** 点击作者名 → 查看该用户名片（角色/皮下/滴滴统计） */
@@ -1078,6 +1130,7 @@ function PostCard({
   onCopyLink,
   onSource,
   onEdit,
+  onDelete,
   onJumpToReply,
   onAuthorStats,
   title,
@@ -1261,6 +1314,11 @@ function PostCard({
           {onEdit && (
             <Button size="compact-sm" variant="subtle" onClick={onEdit}>
               编辑
+            </Button>
+          )}
+          {onDelete && (
+            <Button size="compact-sm" variant="subtle" color="red" onClick={onDelete}>
+              删除
             </Button>
           )}
           <Button size="compact-sm" variant="subtle" color="gray" onClick={onReport}>
