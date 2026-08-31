@@ -8,7 +8,6 @@ import { notifications } from '@mantine/notifications';
 import { mutate as globalMutate } from 'swr';
 import { requireLogin } from '../auth/authModals';
 import { useAuth } from '../auth/AuthContext';
-import { levelLabel, levelOf } from '../../lib/coins';
 import Avatar from '../../components/Avatar';
 import { openShareModal } from '../share/shareModals';
 import { openAuthorDidiStats } from '../private/authorDidiStats';
@@ -214,8 +213,6 @@ export function TopicCard({
     }
   };
 
-  const lv = levelOf(d.author_earned);
-
   return (
     <div
       className="topic topic-clickable"
@@ -266,36 +263,6 @@ export function TopicCard({
           style={{ fontWeight: 600, color: 'var(--text)' }}
         >
           {displayName(d)}
-          {d.author_badges
-            ? d.author_badges
-                .split(',')
-                .filter(Boolean)
-                .map((item, i) => {
-                  const [icon, tier] = item.split(':');
-                  return (
-                    <span key={i} className={`author-badge-icon${tier === '1' ? ' t1' : ''}`} title={tier === '1' ? '进阶徽章' : '徽章'}>
-                      {icon}
-                    </span>
-                  );
-                })
-            : null}
-          {/* 等级徽章（累计获得格币档位，Lv.2 起显示） */}
-          {lv > 1 && (
-            <span
-              style={{
-                fontSize: 10,
-                background: 'linear-gradient(135deg,#c9a86b,#8b7b4a)',
-                color: '#fff',
-                borderRadius: 8,
-                padding: '1px 6px',
-                marginLeft: 4,
-                verticalAlign: 'middle',
-              }}
-              title={`等级 ${levelLabel(lv)}（累计获得格币）`}
-            >
-              {levelLabel(lv)}
-            </span>
-          )}
         </span>
         <span>{timeAgo(d.last_posted_at || d.created_at)}</span>
         <span>{Math.max(0, (d.comment_count ?? 0) - 1)} 接戏</span>

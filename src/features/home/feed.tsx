@@ -9,7 +9,6 @@ import { notifications } from '@mantine/notifications';
 import { mutate as globalMutate } from 'swr';
 import { requireLogin } from '../auth/authModals';
 import { useAuth } from '../auth/AuthContext';
-import { levelLabel, levelOf } from '../../lib/coins';
 import Avatar from '../../components/Avatar';
 import { openAuthorDidiStats } from '../private/authorDidiStats';
 
@@ -604,8 +603,6 @@ function FeedCard({
     }
   };
 
-  const lv = levelOf(d.author_earned);
-
   // 一键三连：点赞 + 收藏 + 投币（已做的跳过；投币消耗 1 币；允许给自己）——全乐观：先本地点亮/计数，再后台请求，失败单项回滚
   const doTriple = async () => {
     if (!postId) return;
@@ -711,37 +708,6 @@ function FeedCard({
               }}
             >
               {displayName(d)}
-              {/* 作者已获徽章：作者名旁全部展示（进阶徽章 t1 带发光特效） */}
-              {d.author_badges
-                ? d.author_badges
-                    .split(',')
-                    .filter(Boolean)
-                    .map((item, i) => {
-                      const [icon, tier] = item.split(':');
-                      return (
-                        <span key={i} className={`author-badge-icon${tier === '1' ? ' t1' : ''}`} title={tier === '1' ? '进阶徽章' : '徽章'}>
-                          {icon}
-                        </span>
-                      );
-                    })
-                : null}
-              {/* 等级徽章（累计获得格币档位，Lv.2 起显示） */}
-              {lv > 1 && (
-                <span
-                  style={{
-                    fontSize: 10,
-                    background: 'linear-gradient(135deg,#c9a86b,#8b7b4a)',
-                    color: '#fff',
-                    borderRadius: 8,
-                    padding: '1px 6px',
-                    marginLeft: 4,
-                    verticalAlign: 'middle',
-                  }}
-                  title={`等级 ${levelLabel(lv)}（累计获得格币）`}
-                >
-                  {levelLabel(lv)}
-                </span>
-              )}
             </div>
             <div className="feed-card-time">{timeAgo(d.last_posted_at || d.created_at)}</div>
           </div>
