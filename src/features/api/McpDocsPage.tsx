@@ -19,6 +19,13 @@ const TOOLS: { name: string; auth: string; desc: string }[] = [
   { name: 'get_my_notifications', auth: '令牌', desc: '我的通知（未读数 + 跳转链接）' },
   { name: 'get_my_characters', auth: '令牌', desc: '我的角色卡' },
   { name: 'get_my_badges', auth: '令牌', desc: '我的徽章与邀请统计' },
+  { name: 'like_post', auth: '令牌', desc: '点赞帖子（toggle；每日首次 +1 格币）' },
+  { name: 'favorite_post', auth: '令牌', desc: '收藏帖子（toggle；每日首次 +2 格币）' },
+  { name: 'coin_post', auth: '令牌', desc: '投币 1 格币（给他人每日首次 +3 格币）' },
+  { name: 'tip_post', auth: '令牌', desc: '打赏自定义格币（≥1；给他人每日首次 +3 格币）' },
+  { name: 'respond_didi', auth: '令牌', desc: '响应滴滴：接受（accepted）/ 婉拒（declined）' },
+  { name: 'get_my_coins', auth: '令牌', desc: '我的格币：余额/累计/等级/今日任务' },
+  { name: 'claim_daily', auth: '令牌', desc: '领取每日登录格币（+10）' },
 ];
 
 export default function McpDocsPage() {
@@ -68,7 +75,7 @@ export default function McpDocsPage() {
       </Stack>
 
       <Stack gap={6}>
-        <Text fw={600}>🧰 工具清单（13 个）</Text>
+        <Text fw={600}>🧰 工具清单（20 个）</Text>
         <Table.ScrollContainer minWidth={520}>
           <Table striped highlightOnHover verticalSpacing="xs">
             <Table.Thead>
