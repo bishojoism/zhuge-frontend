@@ -145,6 +145,8 @@ export interface NotificationItem {
   content: string | null;
   is_read: number;
   created_at: string;
+  /** 触发者用户名（后端返回字段；前端旧字段名 actor_name 兼容保留） */
+  actor?: string | null;
   actor_name?: string;
   /** 全沉浸：触发者所用角色（若有）——通知显示角色身份而非皮下 */
   actor_character_name?: string | null;
@@ -163,7 +165,13 @@ export interface NotificationItem {
   discussion_tags?: string | null;
   /** 被回复/被滴滴帖子的上下文（"回复了什么"） */
   target_excerpt?: string | null;
+  /** 该帖楼层号（reply 通知 = 触发回复的楼层；乐观渲染直接显示这条回复用） */
+  target_number?: number | null;
   target_author?: string | null;
+  /** 触发回复所回复的楼层（回复链上下文：乐观渲染显示"被回复的那楼"） */
+  target_reply_to_number?: number | null;
+  target_reply_to_excerpt?: string | null;
+  target_reply_to_author?: string | null;
 }
 
 export interface NotifListResult {

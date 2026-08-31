@@ -90,11 +90,27 @@ export function NotificationsModalContent({ onClose }: { onClose: () => void }) 
   // 接戏/滴滴通知：带 state 让主题页自动引用对方（回复框自动 @对方）
   const [navigating, setNavigating] = useState(false);
 
-  // 通知点入乐观渲染：用通知携带的主题上下文种入详情缓存（首帖 id 负值标记乐观帖），
-  // 主题页首帧直接显示标题/作者/摘要/配图（不闪骨架屏），后台 revalidate 拉真实数据替换。
+  // 通知点入乐观渲染：用通知携带的主题上下文种入详情缓存（首帖 + 回复链乐观帖，负 id 标记），
+  // 主题页首帧直接显示标题/首帖摘要 + 触发回复 + 被回复的那楼（不用等真实数据），后台 revalidate 拉真实替换。
   // useTopicPagination 检测到乐观帖会强制重验，与列表点进主题同机制。
   const seedTopicFromNotif = (n: NotificationItem) => {
     if (!n.discussion_id || !n.discussion_title) return;
+    // 回复链乐观帖：被回复的那楼 + 触发回复（通知已携带楼层号与内容摘要）
+    const extraPosts: Array<{ number: number; content: string; author: string }> = [];
+    if (n.target_reply_to_number && n.target_reply_to_excerpt) {
+      extraPosts.push({
+        number: n.target_reply_to_number,
+        content: n.target_reply_to_excerpt,
+        author: n.target_reply_to_author || '有人',
+      });
+    }
+    if (n.target_number && n.target_excerpt) {
+      extraPosts.push({
+        number: n.target_number,
+        content: n.target_excerpt,
+        author: n.target_author || n.actor || n.actor_name || '有人',
+      });
+    }
     seedTopicCacheFromList({
       id: n.discussion_id,
       title: n.discussion_title,
@@ -105,7 +121,7 @@ export function NotificationsModalContent({ onClose }: { onClose: () => void }) 
       is_private: n.discussion_is_private || 0,
       comment_count: n.discussion_comment_count || 1,
       tags: n.discussion_tags || undefined,
-    }, tags);
+    }, tags, extraPosts.length ? extraPosts : undefined);
   };
 
   const markReadAndGo = (n: NotificationItem) => {

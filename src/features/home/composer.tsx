@@ -521,9 +521,12 @@ export function seedTopicCache(
 // allTags：全量标签（useTags）用于匹配真实标签颜色，乐观帧即显示正确颜色（不传则用默认色）。
 // 种两个 order 的 key（同 seedTopicCache）。
 // 参数用宽松类型（Partial<Discussion>）：首页 feed/list、搜索、我的主题、私密列表的条目都可传。
+// extraPosts：附加的乐观帖（如通知点入时的"触发回复 + 被回复的那楼"回复链），负 id 标记乐观，
+// 按 number 与首帖一起并入，真实数据到达后同楼覆盖。
 export function seedTopicCacheFromList(
   d: Partial<Discussion> & { id: number; title: string },
-  allTags?: Tag[]
+  allTags?: Tag[],
+  extraPosts?: Array<{ number: number; content: string; author: string }>
 ): void {
   const now = new Date().toISOString().replace('T', ' ').slice(0, 19);
   const excerpt = (d.excerpt || '').trim();
@@ -604,6 +607,32 @@ export function seedTopicCacheFromList(
         author_earned: d.author_earned ?? null,
         didi_count: d.post_didi_count || 0,
       },
+      // 附加乐观帖（回复链：被回复的那楼 + 触发回复）：负 id，内容用通知携带的摘要；
+      // 楼层号用真实值（后端通知带），mergedPosts 按 number 排序显示在正确位置
+      ...(extraPosts || []).map((p, i) => ({
+        id: -Date.now() - i - 1,
+        discussion_id: d.id,
+        number: p.number,
+        created_at: now,
+        user_id: 0,
+        content: p.content,
+        edited_at: null,
+        is_private: 0,
+        reply_to_post_id: null,
+        image_url: null,
+        author: p.author,
+        author_gender: undefined,
+        author_avatar: undefined,
+        character_id: null,
+        author_badges: null,
+        like_count: 0,
+        favorite_count: 0,
+        coin_count: 0,
+        liked: null,
+        favorited: null,
+        author_earned: null,
+        didi_count: 0,
+      })),
     ],
     totalPosts: d.comment_count || 1,
     page: 1,
