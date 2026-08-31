@@ -48,6 +48,8 @@ export default function TopicPage() {
     loadMoreRef,
     loadingMore,
     setPendingTarget,
+    injectOptimistic,
+    removeOptimistic,
   } = useTopicPagination(id);
   const { mutate: refreshUnread } = useUnread();
   const { data: draftsData, mutate: mutateDrafts } = useDrafts();
@@ -362,7 +364,7 @@ export default function TopicPage() {
     if (!id) return;
     setSubmitting(true);
     const prevData = data; // 记录乐观前数据（失败回滚用）
-    // 乐观更新：构造本地新帖，先更新缓存立即显示（不等网络），POST 并行发出
+    // 乐观更新：构造本地新帖，注入独立乐观列表立即显示（不进分页缓存，revalidate 不会覆盖它），POST 并行发出
     const optimisticPost: TopicPost = {
       id: Date.now() * -1, // 临时负 id 标记乐观帖
       discussion_id: Number(id),
@@ -380,17 +382,17 @@ export default function TopicPage() {
       character_id: replyCharacterId ? Number(replyCharacterId) : null,
     };
     try {
-      // 本地立即显示（追加 + 评论数 +1）
+      // 本地立即显示：乐观帖独立注入（mergedPosts 合并），并乐观 +1 评论数（不动 posts，避免被 revalidate 覆盖）
       if (data) {
         await mutate(
           {
             ...data,
             discussion: { ...data.discussion, comment_count: (data.discussion.comment_count || 0) + 1 },
-            posts: [...data.posts, optimisticPost],
           },
           { revalidate: false }
         );
       }
+      injectOptimistic(optimisticPost);
       // 后端真实请求（并行，乐观显示期间完成）
       const r = await api<{ data: { coinReward?: number | null } }>(`/discussions/${id}/posts`, {
         method: 'POST',
@@ -407,7 +409,8 @@ export default function TopicPage() {
         void globalMutate('/me/coins');
       }
     } catch (e) {
-      // POST 失败：回滚乐观更新（恢复原数据）
+      // POST 失败：回滚乐观更新（移除乐观帖 + 恢复原数据）
+      removeOptimistic(optimisticPost.id);
       if (prevData) {
         try {
           await mutate(prevData, { revalidate: false });
@@ -444,6 +447,8 @@ export default function TopicPage() {
     })();
     // 用真实数据替换乐观帖（拿回真实 id/楼层/时间）；失败仅静默（乐观帖仍在，下次进入重拉）
     void mutate().catch(() => {});
+    // 新回复在 order=new 第 1 页（最新一页）：无论当前浏览到第几页，强制刷新第 1 页让真实帖尽快覆盖乐观帖
+    void globalMutate(`/discussions/${id}?page=1&order=new`).catch(() => {});
     // 刷新讨论列表缓存（评论数/摘要变化），切回列表页无需手动刷新网页
     void refreshListsAfterWrite();
   }, [user, content, imageUrl, id, replyTarget, replyCharacterId, draftKey, mutate, mutateDrafts, data]);

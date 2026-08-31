@@ -3,7 +3,7 @@
 // 滚动到底自动加载下一页并预取下两页（SWR 缓存命中零等待）。
 // 同时负责"目标帖定位"：auto-reply/focusPost/跳楼目标不在已加载楼层时，
 // 请求其所在页（around 参数，后端算页码）并入，到位后滚动高亮。
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { mutate as globalMutate } from 'swr';
 import { notifications } from '@mantine/notifications';
 import { api } from '../../api/client';
@@ -45,6 +45,19 @@ export function useTopicPagination(id: string | undefined) {
   useEffect(() => {
     if (headData) setLoadedPages((prev) => ({ ...prev, [1]: headData }));
   }, [headData]);
+
+  // 独立乐观帖：回复后注入（负 id 标记），不塞进任何一页的 posts——
+  // 否则 revalidate 当前页会把乐观帖覆盖掉（新回复在 order=new 第 1 页，当前页可能没有它，
+  // 导致"乐观帧后消失一阵，加载到第 1 页才回来"）。独立注入后 revalidate 不会覆盖它，
+  // 真实帖（同 number）到达时按楼层合并自动替换。
+  const [optimisticPosts, setOptimisticPosts] = useState<TopicPost[]>([]);
+  const injectOptimistic = useCallback((post: TopicPost) => {
+    setOptimisticPosts((prev) => [...prev, post]);
+  }, []);
+  const removeOptimistic = useCallback((postId: number) => {
+    setOptimisticPosts((prev) => prev.filter((p) => p.id !== postId));
+  }, []);
+
   const changeOrder = (v: 'new' | 'old') => {
     setPostOrder(v);
     setPage(1);
@@ -61,10 +74,14 @@ export function useTopicPagination(id: string | undefined) {
         else optimistic.push(p);
       }
     }
+    // 独立注入的乐观帖：同楼已有真实帖则被覆盖，否则保留显示
+    for (const p of optimisticPosts) {
+      if (p.id < 0 && !real.has(p.number)) optimistic.push(p);
+    }
     const out = [...real.values()];
     for (const p of optimistic) if (!real.has(p.number)) out.push(p);
     return out.sort((a, b) => a.number - b.number);
-  }, [loadedPages]);
+  }, [loadedPages, optimisticPosts]);
 
   const totalPosts = data?.totalPosts ?? headData?.totalPosts ?? mergedPosts.length;
   const hasMore = page * PAGE_SIZE < totalPosts;
@@ -164,5 +181,7 @@ export function useTopicPagination(id: string | undefined) {
     loadMoreRef,
     loadingMore,
     setPendingTarget,
+    injectOptimistic,
+    removeOptimistic,
   };
 }
