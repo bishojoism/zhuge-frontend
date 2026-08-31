@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { api } from '../../api/client';
 import { openModalOnce } from '../../lib/modals';
 import { timeAgo } from '../../lib/utils';
+import TripleActions from '../../components/TripleActions';
 
 interface FavoriteItem {
   post_id: number;
@@ -15,6 +16,12 @@ interface FavoriteItem {
   discussion_title: string;
   is_private: number;
   post_author: string;
+  post_user_id: number;
+  like_count?: number;
+  favorite_count?: number;
+  coin_count?: number;
+  liked?: number | null;
+  favorited?: number | null;
 }
 
 export function openFavoritesModal(): void {
@@ -98,6 +105,8 @@ function FavoritesContent() {
                 {it.content}
               </Text>
             ) : null}
+            {/* 收藏夹内也可一键三连（点赞/投币/收藏 + 计数） */}
+            <TripleActions postId={it.post_id} authorId={it.post_user_id} initial={it} />
           </Stack>
           <Text size="xs" c="dimmed" style={{ whiteSpace: 'nowrap' }}>
             {timeAgo(it.favorited_at)}
