@@ -11,19 +11,21 @@ import { seedTopicCacheFromList } from '../home/composer';
 import { timeAgo } from '../../lib/utils';
 import type { NotificationItem, NotifListResult, NotifType } from '../../types';
 
-// 通知图标：didi → 📨；report/report_result → ⚑；其余（reply）→ 💬
+// 通知图标：didi → 📨；invite → 🎭（邀请接戏）；report/report_result → ⚑；其余（reply）→ 💬
 function notifIcon(type: NotifType): string {
   if (type === 'didi') return '📨';
+  if (type === 'invite') return '🎭';
   if (type === 'report' || type === 'report_result') return '⚑';
   return '💬';
 }
 
-// 文案：优先 content；didi/reply 无 content 时按类型拼接
+// 文案：优先 content；didi/reply/invite 无 content 时按类型拼接
 // 全沉浸：content 已含角色名（后端用角色名生成）；这里兜底用角色名/用户名
 function notifText(n: NotificationItem): string {
   if (n.content) return n.content;
   const who = n.actor_character_name || n.actor_name || '有人';
   if (n.type === 'didi') return `${who} 滴滴了你`;
+  if (n.type === 'invite') return `${who} 邀请你接戏`;
   if (n.type === 'reply') return `${who} 回复了你`;
   return '新通知';
 }

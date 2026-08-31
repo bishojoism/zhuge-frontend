@@ -98,7 +98,7 @@ export interface DiscussionDetail {
   } | null;
 }
 
-export type NotifType = 'didi' | 'reply' | 'report' | 'report_result';
+export type NotifType = 'didi' | 'reply' | 'report' | 'report_result' | 'invite';
 
 export interface NotificationItem {
   id: number;

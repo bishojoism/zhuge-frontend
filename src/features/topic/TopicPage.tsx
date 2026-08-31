@@ -25,6 +25,7 @@ import { PostCard } from './PostCard';
 import { EditPostModal, SourceCodeModal } from './postModals';
 import { DidiResponseBar } from './topicWidgets';
 import { useTopicPagination } from './useTopicPagination';
+import { openInviteModal } from './inviteModal';
 import type { ReplyDraftData, TopicDiscussion, TopicPost } from './topicTypes';
 import { GENDER_LABEL } from './topicTypes';
 
@@ -980,8 +981,17 @@ export default function TopicPage() {
         );
       })()}
 
-      {/* 主题内搜索 / 导出记录 */}
+      {/* 主题内搜索 / 邀请搭戏（仅作者）/ 导出记录 */}
       <Group justify="flex-end" mb="sm" gap={6}>
+        {!isPrivate && user && d.user_id === user.id && (
+          <Button
+            variant="subtle"
+            size="compact-sm"
+            onClick={() => openInviteModal(Number(id), d.title)}
+          >
+            🎭 邀请接戏
+          </Button>
+        )}
         <Button
           variant="subtle"
           size="compact-sm"
