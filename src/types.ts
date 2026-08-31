@@ -62,11 +62,18 @@ export interface Discussion {
   author_earned?: number | null;
 }
 
-// 我的格币（余额 / 累计 / 等级）
+// 我的格币（余额 / 累计 / 等级 / 今日任务）
+export interface DailyTask {
+  key: string;
+  label: string;
+  amount: number;
+  done: boolean;
+}
 export interface CoinInfo {
   balance: number;
   earnedTotal: number;
   level: number;
+  tasks?: DailyTask[];
 }
 
 export interface Post {

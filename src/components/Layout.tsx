@@ -30,7 +30,8 @@ import {
   IconRobot,
   IconLogin,
   IconUserPlus,
-  IconCoins,
+  IconListCheck,
+  IconStar,
 } from '@tabler/icons-react';
 import { useAuth } from '../features/auth/AuthContext';
 import { useUnread, useCoins } from '../api/hooks';
@@ -73,7 +74,8 @@ const openInviteModal = (userId: number, username: string) => import('../feature
 const openApiTokensModal = () => import('../features/api/apiTokensModal').then((m) => m.openApiTokensModal());
 const openMcpModal = () => import('../features/api/mcpModal').then((m) => m.openMcpModal());
 const openBlocksModal = () => import('../features/private/blocksModal').then((m) => m.openBlocksModal());
-const openCoinsModal = () => import('../features/coins/coinsModal').then((m) => m.openCoinsModal());
+const openCoinsModal = () => import('../features/coins/coinsModal').then((m) => m.openTasksModal());
+const openFavoritesModal = () => import('../features/coins/favoritesModal').then((m) => m.openFavoritesModal());
 // iOS 安装指引静态引入：modals.open 需在点击手势内同步执行，iOS 才显示弹窗
 // （动态 import 会延到手势之外，弹窗可能不出现）
 import { openIosInstallHint } from '../features/pwa/installHint';
@@ -401,11 +403,14 @@ export default function Layout({ children }: { children: ReactNode }) {
                   <Menu.Item leftSection={<IconFolder size={16} />} onClick={() => navigate('/my')}>
                     我的主题
                   </Menu.Item>
-                  <Menu.Item leftSection={<IconCoins size={16} />} onClick={() => openCoinsModal()}>
-                    我的格币
+                  <Menu.Item leftSection={<IconListCheck size={16} />} onClick={() => openCoinsModal()}>
+                    今日任务
                     <Text span size="xs" c="dimmed" ml={6}>
                       {coinData ? `${coinData.balance} 币 · ${levelLabel(coinData.level)}` : ''}
                     </Text>
+                  </Menu.Item>
+                  <Menu.Item leftSection={<IconStar size={16} />} onClick={() => openFavoritesModal()}>
+                    收藏夹
                   </Menu.Item>
                   <Menu.Divider />
                   <Menu.Item leftSection={<IconPhoto size={16} />} onClick={() => openAvatarModal()}>
