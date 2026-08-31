@@ -445,12 +445,14 @@ export default function TopicPage() {
 
   const handleCopyLink = useCallback(async () => {
     if (!id) return;
-    const ok = await copyText(location.origin + '/d/' + id);
+    const ok = await copyText(
+      location.origin + '/d/' + id + (user ? `?invite=${user.id}` : '')
+    );
     notifications.show({
       message: ok ? '链接已复制' : '复制失败，请手动复制',
       color: ok ? undefined : 'red',
     });
-  }, [id]);
+  }, [id, user]);
 
   const handleReport = useCallback(
     (targetType: ReportTargetType, targetId: number) => {
@@ -678,7 +680,7 @@ export default function TopicPage() {
     setExporting('image');
     try {
       const all = await fetchAllPosts();
-      openImageExportModal(d, all);
+      openImageExportModal(d, all, user?.id);
     } catch (e) {
       notifications.show({ message: e instanceof Error ? e.message : '导出失败', color: 'red' });
     } finally {
@@ -690,7 +692,7 @@ export default function TopicPage() {
     setExporting('text');
     try {
       const all = await fetchAllPosts();
-      exportTextLog(d, all);
+      exportTextLog(d, all, user?.id);
       notifications.show({ message: `已导出文字记录（${all.length} 条）` });
     } catch (e) {
       notifications.show({ message: e instanceof Error ? e.message : '导出失败', color: 'red' });

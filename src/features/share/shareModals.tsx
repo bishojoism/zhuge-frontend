@@ -5,6 +5,7 @@ import { modals } from '@mantine/modals';
 import { notifications } from '@mantine/notifications';
 import { openModalOnce } from '../../lib/modals';
 import { copyText } from '../../lib/utils';
+import { useAuth } from '../auth/AuthContext';
 import { drawShareCard, TEMPLATES } from './poster';
 
 export interface ShareData {
@@ -45,6 +46,7 @@ export function openShareModal(d: ShareData): void {
 }
 
 function ShareModalContent({ data }: { data: ShareData }): JSX.Element {
+  const { user } = useAuth();
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const drawSeq = useRef(0);
   const [templateKey, setTemplateKey] = useState<string>(TEMPLATES[0].key);
@@ -98,7 +100,9 @@ function ShareModalContent({ data }: { data: ShareData }): JSX.Element {
   };
 
   const handleCopy = async () => {
-    const ok = await copyText(`${window.location.origin}/d/${data.id}`);
+    const ok = await copyText(
+      `${window.location.origin}/d/${data.id}${user ? `?invite=${user.id}` : ''}`
+    );
     notifications.show(
       ok
         ? { color: 'teal', message: '链接已复制' }

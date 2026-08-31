@@ -75,9 +75,9 @@ function downloadBlob(blob: Blob, filename: string): void {
   window.setTimeout(() => URL.revokeObjectURL(url), 2000);
 }
 
-// ===== 文字记录导出（.txt，含主题链接）=====
-export function exportTextLog(d: Discussion, posts: ExportPost[]): void {
-  const url = location.origin + '/d/' + d.id;
+// ===== 文字记录导出（.txt，含主题链接；已登录时附邀请码 ?invite=<uid> 拉新）=====
+export function exportTextLog(d: Discussion, posts: ExportPost[], inviterId?: number): void {
+  const url = location.origin + '/d/' + d.id + (inviterId ? `?invite=${inviterId}` : '');
   const lines: string[] = [];
   lines.push(`《${d.title}》`);
   lines.push(`${d.is_private ? '（私密主题）' : ''}创建于 ${String(d.created_at || '').slice(0, 16)} · 共 ${posts.length} 条`);
@@ -142,12 +142,12 @@ function pill(ctx: CanvasRenderingContext2D, text: string, x: number, y: number,
   return w;
 }
 
-// ===== 图片记录导出（精修版 PNG）=====
-export async function exportImageLog(d: Discussion, posts: ExportPost[], style: LogStyle): Promise<void> {
+// ===== 图片记录导出（精修版 PNG；已登录时二维码附邀请码 ?invite=<uid> 拉新）=====
+export async function exportImageLog(d: Discussion, posts: ExportPost[], style: LogStyle, inviterId?: number): Promise<void> {
   const canvas = document.createElement('canvas');
   const ctx = canvas.getContext('2d');
   if (!ctx) return;
-  const topicUrl = location.origin + '/d/' + d.id;
+  const topicUrl = location.origin + '/d/' + d.id + (inviterId ? `?invite=${inviterId}` : '');
 
   const qrCanvas = document.createElement('canvas');
   try {
@@ -491,7 +491,7 @@ function StyleGrid({ onPick }: { onPick: (s: LogStyle) => void }) {
   );
 }
 
-export function openImageExportModal(d: Discussion, posts: ExportPost[]): void {
+export function openImageExportModal(d: Discussion, posts: ExportPost[], inviterId?: number): void {
   openModalOnce('image-export', (m) => {
     m.open({
       title: '导出图片记录 · 选择样式',
@@ -501,7 +501,7 @@ export function openImageExportModal(d: Discussion, posts: ExportPost[]): void {
         <StyleGrid
           onPick={(s) => {
             modals.closeAll();
-            void exportImageLog(d, posts, s);
+            void exportImageLog(d, posts, s, inviterId);
           }}
         />
       ),
