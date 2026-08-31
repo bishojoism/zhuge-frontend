@@ -702,7 +702,7 @@ export default function TopicPage() {
 
       {!user ? (
         <div className="empty" style={{ padding: '14px 0' }}>
-          {isPrivate ? '登录后即可回复' : '登录后即可接戏'}
+          登录后即可接戏
           <Button variant="subtle" size="compact-sm" style={{ marginLeft: 8 }} onClick={() => requireLogin('接戏')}>
             去登录
           </Button>
@@ -769,11 +769,7 @@ export default function TopicPage() {
               }
             }}
             placeholder={
-              isPrivate
-                ? '回复对方……'
-                : replyTarget
-                  ? `接戏 @${replyTarget.author}……`
-                  : '写下你的接戏……'
+              replyTarget ? `接戏 @${replyTarget.author}……` : '写下你的接戏……'
             }
           />
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
@@ -817,8 +813,13 @@ export default function TopicPage() {
             )}
             <span style={{ fontSize: 12, color: 'var(--muted)' }}>每帖最多一张</span>
             <span style={{ flex: 1 }} />
+            {isPrivate && (
+              <span className="private-badge" style={{ marginRight: 8 }}>
+                私密
+              </span>
+            )}
             <Button onClick={submitReply} loading={submitting}>
-              {isPrivate ? '回复' : '接戏'}
+              接戏
             </Button>
           </div>
         </>
