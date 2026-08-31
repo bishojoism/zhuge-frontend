@@ -7,7 +7,7 @@ import { modals } from '@mantine/modals';
 import { mutate } from 'swr';
 import { useAuth } from '../auth/AuthContext';
 import { requireLogin } from '../auth/authModals';
-import { useDiscussions, useTags, refreshListsAfterWrite } from '../../api/hooks';
+import { useDiscussions, useTags, refreshListsAfterWrite, preloadAllPrimaryLists } from '../../api/hooks';
 import { readInitData } from '../../api/client';
 import { openModalOnce } from '../../lib/modals';
 import { focusOnEnter } from '../../lib/modalFocus';
@@ -19,8 +19,10 @@ import { ComposerContent } from './composer';
 import { seedTopicCacheFromList } from './composer';
 import { TagPickerContent } from './tagPicker';
 
-// 推荐随机种子：换标签/进入推荐时重置，让推荐顺序每次不同（同一次浏览内分页稳定）
-const newSeed = () => Math.floor(Math.random() * 100000) + 1;
+// 推荐随机种子：分钟级稳定值（与 SSR 一致：Math.floor(now/60000)+1）。
+// 一分钟内所有推荐请求同 seed → 预加载的 recommend 缓存可命中（切标签/排序秒出）；
+// 每分钟自然变化，保留"刷新推荐顺序有变化"的体验。
+const newSeed = () => Math.floor(Date.now() / 60000) + 1;
 
 const SORT_KEYS: SortKey[] = ['recommend', 'latest', 'hot'];
 
@@ -68,6 +70,12 @@ export default function HomePage() {
   useEffect(() => {
     document.title = '主格 - 文字角色扮演（语C）平台';
   }, []);
+
+  // 预加载：所有主标签 × 全部三种排序的列表数据填充 SWR 缓存，
+  // 切标签/排序时秒切零加载（preloadAllPrimaryLists 内部延迟+分批，不阻塞首屏）
+  useEffect(() => {
+    if (tags.length) preloadAllPrimaryLists(tags);
+  }, [tags]);
 
   // 首页三种模式（推荐/列表/加载中）统一去掉 container 顶部 padding，让 hero 紧贴导航栏
   //（推荐模式由 feed-lock 去掉；列表/加载中无 feed-lock，这里统一处理，消除 hero 上方空隙）

@@ -17,6 +17,37 @@ export function refreshListsAfterWrite() {
       k.startsWith('/me/notifications'));
   return globalMutate(matches, undefined, { revalidate: true }).catch(() => {});
 }
+
+// 预加载所有主标签 × 全部三种排序的首页数据（page=1），填充 SWR 缓存：
+// 在任一标签下浏览时，后台把"全部主标签 × recommend/latest/hot"的列表都拉好，
+// 切换标签/排序时 SWR 直接命中缓存，秒切零加载。
+// recommend 用当前分钟 seed（与前端 newSeed 一致）→ 同分钟内切换命中。
+// 注意：只预取公开页数据；分页 page=1（首页数据，滑动加载后续页时才请求）。
+export function preloadAllPrimaryLists(tags: Tag[]) {
+  const primary = (tags || []).filter((t) => t.position != null && !t.is_hidden);
+  if (!primary.length) return;
+  const seed = Math.floor(Date.now() / 60000) + 1;
+  const keys: string[] = [];
+  for (const t of primary) {
+    for (const sort of ['recommend', 'latest', 'hot'] as const) {
+      const qs = new URLSearchParams({ sort, page: '1' });
+      qs.set('tag', String(t.id));
+      if (sort === 'recommend') qs.set('seed', String(seed));
+      keys.push('/discussions?' + qs.toString());
+    }
+  }
+  // 分批预取（每批 3 个，间隔 300ms），避免一次性并发打满限流/连接；
+  // 用 globalMutate(key, updater) 填充缓存（与 useDiscussions 同 key 同结构）
+  keys.forEach((k, i) => {
+    window.setTimeout(() => {
+      // globalMutate(key, updater)：updater 收到 currentData（SWR 语义），这里直接用闭包 k 请求
+      void globalMutate<DiscussionListResult>(k, async () => {
+        const r = await api<{ data: Discussion[]; meta: { hasMore: boolean } }>(k);
+        return { data: r.data, meta: r.meta };
+      }, { revalidate: false }).catch(() => {});
+    }, i * 300 + 1500); // 首屏渲染后开始（1.5s 起，逐批间隔 300ms）
+  });
+}
 // 管理后台类型（adminApi 只 import api，无循环依赖）
 import type {
   AdminTagRow,
