@@ -533,6 +533,11 @@ export default function Layout({ children }: { children: ReactNode }) {
                   <Menu.Item leftSection={<IconUserPlus size={16} />} color="clay" onClick={() => openRegisterModal()}>
                     注册或新设备
                   </Menu.Item>
+                  {/* 未登录也能用的公开项：使用帮助（帮助弹窗无需登录） */}
+                  <Menu.Divider />
+                  <Menu.Item leftSection={<IconHelpCircle size={16} />} onClick={() => openHelpModal()}>
+                    使用帮助
+                  </Menu.Item>
                 </Menu.Dropdown>
               </Menu>
             </>
