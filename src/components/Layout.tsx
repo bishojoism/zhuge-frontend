@@ -30,9 +30,12 @@ import {
   IconRobot,
   IconLogin,
   IconUserPlus,
+  IconCoins,
 } from '@tabler/icons-react';
 import { useAuth } from '../features/auth/AuthContext';
-import { useUnread } from '../api/hooks';
+import { useUnread, useCoins } from '../api/hooks';
+import { api } from '../api/client';
+import { levelLabel } from '../lib/coins';
 import { useNotifySocket } from '../lib/ws';
 import { usePwaInstall } from '../lib/pwa';
 import { usePushNotify } from '../lib/pushNotify';
@@ -70,6 +73,7 @@ const openInviteModal = (userId: number, username: string) => import('../feature
 const openApiTokensModal = () => import('../features/api/apiTokensModal').then((m) => m.openApiTokensModal());
 const openMcpModal = () => import('../features/api/mcpModal').then((m) => m.openMcpModal());
 const openBlocksModal = () => import('../features/private/blocksModal').then((m) => m.openBlocksModal());
+const openCoinsModal = () => import('../features/coins/coinsModal').then((m) => m.openCoinsModal());
 // iOS 安装指引静态引入：modals.open 需在点击手势内同步执行，iOS 才显示弹窗
 // （动态 import 会延到手势之外，弹窗可能不出现）
 import { openIosInstallHint } from '../features/pwa/installHint';
@@ -89,6 +93,20 @@ export default function Layout({ children }: { children: ReactNode }) {
   const navigate = useNavigate();
   // 未登录不请求通知（首屏零 API）
   const { unread, mutate: refreshUnread } = useUnread(!!user);
+  const { data: coinData, mutate: mutateCoins } = useCoins();
+  // 每日打开应用自动领格币（+10；当天已领则 no-op，静默）
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+    void api<{ claimed: boolean; amount: number }>('/me/daily-claim', { method: 'POST' })
+      .then((r) => {
+        if (r.claimed && !cancelled) void mutateCoins();
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [user, mutateCoins]);
   const pwa = usePwaInstall();
   const push = usePushNotify();
   // 通知弹窗（本地 state 单例）
@@ -382,6 +400,12 @@ export default function Layout({ children }: { children: ReactNode }) {
                   </Menu.Item>
                   <Menu.Item leftSection={<IconFolder size={16} />} onClick={() => navigate('/my')}>
                     我的主题
+                  </Menu.Item>
+                  <Menu.Item leftSection={<IconCoins size={16} />} onClick={() => openCoinsModal()}>
+                    我的格币
+                    <Text span size="xs" c="dimmed" ml={6}>
+                      {coinData ? `${coinData.balance} 币 · ${levelLabel(coinData.level)}` : ''}
+                    </Text>
                   </Menu.Item>
                   <Menu.Divider />
                   <Menu.Item leftSection={<IconPhoto size={16} />} onClick={() => openAvatarModal()}>

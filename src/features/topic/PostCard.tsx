@@ -1,11 +1,17 @@
 // ===== 帖子卡片（首帖/回复共用；首帖可带主题标题/标签） =====
-// 含行渲染（BBCode 解析 + 搜索关键词高亮）与超长内容折叠组件
+// 含行渲染（BBCode 解析 + 搜索关键词高亮）、超长内容折叠、一键三连（点赞/投币/收藏）+ 打赏
 import { memo, useState, type ReactNode } from 'react';
 import { Button, Group, Select } from '@mantine/core';
+import { notifications } from '@mantine/notifications';
+import { mutate as globalMutate } from 'swr';
 import { hasBBCode, parseBBCode } from '../../lib/bbcode';
 import { displayName, imgSrc, tagTextColorOf, timeAgo } from '../../lib/utils';
+import { api } from '../../api/client';
+import { requireLogin } from '../auth/authModals';
+import { levelLabel, levelOf } from '../../lib/coins';
+import { openTipModal } from './tipModal';
 import Avatar from '../../components/Avatar';
-import type { CharacterItem, Tag, User } from '../../types';
+import type { CharacterItem, CoinInfo, Tag, User } from '../../types';
 import { GENDER_LABEL, type TopicPost } from './topicTypes';
 
 export interface PostCardProps {
@@ -125,6 +131,95 @@ export function PostCard({
   // 不能滴滴自己的帖子（未登录时按钮可见，点击弹登录）
   const canDidi = !user || user.id !== post.user_id;
 
+  // ===== 一键三连（点赞/投币/收藏）+ 打赏：本地乐观更新计数，服务端为准 =====
+  const [liked, setLiked] = useState(!!post.liked);
+  const [favorited, setFavorited] = useState(!!post.favorited);
+  const [likeCount, setLikeCount] = useState(post.like_count || 0);
+  const [favCount, setFavCount] = useState(post.favorite_count || 0);
+  const [coinCount, setCoinCount] = useState(post.coin_count || 0);
+  const [busy, setBusy] = useState(false);
+
+  const needLogin = () => {
+    if (!user) {
+      requireLogin('互动');
+      return true;
+    }
+    return false;
+  };
+
+  const toggleLike = async () => {
+    if (needLogin()) return;
+    const next = !liked;
+    setLiked(next);
+    setLikeCount((c) => Math.max(0, c + (next ? 1 : -1)));
+    setBusy(true);
+    try {
+      const r = await api<{ active: boolean }>(`/posts/${post.id}/like`, { method: 'POST' });
+      if (r.active !== next) {
+        setLiked(r.active);
+        setLikeCount((c) => Math.max(0, c + (r.active ? 1 : -1)));
+      }
+    } catch (e) {
+      setLiked(!next);
+      setLikeCount((c) => Math.max(0, c + (next ? -1 : 1)));
+      notifications.show({ message: e instanceof Error ? e.message : '操作失败', color: 'red' });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const toggleFavorite = async () => {
+    if (needLogin()) return;
+    const next = !favorited;
+    setFavorited(next);
+    setFavCount((c) => Math.max(0, c + (next ? 1 : -1)));
+    setBusy(true);
+    try {
+      const r = await api<{ active: boolean }>(`/posts/${post.id}/favorite`, { method: 'POST' });
+      if (r.active !== next) {
+        setFavorited(r.active);
+        setFavCount((c) => Math.max(0, c + (r.active ? 1 : -1)));
+      }
+    } catch (e) {
+      setFavorited(!next);
+      setFavCount((c) => Math.max(0, c + (next ? -1 : 1)));
+      notifications.show({ message: e instanceof Error ? e.message : '操作失败', color: 'red' });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  // 投币（固定 1 币，10% 税；被投币会通知作者）
+  const doCoin = async () => {
+    if (needLogin()) return;
+    if (user && user.id === post.user_id) {
+      notifications.show({ message: '不能给自己的帖子投币', color: 'orange' });
+      return;
+    }
+    setBusy(true);
+    try {
+      await api(`/posts/${post.id}/coin`, { method: 'POST' });
+      setCoinCount((c) => c + 1);
+      notifications.show({ message: '已投币 1 格币' });
+      void globalMutate<CoinInfo>('/me/coins');
+    } catch (e) {
+      notifications.show({ message: e instanceof Error ? e.message : '投币失败', color: 'red' });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const doTip = () => {
+    if (needLogin()) return;
+    if (user && user.id === post.user_id) {
+      notifications.show({ message: '不能打赏自己的帖子', color: 'orange' });
+      return;
+    }
+    openTipModal(post.id, author, () => setCoinCount((c) => c + 1));
+  };
+
+  const lv = levelOf(post.author_earned);
+
   return (
     <div className="post" data-num={post.number}>
       <div className="post-head">
@@ -161,6 +256,23 @@ export function PostCard({
                       );
                     })
                 : null}
+              {/* 等级徽章（特殊徽章：累计获得格币的档位，Lv.2 起显示） */}
+              {lv > 1 && (
+                <span
+                  style={{
+                    fontSize: 10,
+                    background: 'linear-gradient(135deg,#c9a86b,#8b7b4a)',
+                    color: '#fff',
+                    borderRadius: 8,
+                    padding: '1px 6px',
+                    marginLeft: 4,
+                    verticalAlign: 'middle',
+                  }}
+                  title={`等级 ${levelLabel(lv)}（累计获得格币）`}
+                >
+                  {levelLabel(lv)}
+                </span>
+              )}
             </span>
             {isPrivate && <span className="private-badge">私密</span>}
           </div>
@@ -276,6 +388,48 @@ export function PostCard({
               {post.didi_count} 滴滴
             </span>
           )}
+          {/* 一键三连 + 打赏（点赞/收藏 toggle，投币固定 1 币，打赏自定义数额） */}
+          <Group gap={2} wrap="nowrap" ml="auto">
+            <Button
+              size="compact-xs"
+              variant="subtle"
+              color={liked ? 'red' : 'gray'}
+              loading={busy}
+              onClick={() => void toggleLike()}
+              title="点赞"
+            >
+              👍 {likeCount > 0 ? likeCount : ''}
+            </Button>
+            <Button
+              size="compact-xs"
+              variant="subtle"
+              color="clay"
+              loading={busy}
+              onClick={() => void doCoin()}
+              title="投币 1 格币（10% 税，作者实得 0.9）"
+            >
+              🪙 {coinCount > 0 ? coinCount : ''}
+            </Button>
+            <Button
+              size="compact-xs"
+              variant="subtle"
+              color={favorited ? 'yellow' : 'gray'}
+              loading={busy}
+              onClick={() => void toggleFavorite()}
+              title="收藏"
+            >
+              ⭐ {favCount > 0 ? favCount : ''}
+            </Button>
+            <Button
+              size="compact-xs"
+              variant="subtle"
+              color="slate"
+              onClick={doTip}
+              title="打赏（自定义数额，10% 税）"
+            >
+              💎 打赏
+            </Button>
+          </Group>
         </div>
         <div className="post-actions-more">
           {onCopyLink && (

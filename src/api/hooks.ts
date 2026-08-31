@@ -60,6 +60,7 @@ import type {
   AdminReport,
   AdminStats,
   AdminUser,
+  CoinInfo,
   DeviceAuthRequest,
   Discussion,
   DiscussionDetail,
@@ -187,6 +188,14 @@ export function useMyDiscussions() {
 export function useSecurity() {
   return useSWR<SecurityInfo>('/me/security', async (p: string) => {
     const r = await api<{ data: SecurityInfo }>(p);
+    return r.data;
+  });
+}
+
+// 我的格币（余额/累计/等级）；每日打开自动领币在 Layout 挂载时调 /me/daily-claim
+export function useCoins() {
+  return useSWR<CoinInfo>('/me/coins', async (p: string) => {
+    const r = await api<{ data: CoinInfo }>(p);
     return r.data;
   });
 }

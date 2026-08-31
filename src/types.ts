@@ -52,6 +52,21 @@ export interface Discussion {
   tags?: string; // "A / B"
   /** 作者已获徽章（"icon:tier" 逗号分隔，tier=1 为进阶徽章带特效），作者名旁展示 */
   author_badges?: string | null;
+  // 一键三连：首帖的点赞/收藏/投币计数 + 当前用户状态（列表接口返回）
+  like_count?: number;
+  favorite_count?: number;
+  coin_count?: number;
+  liked?: number | null;
+  favorited?: number | null;
+  /** 作者累计获得的格币（等级徽章依据） */
+  author_earned?: number | null;
+}
+
+// 我的格币（余额 / 累计 / 等级）
+export interface CoinInfo {
+  balance: number;
+  earnedTotal: number;
+  level: number;
 }
 
 export interface Post {
@@ -74,6 +89,14 @@ export interface Post {
   character_name?: string | null;
   /** 作者已获徽章（"icon:tier" 逗号分隔，tier=1 为进阶徽章带特效），帖子作者名旁展示 */
   author_badges?: string | null;
+  // 一键三连：点赞/收藏/投币计数 + 当前用户状态（后端联表返回）
+  like_count?: number;
+  favorite_count?: number;
+  coin_count?: number;
+  liked?: number | null;
+  favorited?: number | null;
+  /** 作者累计获得的格币（等级徽章依据，Lv.2 起显示） */
+  author_earned?: number | null;
 }
 
 export interface DiscussionDetail {
@@ -98,7 +121,7 @@ export interface DiscussionDetail {
   } | null;
 }
 
-export type NotifType = 'didi' | 'reply' | 'report' | 'report_result' | 'invite';
+export type NotifType = 'didi' | 'reply' | 'report' | 'report_result' | 'invite' | 'coin';
 
 export interface NotificationItem {
   id: number;

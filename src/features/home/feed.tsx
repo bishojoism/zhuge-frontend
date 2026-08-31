@@ -1,9 +1,15 @@
 // ===== 推荐模式：抖音式全屏卡片流（完整移植旧前端 renderFeed/setupFeedScroll） =====
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
-import type { Discussion, Tag } from '../../types';
+import type { CoinInfo, Discussion, Tag } from '../../types';
 import { displayName, imgSrc, tagColorOf, tagTextColorOf, timeAgo } from '../../lib/utils';
 import { collapseIosUrlBar, isIosUrlBarCollapsing } from '../../lib/iosUrlBar';
 import { parseBBCodeExcerpt } from '../../lib/bbcode';
+import { api } from '../../api/client';
+import { notifications } from '@mantine/notifications';
+import { mutate as globalMutate } from 'swr';
+import { requireLogin } from '../auth/authModals';
+import { useAuth } from '../auth/AuthContext';
+import { levelLabel, levelOf } from '../../lib/coins';
 import Avatar from '../../components/Avatar';
 import { openAuthorDidiStats } from '../private/authorDidiStats';
 
@@ -527,6 +533,69 @@ function FeedCard({
     .split(' / ')
     .map((s) => s.trim())
     .filter(Boolean);
+  const { user } = useAuth();
+
+  // 一键三连（针对首帖）：点赞/投币/收藏，本地乐观更新计数
+  const postId = d.first_post_id;
+  const [liked, setLiked] = useState(!!d.liked);
+  const [favorited, setFavorited] = useState(!!d.favorited);
+  const [likeCount, setLikeCount] = useState(d.like_count || 0);
+  const [favCount, setFavCount] = useState(d.favorite_count || 0);
+  const [coinCount, setCoinCount] = useState(d.coin_count || 0);
+  const [busy, setBusy] = useState(false);
+
+  const interact = async (kind: 'like' | 'favorite' | 'coin') => {
+    if (!postId) return;
+    if (!user) {
+      requireLogin('互动');
+      return;
+    }
+    if (kind === 'coin' && user.id === d.user_id) {
+      notifications.show({ message: '不能给自己的帖子投币', color: 'orange' });
+      return;
+    }
+    setBusy(true);
+    try {
+      if (kind === 'like') {
+        const next = !liked;
+        setLiked(next);
+        setLikeCount((c) => Math.max(0, c + (next ? 1 : -1)));
+        const r = await api<{ active: boolean }>(`/posts/${postId}/like`, { method: 'POST' });
+        if (r.active !== next) {
+          setLiked(r.active);
+          setLikeCount((c) => Math.max(0, c + (r.active ? 1 : -1)));
+        }
+      } else if (kind === 'favorite') {
+        const next = !favorited;
+        setFavorited(next);
+        setFavCount((c) => Math.max(0, c + (next ? 1 : -1)));
+        const r = await api<{ active: boolean }>(`/posts/${postId}/favorite`, { method: 'POST' });
+        if (r.active !== next) {
+          setFavorited(r.active);
+          setFavCount((c) => Math.max(0, c + (r.active ? 1 : -1)));
+        }
+      } else {
+        await api(`/posts/${postId}/coin`, { method: 'POST' });
+        setCoinCount((c) => c + 1);
+        notifications.show({ message: '已投币 1 格币' });
+        void globalMutate<CoinInfo>('/me/coins');
+      }
+    } catch (e) {
+      // 失败回滚
+      if (kind === 'like') {
+        setLiked((v) => !v);
+        setLikeCount((c) => Math.max(0, c + (liked ? -1 : 1)));
+      } else if (kind === 'favorite') {
+        setFavorited((v) => !v);
+        setFavCount((c) => Math.max(0, c + (favorited ? -1 : 1)));
+      }
+      notifications.show({ message: e instanceof Error ? e.message : '操作失败', color: 'red' });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const lv = levelOf(d.author_earned);
 
   const handleClick = (e: React.MouseEvent) => {
     const t = e.target as HTMLElement;
@@ -575,6 +644,23 @@ function FeedCard({
                       );
                     })
                 : null}
+              {/* 等级徽章（累计获得格币档位，Lv.2 起显示） */}
+              {lv > 1 && (
+                <span
+                  style={{
+                    fontSize: 10,
+                    background: 'linear-gradient(135deg,#c9a86b,#8b7b4a)',
+                    color: '#fff',
+                    borderRadius: 8,
+                    padding: '1px 6px',
+                    marginLeft: 4,
+                    verticalAlign: 'middle',
+                  }}
+                  title={`等级 ${levelLabel(lv)}（累计获得格币）`}
+                >
+                  {levelLabel(lv)}
+                </span>
+              )}
             </div>
             <div className="feed-card-time">{timeAgo(d.last_posted_at || d.created_at)}</div>
           </div>
@@ -613,6 +699,44 @@ function FeedCard({
         <div className="feed-actions">
           <span className="feed-stat">💬 {Math.max(0, (d.comment_count ?? 0) - 1)} 接戏</span>
           {d.didi_count > 0 ? <span className="feed-stat">📨 {d.didi_count} 滴滴</span> : null}
+          {/* 一键三连（点赞/投币/收藏，针对首帖） */}
+          {postId ? (
+            <span className="feed-triple">
+              <button
+                type="button"
+                className={`feed-act${liked ? ' on' : ''}`}
+                disabled={busy}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  void interact('like');
+                }}
+              >
+                👍{likeCount > 0 ? likeCount : ''}
+              </button>
+              <button
+                type="button"
+                className="feed-act"
+                disabled={busy}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  void interact('coin');
+                }}
+              >
+                🪙{coinCount > 0 ? coinCount : ''}
+              </button>
+              <button
+                type="button"
+                className={`feed-act${favorited ? ' on' : ''}`}
+                disabled={busy}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  void interact('favorite');
+                }}
+              >
+                ⭐{favCount > 0 ? favCount : ''}
+              </button>
+            </span>
+          ) : null}
         </div>
       </div>
     </div>
