@@ -461,8 +461,8 @@ export function PostCard({
           <Group gap={2} wrap="nowrap" ml="auto">
             <Button
               size="compact-xs"
-              variant="light"
-              color="clay"
+              variant="subtle"
+              color="gray"
               loading={busy}
               onClick={() => void doTriple()}
               title="一键三连：点赞 + 投币 1 格币 + 收藏"

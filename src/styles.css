@@ -651,8 +651,8 @@
     }
     .feed-act.on { background: rgba(255,90,90,.18); color: #e05555; }
     .feed-act.triple-main {
-      background: var(--primary-soft, rgba(201, 138, 107, 0.16));
-      color: var(--primary, #c98a6b);
+      background: rgba(127,142,163,.14);
+      color: var(--text);
       font-weight: 600;
     }
     /* 列表卡片三连按钮行（点击不触发卡片跳转） */
@@ -677,8 +677,8 @@
     }
     .topic-act.on { background: rgba(255,90,90,.18); color: #e05555; }
     .topic-act.triple-main {
-      background: var(--primary-soft, rgba(201, 138, 107, 0.16));
-      color: var(--primary, #c98a6b);
+      background: rgba(127,142,163,.14);
+      color: var(--text);
       font-weight: 600;
     }
     /* 涓婁笅婊戝姩鎻愮ず锛堝皬瀛楀父椹伙級 */
