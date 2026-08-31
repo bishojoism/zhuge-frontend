@@ -6,7 +6,9 @@ import { usePrivateList, useTags } from '../../api/hooks';
 import { seedTopicCacheFromList } from '../home/composer';
 import { openLoginModal, openRegisterModal } from '../auth/authModals';
 import { timeAgo } from '../../lib/utils';
+import { levelLabel, levelOf } from '../../lib/coins';
 import Avatar from '../../components/Avatar';
+import TripleActions from '../../components/TripleActions';
 import { openAuthorDidiStats } from './authorDidiStats';
 import type { DidiStats, PrivateItem } from '../../types';
 
@@ -132,11 +134,30 @@ export default function PrivatePage() {
                   style={{ fontWeight: 600, color: 'var(--text)' }}
                 >
                   {t.author || '?'}
+                  {/* 等级徽章（对方累计获得格币档位，Lv.2 起显示） */}
+                  {levelOf(t.author_earned) > 1 && (
+                    <span
+                      style={{
+                        fontSize: 10,
+                        background: 'linear-gradient(135deg,#c9a86b,#8b7b4a)',
+                        color: '#fff',
+                        borderRadius: 8,
+                        padding: '1px 6px',
+                        marginLeft: 4,
+                        verticalAlign: 'middle',
+                      }}
+                      title={`等级 ${levelLabel(levelOf(t.author_earned))}（累计获得格币）`}
+                    >
+                      {levelLabel(levelOf(t.author_earned))}
+                    </span>
+                  )}
                 </span>
                 <span>{timeAgo(t.last_posted_at || t.created_at)}</span>
                 <span>{Math.max(0, (t.comment_count ?? 0) - 1)} 接戏</span>
                 <span className="private-badge">私密</span>
               </div>
+              {/* 私密主题的三连（点赞/收藏/投币针对首帖；私密内也可互动） */}
+              <TripleActions postId={t.first_post_id} authorId={t.user_id} initial={t} />
             </div>
           );
         })

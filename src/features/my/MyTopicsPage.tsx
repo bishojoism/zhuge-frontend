@@ -6,6 +6,7 @@ import { useMyDiscussions, useTags } from '../../api/hooks';
 import { seedTopicCacheFromList } from '../home/composer';
 import { openLoginModal, openRegisterModal } from '../auth/authModals';
 import { timeAgo } from '../../lib/utils';
+import TripleActions from '../../components/TripleActions';
 import type { MyTopicItem } from '../../types';
 
 export default function MyTopicsPage() {
@@ -92,6 +93,7 @@ export default function MyTopicsPage() {
               <span>{Math.max(0, (t.comment_count ?? 0) - 1)} 接戏</span>
               {t.didi_count > 0 && <span>{t.didi_count} 滴滴</span>}
             </div>
+            <TripleActions postId={t.first_post_id} authorId={t.user_id} initial={t} />
           </div>
         ))
       )}

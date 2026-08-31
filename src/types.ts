@@ -202,6 +202,14 @@ export interface PrivateItem {
   image_url?: string | null;
   // 滴滴响应状态：'accepted' | 'declined' | null（待回应）
   didi_status?: 'accepted' | 'declined' | null;
+  // 三连相关（列表接口返回，列表卡片展示）
+  first_post_id?: number | null;
+  like_count?: number;
+  favorite_count?: number;
+  coin_count?: number;
+  liked?: number | null;
+  favorited?: number | null;
+  author_earned?: number | null;
 }
 
 // 我的滴滴响应率（作为被滴滴方）
@@ -222,6 +230,14 @@ export interface MyTopicItem {
   is_private: number;
   user_id: number;
   image_url?: string | null;
+  // 三连相关（列表接口返回，列表卡片展示）
+  first_post_id?: number | null;
+  like_count?: number;
+  favorite_count?: number;
+  coin_count?: number;
+  liked?: number | null;
+  favorited?: number | null;
+  author_earned?: number | null;
 }
 
 export interface DeviceAuthRequest {
