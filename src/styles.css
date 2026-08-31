@@ -353,6 +353,9 @@
       box-shadow: var(--shadow-sm);
       transition: box-shadow .2s ease;
       max-height: 380px; overflow-y: auto;
+      /* 楼层跳转（回到上次位置/引用跳转/定位原帖/通知定位）滚到该帖时，
+         顶部留出 sticky 导航栏高度，避免帖子被导航栏遮住头部 */
+      scroll-margin-top: 64px;
     }
     .post:hover { box-shadow: var(--shadow-md); }
     .post-head { display: flex; align-items: center; gap: 11px; margin-bottom: 11px; }
