@@ -108,14 +108,12 @@ export function NotificationsModalContent({ onClose }: { onClose: () => void }) 
     }, tags);
   };
 
-  const markReadAndGo = async (n: NotificationItem) => {
+  const markReadAndGo = (n: NotificationItem) => {
     if (navigating) return; // 防重复点击
     setNavigating(true);
-    try {
-      await api('/me/notifications/read', { method: 'POST', body: { id: n.id } });
-    } catch {
-      // 静默失败，不打断跳转
-    }
+    // 标记已读异步化：不等待网络请求完成再跳转（否则每次点通知都有 0.2-0.5s"正在打开…"等待）。
+    // 跳转不依赖已读结果（失败静默），未读数由后台刷新/下次查询收敛。
+    void api('/me/notifications/read', { method: 'POST', body: { id: n.id } }).catch(() => {});
     mutate('/me/notifications'); // 列表 + 未读徽标（同一 SWR key）
     mutate('/me');
     if (n.url) {
