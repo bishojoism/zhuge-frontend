@@ -51,6 +51,11 @@ export interface PostCardProps {
 
 // 超长戏文折叠：超过阈值只显示前段，点击展开
 const LONG_POST_CHARS = 600;
+// 首帖（主题开场戏文）折叠更激进：预览更短，让卡片底部的一键三连/滴滴/复制链接等
+// 操作按钮不用滚动就能看到（长戏文首帖常上千字，300 字预览会把按钮挤出首屏）
+const FIRST_POST_FOLD_CHARS = 300; // 首帖超过 300 字即折叠
+const FIRST_POST_PREVIEW_CHARS = 120; // 首帖折叠后只显示前 120 字（约 2-3 行）
+const PREVIEW_CHARS = 300; // 回复折叠后显示前 300 字（原行为）
 
 // 按关键词把一行内容拆成高亮片段（大小写不敏感）
 export function renderLine(line: string, kw?: string): ReactNode {
@@ -79,10 +84,18 @@ export function renderLine(line: string, kw?: string): ReactNode {
 }
 
 // memo：排序切换/搜索等父组件重渲染时，content/highlight 不变则跳过重渲染（避免 BBCode 重解析）
-export const LongContent = memo(function LongContent({ content, highlight }: { content: string; highlight?: string }) {
+export const LongContent = memo(function LongContent({
+  content,
+  highlight,
+  previewChars = PREVIEW_CHARS,
+}: {
+  content: string;
+  highlight?: string;
+  previewChars?: number;
+}) {
   const [expanded, setExpanded] = useState(false);
   const lines = content.split('\n');
-  const head = content.slice(0, 300);
+  const head = content.slice(0, previewChars);
   const headLines = head.split('\n');
   return (
     <>
@@ -385,8 +398,12 @@ export function PostCard({
       )}
 
       <div className="post-body">
-        {post.content.length > LONG_POST_CHARS ? (
-          <LongContent content={post.content} highlight={highlight} />
+        {post.content.length > (isFirstPost ? FIRST_POST_FOLD_CHARS : LONG_POST_CHARS) ? (
+          <LongContent
+            content={post.content}
+            highlight={highlight}
+            previewChars={isFirstPost ? FIRST_POST_PREVIEW_CHARS : PREVIEW_CHARS}
+          />
         ) : (
           post.content.split('\n').map((line, i) => <p key={i}>{renderLine(line, highlight)}</p>)
         )}
