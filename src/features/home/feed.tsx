@@ -56,6 +56,11 @@ function writeFeedPos(v: number): void {
 }
 // 标记 FeedView 是否挂载过（模块级，重挂载不清零）：用于区分"首次进入 feed"与"返回导航"
 let FEED_MOUNTED = false;
+// 最近一次挂载 FeedView 时的 resetKey（模块级，重挂载不清零）：
+// 切换标签/排序/seed 后重新挂载时 resetKey 与上次不同 → 位置记忆失效，必须从第 1 张开始
+// （旧实现用实例 ref 判断 resetKey 变化，但切换标签时 FeedView 在 resetKey 变化的那次渲染
+// 已被卸载，分支从未执行、sessionStorage 旧位置残留 → 重挂载读到旧下标越界 → 全空白）
+let FEED_PREV_RESET_KEY: string | null = null;
 
 // 窗口化渲染：只挂载当前卡 ±WINDOW 张（虚拟化），其余用同高占位。
 // 滑 N 张后 DOM 不再无限增长（旧实现所有卡常驻 DOM：BBCode 解析/图片/样式全量维护 → 越滑越卡）。
@@ -92,16 +97,20 @@ export default function FeedView({
   // 窗口内真实卡的 ref 映射（index → DOM），updateFeedPosition 只处理窗口内卡，不全量遍历
   const cardElsRef = useRef<Map<number, HTMLDivElement>>(new Map());
 
-  // feedIndex 初始化：若之前进入过 feed 且未切换列表（sessionStorage 记忆有效），恢复位置；
-  // 否则从第 1 张开始。用 state 初始值保证任何重挂载（返回导航/门控重挂）都恢复
+  // feedIndex 初始化：若之前进入过 feed 且未切换列表（resetKey 未变，sessionStorage 记忆有效），恢复位置；
+  // 切换标签/排序/seed（resetKey 变化）→ 从第 1 张开始（旧位置属于旧列表，恢复会越界/空白）。
+  // 用 state 初始值保证任何重挂载（返回导航/门控重挂）都恢复
   const [feedIndex, setFeedIndex] = useState<number>(() => {
     const last = readFeedPos();
-    return FEED_MOUNTED && last > 0 ? last : 0;
+    const resetChanged = FEED_PREV_RESET_KEY !== null && FEED_PREV_RESET_KEY !== resetKey;
+    return FEED_MOUNTED && last > 0 && !resetChanged ? last : 0;
   });
 
   // 可变值全部走 ref，保证事件处理器/动画锁读到最新值且监听只挂一次
   const indexRef = useRef(
-    FEED_MOUNTED && readFeedPos() > 0 ? readFeedPos() : 0
+    FEED_MOUNTED && readFeedPos() > 0 && (FEED_PREV_RESET_KEY === null || FEED_PREV_RESET_KEY === resetKey)
+      ? readFeedPos()
+      : 0
   );
   const itemsRef = useRef(items);
   itemsRef.current = items;
@@ -117,7 +126,6 @@ export default function FeedView({
   const touchInnerTopRef = useRef(0); // 触摸开始时卡内滚动元素的 scrollTop
   const pendingAdvanceRef = useRef(false); // 滑到最后一张且正在加载下一页 → 数据到位后自动前进
   const pendingFromLenRef = useRef(0);
-  const resetKeyRef = useRef(resetKey);
 
   // feed 模式高度：visualViewport 真实可见区贴底，最小 260px；无 visualViewport 用 innerHeight
   const updateFeedModeHeight = useCallback(() => {
@@ -268,12 +276,13 @@ export default function FeedView({
 
   // 数据变化（追加/切换标签）：重置越界索引、处理"滑到底加载后自动前进"、重新定位
   useLayoutEffect(() => {
-    if (resetKeyRef.current !== resetKey) {
-      resetKeyRef.current = resetKey;
+    const resetChanged = FEED_PREV_RESET_KEY !== null && FEED_PREV_RESET_KEY !== resetKey;
+    FEED_PREV_RESET_KEY = resetKey;
+    if (resetChanged) {
+      // 换标签/排序/新 seed（重挂载且 resetKey 与上次不同）→ 从第 1 张开始，清掉旧位置
       pendingAdvanceRef.current = false;
-      // 换标签/排序/新 seed → 从第 1 张开始
       indexRef.current = 0;
-      writeFeedPos(0); // 记忆位置属于旧列表，切换后清空
+      writeFeedPos(0); // 旧列表的位置记忆失效，清空避免下次挂载误恢复
       setFeedIndex(0);
     } else if (FEED_MOUNTED) {
       // 返回导航（resetKey 不变，FeedView 重新挂载）：恢复记忆的卡片位置
