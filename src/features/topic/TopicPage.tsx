@@ -15,7 +15,7 @@ import { hasBBCode, parseBBCode } from '../../lib/bbcode';
 import { exportTextLog, openImageExportModal } from './exportLog';
 import { openReportModal, type ReportTargetType } from './reportModal';
 import { openPostAdminModal, type AdminTargetType } from './postAdminModal';
-import { openDeleteVerifyModal } from './deleteVerifyModal';
+import { openDeleteConfirmModal } from './deleteVerifyModal';
 import { copyText, displayName, imgSrc, pickImageFile, tagTextColorOf, timeAgo, uploadImageFile } from '../../lib/utils';
 import Avatar from '../../components/Avatar';
 import BBCodeEditor from '../../components/BBCodeEditor';
@@ -567,61 +567,65 @@ export default function TopicPage() {
   const firstPost = posts[0] || null;
 
   // 删除自己的帖子/主题（作者本人或管理员；首帖删除 = 删整个主题）
-  // 作者自删需验证身份（密码或通行密钥），管理员删除无需验证
+  // 作者自删：一个弹窗内完成「确认 + 自选密码/通行密钥验证 + 删除」；
+  // 管理员删除无需验证（管理操作已有权限体系）。
   const handleDelete = useCallback(
     (post: TopicPost) => {
       const isFirst = post.number === 1;
       const isAdmin = !!user?.isAdmin;
-      const targetLabel = isFirst ? '主题' : '帖子';
       const doDelete = async (verify?: { password?: string; reauthToken?: string }) => {
-        try {
-          if (isFirst) {
-            await api(`/discussions/${Number(id)}`, {
-              method: 'DELETE',
-              body: verify || {},
-            });
-            notifications.show({ message: '主题已删除' });
-            void refreshListsAfterWrite();
-            navigate('/');
-          } else {
-            await api(`/posts/${post.id}`, {
-              method: 'DELETE',
-              body: verify || {},
-            });
-            notifications.show({ message: '帖子已删除' });
-            void mutate(); // 刷新详情（删除的帖消失）
-            void refreshListsAfterWrite();
-          }
-        } catch (e) {
-          notifications.show({
-            message: e instanceof Error ? e.message : '删除失败',
-            color: 'red',
-          });
+        if (isFirst) {
+          await api(`/discussions/${Number(id)}`, { method: 'DELETE', body: verify || {} });
+          notifications.show({ message: '主题已删除' });
+          void refreshListsAfterWrite();
+          navigate('/');
+        } else {
+          await api(`/posts/${post.id}`, { method: 'DELETE', body: verify || {} });
+          notifications.show({ message: '帖子已删除' });
+          void mutate(); // 刷新详情（删除的帖消失）
+          void refreshListsAfterWrite();
         }
       };
-      modals.openConfirmModal({
-        title: isFirst ? '删除主题' : '删除帖子',
-        centered: true,
-        children: (
-          <Text size="sm">
-            {isFirst
-              ? `确定删除整个主题「${d?.title || ''}」？此操作不可恢复。`
-              : '确定删除这条帖子？此操作不可恢复。'}
-          </Text>
-        ),
-        labels: { confirm: '删除', cancel: '取消' },
-        confirmProps: { color: 'red' },
-        onConfirm: async () => {
-          if (isAdmin) {
-            // 管理员删除：直接删（管理操作已有权限体系）
-            await doDelete();
-          } else {
-            // 作者自删：先验证身份（密码或通行密钥）
-            const verify = await openDeleteVerifyModal(targetLabel);
-            if (verify) await doDelete(verify);
-          }
-        },
-      });
+      if (isAdmin) {
+        // 管理员：确认后直接删
+        modals.openConfirmModal({
+          title: isFirst ? '删除主题' : '删除帖子',
+          centered: true,
+          children: (
+            <Text size="sm">
+              {isFirst
+                ? `确定删除整个主题「${d?.title || ''}」？此操作不可恢复。`
+                : '确定删除这条帖子？此操作不可恢复。'}
+            </Text>
+          ),
+          labels: { confirm: '删除', cancel: '取消' },
+          confirmProps: { color: 'red' },
+          onConfirm: async () => {
+            try {
+              await doDelete();
+            } catch (e) {
+              notifications.show({
+                message: e instanceof Error ? e.message : '删除失败',
+                color: 'red',
+              });
+            }
+          },
+        });
+      } else {
+        // 作者自删：确认 + 自选验证 + 删除（合并弹窗）
+        openDeleteConfirmModal({
+          isFirst,
+          title: d?.title,
+          onDelete: async (verify) => {
+            try {
+              await doDelete(verify);
+            } catch (e) {
+              // 删除失败：弹窗内展示错误（不关闭），可重试
+              throw e;
+            }
+          },
+        });
+      }
     },
     [id, d, user, mutate, navigate]
   );

@@ -1,5 +1,6 @@
-// ===== 删除验证弹窗：作者自删前验证身份（密码 或 通行密钥重认证） =====
-// 敏感操作保护：删除帖子/主题前必须证明是账号本人（防他人拿手机乱删）。
+// ===== 删除确认弹窗（合并二次确认 + 身份验证） =====
+// 作者自删敏感操作：一个弹窗内完成「确认删除 + 自选验证方式（密码 或 通行密钥重认证）」。
+// 验证通过后回调 onDelete(verify) 执行删除（由调用方发 DELETE，携带凭据）。
 // 验证方式与改密码一致：当前密码 或 通行密钥重认证（/reauth/begin + /reauth/finish）。
 import { useState } from 'react';
 import { Button, Group, PasswordInput, Stack, Text } from '@mantine/core';
@@ -28,44 +29,29 @@ function errMessage(e: unknown): string {
   return e instanceof Error ? e.message : '验证失败';
 }
 
-// 打开删除验证弹窗；resolve 返回验证结果（用户取消返回 null）
-export function openDeleteVerifyModal(
-  targetLabel: string
-): Promise<DeleteVerifyResult | null> {
-  return new Promise((resolve) => {
-    openModalOnce('delete-verify', (m: typeof modals) => {
-      m.open({
-        modalId: 'delete-verify',
-        title: '验证身份',
-        centered: true,
-        size: 'sm',
-        children: (
-          <DeleteVerifyContent
-            targetLabel={targetLabel}
-            onDone={(r) => {
-              modals.closeAll();
-              resolve(r);
-            }}
-            onCancel={() => {
-              modals.closeAll();
-              resolve(null);
-            }}
-          />
-        ),
-      });
+interface DeleteConfirmOptions {
+  /** 首帖（删主题）/ 非首帖（删帖子） */
+  isFirst: boolean;
+  /** 主题标题（首帖时确认文案用） */
+  title?: string;
+  /** 验证通过后执行删除（携带验证凭据）；返回 Promise 供弹窗等待/错误展示 */
+  onDelete: (verify: DeleteVerifyResult) => Promise<void>;
+}
+
+// 打开删除确认弹窗（确认文案 + 自选密码/通行密钥验证 + 验证并删除）
+export function openDeleteConfirmModal(opts: DeleteConfirmOptions): void {
+  openModalOnce('delete-confirm', (m: typeof modals) => {
+    m.open({
+      modalId: 'delete-confirm',
+      title: opts.isFirst ? '删除主题' : '删除帖子',
+      centered: true,
+      size: 'sm',
+      children: <DeleteConfirmContent {...opts} />,
     });
   });
 }
 
-function DeleteVerifyContent({
-  targetLabel,
-  onDone,
-  onCancel,
-}: {
-  targetLabel: string;
-  onDone: (r: DeleteVerifyResult) => void;
-  onCancel: () => void;
-}) {
+function DeleteConfirmContent({ isFirst, title, onDelete }: DeleteConfirmOptions) {
   // 账号安全信息：有无密码 / 通行密钥（决定提供哪些验证方式）
   const { data: security } = useSecurity();
   const hasPassword = !!security?.hasPassword;
@@ -78,7 +64,9 @@ function DeleteVerifyContent({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
 
-  // 密码验证
+  const close = () => modals.closeAll();
+
+  // 密码验证 → 删除
   const submitPassword = async () => {
     if (!password.trim()) {
       setError('请输入当前密码');
@@ -87,14 +75,15 @@ function DeleteVerifyContent({
     setBusy(true);
     setError('');
     try {
-      onDone({ password });
+      await onDelete({ password });
+      close();
     } catch (e) {
       setError(errMessage(e));
       setBusy(false);
     }
   };
 
-  // 通行密钥重认证
+  // 通行密钥重认证 → 删除
   const verifyPasskey = async () => {
     setBusy(true);
     setError('');
@@ -113,7 +102,8 @@ function DeleteVerifyContent({
         method: 'POST',
         body: { response: authResult },
       });
-      onDone({ reauthToken: res.token });
+      await onDelete({ reauthToken: res.token });
+      close();
     } catch (e) {
       setError(errMessage(e));
       setBusy(false);
@@ -127,8 +117,16 @@ function DeleteVerifyContent({
 
   return (
     <Stack gap="sm">
+      {/* 确认文案 */}
       <Text size="sm">
-        删除{targetLabel}前请验证身份（防止他人误删）。
+        {isFirst
+          ? `确定删除整个主题「${title || ''}」？此操作不可恢复。`
+          : '确定删除这条帖子？此操作不可恢复。'}
+      </Text>
+
+      {/* 自选验证方式：密码 或 通行密钥 */}
+      <Text size="xs" c="dimmed">
+        删除前请验证身份（防止他人误删）。
       </Text>
       {hasPassword && hasPasskey ? (
         <>
@@ -174,7 +172,7 @@ function DeleteVerifyContent({
         />
       ) : (
         <Text size="sm" c="dimmed">
-          点击下方按钮用通行密钥验证身份。
+          点击下方按钮用通行密钥验证身份后删除。
         </Text>
       )}
       {error ? (
@@ -183,11 +181,11 @@ function DeleteVerifyContent({
         </Text>
       ) : null}
       <Group justify="flex-end" mt="sm">
-        <Button variant="default" onClick={onCancel} disabled={busy}>
+        <Button variant="default" onClick={close} disabled={busy}>
           取消
         </Button>
-        <Button onClick={submit} loading={busy} color={hasPasskey && !hasPassword ? 'default' : undefined}>
-          {method === 'password' ? '验证并删除' : '验证并删除'}
+        <Button onClick={submit} loading={busy} color="red">
+          验证并删除
         </Button>
       </Group>
       {!hasPassword && !hasPasskey && (
