@@ -50,12 +50,12 @@ export interface PostCardProps {
 }
 
 // 超长戏文折叠：超过阈值只显示前段，点击展开
-const LONG_POST_CHARS = 600;
-// 首帖（主题开场戏文）折叠更激进：预览更短，让卡片底部的一键三连/滴滴/复制链接等
-// 操作按钮不用滚动就能看到（长戏文首帖常上千字，300 字预览会把按钮挤出首屏）
+// 阈值与预览都压得更狠：长戏文（首帖/回复）折叠后只留 2-3 行，让卡片底部的
+// 一键三连/滴滴/复制链接等操作按钮不用滚动就能看到（300 字预览约 5-6 行仍会挤出首屏）
+const LONG_POST_CHARS = 300; // 回复超过 300 字即折叠（原 600）
 const FIRST_POST_FOLD_CHARS = 300; // 首帖超过 300 字即折叠
-const FIRST_POST_PREVIEW_CHARS = 120; // 首帖折叠后只显示前 120 字（约 2-3 行）
-const PREVIEW_CHARS = 300; // 回复折叠后显示前 300 字（原行为）
+const PREVIEW_CHARS = 120; // 回复折叠后只显示前 120 字（约 2-3 行，原 300）
+const FIRST_POST_PREVIEW_CHARS = 120; // 首帖折叠后显示前 120 字（约 2-3 行）
 
 // 按关键词把一行内容拆成高亮片段（大小写不敏感）
 export function renderLine(line: string, kw?: string): ReactNode {
