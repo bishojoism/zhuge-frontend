@@ -7,7 +7,8 @@ import { mutate } from 'swr';
 import { api } from '../../api/client';
 import { useNotifications, useMe, useTags } from '../../api/hooks';
 import { requireLogin } from '../auth/authModals';
-import { seedTopicCacheFromList } from '../home/composer';
+import { seedTopicCacheFromList, type OptimisticExtraPost } from '../home/composer';
+import type { TopicPost } from '../topic/topicTypes';
 import { timeAgo } from '../../lib/utils';
 import type { DiscussionDetail, NotificationItem, NotifListResult, NotifType } from '../../types';
 
@@ -97,16 +98,16 @@ export function NotificationsModalContent({ onClose }: { onClose: () => void }) 
   // targetPagePosts：目标楼所在页的真实楼层（预取），并入乐观帧让页面高度与真实一致。
   const seedTopicFromNotif = (
     n: NotificationItem,
-    targetPagePosts?: Array<{ number: number; content: string; author: string }>
+    targetPagePosts?: OptimisticExtraPost[]
   ) => {
     if (!n.discussion_id || !n.discussion_title) return;
     // 乐观帧楼层：目标楼所在页（含目标楼前后楼层）+ 被回复楼 + 触发回复，去重后按楼层号并入
-    const extraPosts: Array<{ number: number; content: string; author: string }> = [];
+    const extraPosts: OptimisticExtraPost[] = [];
     const seen = new Set<number>();
-    const pushPost = (number: number, content: string, author: string) => {
+    const pushPost = (number: number, content: string, author: string, extra?: Partial<OptimisticExtraPost>) => {
       if (!number || seen.has(number)) return;
       seen.add(number);
-      extraPosts.push({ number, content, author });
+      extraPosts.push({ number, content, author, ...extra });
     };
     if (Array.isArray(targetPagePosts)) {
       for (const p of targetPagePosts) pushPost(p.number, p.content, p.author || '有人');
@@ -153,7 +154,7 @@ export function NotificationsModalContent({ onClose }: { onClose: () => void }) 
           // 等真实楼层到达再跳"）。失败静默 → 退回仅种回复链的乐观帧（原行为）。
           // 只拉目标页不够：目标楼若在最后一页（如 25 楼主题），该页仅含少数楼层，
           // 乐观帧仍缺大部分楼层、页面太矮。补 asc 第 1 页（1-20 楼）覆盖常见主题。
-          let targetPagePosts: Array<{ number: number; content: string; author: string }> | undefined;
+          let targetPagePosts: OptimisticExtraPost[] | undefined;
           if (n.post_id && n.discussion_id) {
             try {
               const [page1Res, aroundRes] = await Promise.allSettled([
@@ -162,12 +163,28 @@ export function NotificationsModalContent({ onClose }: { onClose: () => void }) 
                   `/discussions/${n.discussion_id}?page=1&order=old&aroundPostId=${n.post_id}`
                 ),
               ]);
-              const merged = new Map<number, { number: number; content: string; author: string }>();
+              const merged = new Map<number, OptimisticExtraPost>();
               for (const r of [page1Res, aroundRes]) {
                 if (r.status !== 'fulfilled') continue;
-                for (const p of (r.value.data.posts || [])) {
+                for (const p of (r.value.data.posts || []) as TopicPost[]) {
                   if (!merged.has(p.number)) {
-                    merged.set(p.number, { number: p.number, content: p.content, author: p.author || '' });
+                    merged.set(p.number, {
+                      number: p.number,
+                      content: p.content,
+                      author: p.author || '',
+                      reply_to_post_id: p.reply_to_post_id ?? null,
+                      reply_to_author: p.reply_to_author ?? null,
+                      image_url: p.image_url ?? null,
+                      author_avatar: p.author_avatar ?? null,
+                      author_gender: p.author_gender ?? undefined,
+                      character_id: p.character_id ?? null,
+                      like_count: p.like_count || 0,
+                      favorite_count: p.favorite_count || 0,
+                      coin_count: p.coin_count || 0,
+                      liked: p.liked ?? null,
+                      favorited: p.favorited ?? null,
+                      didi_count: p.didi_count || 0,
+                    });
                   }
                 }
               }

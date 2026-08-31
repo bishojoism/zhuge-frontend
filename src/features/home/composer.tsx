@@ -524,10 +524,28 @@ export function seedTopicCache(
 // 参数用宽松类型（Partial<Discussion>）：首页 feed/list、搜索、我的主题、私密列表的条目都可传。
 // extraPosts：附加的乐观帖（如通知点入时的"触发回复 + 被回复的那楼"回复链），负 id 标记乐观，
 // 按 number 与首帖一起并入，真实数据到达后同楼覆盖。
+// 字段带全渲染所需的（回复引用/配图/作者等），首帧与真实数据视觉一致，替换时页面不"变一下"。
+export interface OptimisticExtraPost {
+  number: number;
+  content: string;
+  author: string;
+  reply_to_post_id?: number | null;
+  reply_to_author?: string | null;
+  image_url?: string | null;
+  author_avatar?: string | null;
+  author_gender?: Gender | null;
+  character_id?: number | null;
+  like_count?: number;
+  favorite_count?: number;
+  coin_count?: number;
+  liked?: number | null;
+  favorited?: number | null;
+  didi_count?: number;
+}
 export function seedTopicCacheFromList(
   d: Partial<Discussion> & { id: number; title: string },
   allTags?: Tag[],
-  extraPosts?: Array<{ number: number; content: string; author: string }>
+  extraPosts?: OptimisticExtraPost[]
 ): void {
   const now = new Date().toISOString().replace('T', ' ').slice(0, 19);
   const excerpt = (d.excerpt || '').trim();
@@ -608,8 +626,10 @@ export function seedTopicCacheFromList(
         author_earned: d.author_earned ?? null,
         didi_count: d.post_didi_count || 0,
       },
-      // 附加乐观帖（回复链：被回复的那楼 + 触发回复）：负 id，内容用通知携带的摘要；
-      // 楼层号用真实值（后端通知带），mergedPosts 按 number 排序显示在正确位置
+      // 附加乐观帖（回复链：被回复的那楼 + 触发回复；或通知预取的目标页楼层）：负 id，
+      // 楼层号用真实值（后端通知/预取带），mergedPosts 按 number 排序显示在正确位置。
+      // 带全渲染字段：回复引用（reply_to_post_id/reply_to_author）、配图、作者信息等，
+      // 让乐观帧与真实数据视觉一致（首帧即有"回复 @xxx ↩ 跳转"引用条，替换时不"变一下"）
       ...(extraPosts || []).map((p, i) => ({
         id: -Date.now() - i - 1,
         discussion_id: d.id,
@@ -619,20 +639,21 @@ export function seedTopicCacheFromList(
         content: p.content,
         edited_at: null,
         is_private: 0,
-        reply_to_post_id: null,
-        image_url: null,
+        reply_to_post_id: p.reply_to_post_id ?? null,
+        reply_to_author: p.reply_to_author ?? null,
+        image_url: p.image_url ?? null,
         author: p.author,
-        author_gender: undefined,
-        author_avatar: undefined,
-        character_id: null,
+        author_gender: p.author_gender ?? undefined,
+        author_avatar: p.author_avatar ?? undefined,
+        character_id: p.character_id ?? null,
         author_badges: null,
-        like_count: 0,
-        favorite_count: 0,
-        coin_count: 0,
-        liked: null,
-        favorited: null,
+        like_count: p.like_count || 0,
+        favorite_count: p.favorite_count || 0,
+        coin_count: p.coin_count || 0,
+        liked: p.liked ?? null,
+        favorited: p.favorited ?? null,
         author_earned: null,
-        didi_count: 0,
+        didi_count: p.didi_count || 0,
       })),
     ],
     totalPosts: d.comment_count || 1,
