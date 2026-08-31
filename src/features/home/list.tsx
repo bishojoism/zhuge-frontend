@@ -125,8 +125,11 @@ export function TopicCard({
       } else {
         setCoinCount((c) => c + 1);
         try {
-          await api(`/posts/${postId}/coin`, { method: 'POST' });
+          const r = await api<{ coinReward?: number | null }>(`/posts/${postId}/coin`, { method: 'POST' });
           notifications.show({ message: '已投币 1 格币' });
+          if (r.coinReward) {
+            notifications.show({ message: `🎉 首次投币 +${r.coinReward} 格币`, color: 'green' });
+          }
           void globalMutate<CoinInfo>('/me/coins');
         } catch (e) {
           setCoinCount((c) => Math.max(0, c - 1));
@@ -196,7 +199,10 @@ export function TopicCard({
         }
       }
       try {
-        await api(`/posts/${postId}/coin`, { method: 'POST' });
+        const r = await api<{ coinReward?: number | null }>(`/posts/${postId}/coin`, { method: 'POST' });
+        if (r.coinReward) {
+          notifications.show({ message: `🎉 首次投币 +${r.coinReward} 格币`, color: 'green' });
+        }
         void globalMutate<CoinInfo>('/me/coins');
       } catch {
         coinOk = false;

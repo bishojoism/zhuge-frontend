@@ -31,11 +31,14 @@ function TipContent({ postId, onDone }: { postId: number; onDone?: () => void })
     if (!valid || sending) return;
     setSending(true);
     try {
-      const r = await api<{ ok: boolean; net: number; tax: number }>(`/posts/${postId}/tip`, {
+      const r = await api<{ ok: boolean; net: number; tax: number; coinReward?: number | null }>(`/posts/${postId}/tip`, {
         method: 'POST',
         body: { amount: num },
       });
       notifications.show({ message: `已打赏 ${num} 格币（作者实得 ${r.net}）`, color: 'green' });
+      if (r.coinReward) {
+        notifications.show({ message: `🎉 首次打赏 +${r.coinReward} 格币`, color: 'green' });
+      }
       // 刷新余额与帖子投币计数
       void globalMutate<CoinInfo>('/me/coins');
       onDone?.();

@@ -194,14 +194,17 @@ export function PostCard({
     }
   };
 
-  // 投币（固定 1 币，10% 税；被投币会通知作者；允许给自己）——乐观：先计数，失败回滚
+  // 投币（固定 1 币，10% 税；被投币会通知作者；允许给自己；给他人投币首次 +3 任务奖励）——乐观：先计数，失败回滚
   const doCoin = async () => {
     if (needLogin()) return;
     setBusy(true);
     setCoinCount((c) => c + 1);
     try {
-      await api(`/posts/${post.id}/coin`, { method: 'POST' });
+      const r = await api<{ coinReward?: number | null }>(`/posts/${post.id}/coin`, { method: 'POST' });
       notifications.show({ message: '已投币 1 格币' });
+      if (r.coinReward) {
+        notifications.show({ message: `🎉 首次投币 +${r.coinReward} 格币`, color: 'green' });
+      }
       void globalMutate<CoinInfo>('/me/coins');
     } catch (e) {
       setCoinCount((c) => Math.max(0, c - 1));
@@ -267,7 +270,10 @@ export function PostCard({
         }
       }
       try {
-        await api(`/posts/${post.id}/coin`, { method: 'POST' });
+        const r = await api<{ coinReward?: number | null }>(`/posts/${post.id}/coin`, { method: 'POST' });
+        if (r.coinReward) {
+          notifications.show({ message: `🎉 首次投币 +${r.coinReward} 格币`, color: 'green' });
+        }
         void globalMutate<CoinInfo>('/me/coins');
       } catch {
         coinOk = false; // 投币失败（如余额不足），点赞收藏仍完成
