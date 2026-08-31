@@ -277,7 +277,13 @@ export default function HomePage() {
   // ===== 推荐模式（feed）=====
   if (sort === 'recommend') {
     const ready = itemsBase === baseKey;
-    if (!ready || items.length === 0) {
+    // 预加载缓存命中：切换标签后 result 立即就绪（SWR 同步读缓存），但 itemsBase 门控与 items
+    // state 要等数据就绪 effect 下一轮才同步 → 第一帧直接用 result.data 渲染，消除"加载中"闪帧；
+    // 数据就绪 effect 随后把 items/itemsBase 对齐（cacheHit 只作用于切换瞬间的中间帧）
+    const cacheHit = !!result && !ready;
+    const displayItems = cacheHit ? result.data : items;
+    const displayHasMore = cacheHit ? result.meta.hasMore : hasMore;
+    if ((!ready && !cacheHit) || displayItems.length === 0) {
       // 空态（首次加载 / 切换中 / 无数据）：不挂 feed，保持页面正常滚动。
       // 判定用 result 而非 isLoading：SWR 的 isLoading 首帧恒为 true（即使 fallback 命中），
       // 会闪"加载中"；result 在 fallback/内联数据命中时首帧即存在
@@ -285,17 +291,17 @@ export default function HomePage() {
         <>
           {hero}
           {tagbar}
-          <div className={!result || !ready ? 'load-more' : 'empty'}>
-            {!result || !ready ? '加载中…' : '还没有主题，来发第一个吧！'}
+          <div className={!result || (!ready && !cacheHit) ? 'load-more' : 'empty'}>
+            {!result || (!ready && !cacheHit) ? '加载中…' : '还没有主题，来发第一个吧！'}
           </div>
         </>
       );
     }
     return (
       <FeedView
-        items={items}
+        items={displayItems}
         tags={tags}
-        hasMore={hasMore}
+        hasMore={displayHasMore}
         loadingMore={loadingMore}
         onLoadMore={loadMore}
         onOpenTopic={openTopic}
@@ -308,19 +314,23 @@ export default function HomePage() {
 
   // ===== 列表模式（最新/热门）=====
   const listReady = itemsBase === baseKey;
+  // 同推荐模式：预加载缓存命中时第一帧直接用 result.data，避免"加载中"闪帧
+  const listCacheHit = !!result && !listReady;
+  const listItems = listCacheHit ? result.data : items;
+  const listHasMore = listCacheHit ? result.meta.hasMore : hasMore;
   return (
     <>
       {hero}
       {tagbar}
-      {!listReady || items.length === 0 ? (
-        <div className={!result || !listReady ? 'load-more' : 'empty'}>
-          {!result || !listReady ? '加载中…' : '还没有主题，来发第一个吧！'}
+      {(!listReady && !listCacheHit) || listItems.length === 0 ? (
+        <div className={!result || (!listReady && !listCacheHit) ? 'load-more' : 'empty'}>
+          {!result || (!listReady && !listCacheHit) ? '加载中…' : '还没有主题，来发第一个吧！'}
         </div>
       ) : (
         <ListView
-          items={items}
+          items={listItems}
           tags={tags}
-          hasMore={hasMore}
+          hasMore={listHasMore}
           loadingMore={loadingMore}
           onLoadMore={loadMore}
           onOpenTopic={openTopic}
