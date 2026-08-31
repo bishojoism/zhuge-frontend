@@ -148,21 +148,36 @@ export function NotificationsModalContent({ onClose }: { onClose: () => void }) 
         const alreadyHere = window.location.pathname === targetPath;
         console.log('[zhuge-jump] markReadAndGo', { url: n.url, targetPath, alreadyHere, cur: window.location.pathname + window.location.search, targetNumber: n.target_number });
         if (!alreadyHere) {
-          // 预取目标楼所在页（含目标楼前后楼层）：并入乐观帧后页面高度与真实一致，
-          // 首帧定位直接到位（不再"乐观帧太矮定位不到位、等真实楼层到达再跳"）。
-          // 失败静默 → 退回仅种回复链的乐观帧（原行为）。
+          // 预取目标楼之前的楼层 + 目标楼所在页：合并去重后乐观帧楼层完整（首帖 + 1..N），
+          // 页面高度从一开始就与真实一致 → 首帧定位直接到位（不再"乐观帧太矮定位不到位、
+          // 等真实楼层到达再跳"）。失败静默 → 退回仅种回复链的乐观帧（原行为）。
+          // 只拉目标页不够：目标楼若在最后一页（如 25 楼主题），该页仅含少数楼层，
+          // 乐观帧仍缺大部分楼层、页面太矮。补 asc 第 1 页（1-20 楼）覆盖常见主题。
           let targetPagePosts: Array<{ number: number; content: string; author: string }> | undefined;
           if (n.post_id && n.discussion_id) {
             try {
-              const r = await api<{ data: DiscussionDetail }>(
-                `/discussions/${n.discussion_id}?page=1&order=old&aroundPostId=${n.post_id}`
-              );
-              targetPagePosts = (r.data.posts || []).map((p) => ({
-                number: p.number,
-                content: p.content,
-                author: p.author || '',
-              }));
-              console.log('[zhuge-jump] prefetched target page', { postId: n.post_id, posts: targetPagePosts.length, numbers: targetPagePosts.slice(0, 3).map((p) => p.number) });
+              const [page1Res, aroundRes] = await Promise.allSettled([
+                api<{ data: DiscussionDetail }>(`/discussions/${n.discussion_id}?page=1&order=old`),
+                api<{ data: DiscussionDetail }>(
+                  `/discussions/${n.discussion_id}?page=1&order=old&aroundPostId=${n.post_id}`
+                ),
+              ]);
+              const merged = new Map<number, { number: number; content: string; author: string }>();
+              for (const r of [page1Res, aroundRes]) {
+                if (r.status !== 'fulfilled') continue;
+                for (const p of (r.value.data.posts || [])) {
+                  if (!merged.has(p.number)) {
+                    merged.set(p.number, { number: p.number, content: p.content, author: p.author || '' });
+                  }
+                }
+              }
+              targetPagePosts = [...merged.values()].sort((a, b) => a.number - b.number);
+              console.log('[zhuge-jump] prefetched floors', {
+                postId: n.post_id,
+                posts: targetPagePosts.length,
+                numbers: targetPagePosts.slice(0, 3).map((p) => p.number),
+                last: targetPagePosts[targetPagePosts.length - 1]?.number,
+              });
             } catch {
               /* 预取失败：走原乐观帧 */
             }

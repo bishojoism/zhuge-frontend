@@ -262,16 +262,17 @@ export default function TopicPage() {
     const qReplyNumber = sp.get('replyNumber');
     const replyNumber = qReplyNumber && /^\d+$/.test(qReplyNumber) ? Number(qReplyNumber) : undefined;
     const targetPost = mergedPosts.find((p) => p.id === replyPostId);
-    console.log('[zhuge-jump] TopicPage auto-reply effect', {
+    console.log('[zhuge-jump] TopicPage auto-reply layout-effect', {
+      t: Math.round(performance.now()),
       replyPostId,
       replyNumber,
       ref: autoReplyHandledRef.current,
       targetFound: !!targetPost,
       targetByNumber: replyNumber ? mergedPosts.some((p) => p.number === replyNumber) : false,
       search: routeLocation.search,
-      state: routeLocation.state,
       mergedLen: mergedPosts.length,
       hasData: !!data,
+      numbers: mergedPosts.slice(0, 3).map((p) => p.number),
     });
     // 只处理一次：navigate 清 query 与 data 更新（乐观→真实）的竞态会让本 effect 反复重跑
     // （记录的是 replyPostId 而非布尔：用户已在主题页时再点【另一条】通知（新 reply=）会重新定位；

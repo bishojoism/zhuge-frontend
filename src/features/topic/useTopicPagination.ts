@@ -195,10 +195,12 @@ export function useTopicPagination(id: string | undefined) {
     const found = 'id' in pendingTarget
       ? mergedPosts.find((p) => p.id === pendingTarget.id)
       : mergedPosts.find((p) => p.number === pendingTarget.number);
-    console.log('[zhuge-jump] pendingTarget effect', {
+    console.log('[zhuge-jump] pendingTarget layout-effect', {
+      t: Math.round(performance.now()),
       pendingTarget,
       found: found ? { id: found.id, number: found.number } : null,
       mergedLen: mergedPosts.length,
+      scrollY: Math.round(window.scrollY),
     });
     if (found) {
       // 数据已到位但 DOM 可能还没渲染（通知点入时 page1 缓存被乐观种子短暂覆盖又强制重验，
@@ -232,11 +234,12 @@ export function useTopicPagination(id: string | undefined) {
       let tries = 0;
       const tryScroll = () => {
         const el = document.querySelector(`[data-num="${num}"]`);
-        console.log(`[zhuge-jump] tryScroll num=${num} tries=${tries} el=${!!el}`);
+        console.log(`[zhuge-jump] tryScroll num=${num} tries=${tries} el=${!!el} scrollY=${Math.round(window.scrollY)}`);
         if (el) {
           // 统一瞬时跳转：useLayoutEffect 在浏览器绘制前同步执行，瞬时滚动发生在 paint 前，
           // 第一帧绘制出来就是目标楼位置（不闪"页面顶部主题数据"再跳）；数据到达的校正也瞬时
           (el as HTMLElement).scrollIntoView({ behavior: 'auto', block: 'start' });
+          console.log(`[zhuge-jump] after scrollIntoView num=${num} scrollY=${Math.round(window.scrollY)}`);
           const node = el as HTMLElement;
           node.classList.add('post-flash');
           window.setTimeout(() => node.classList.remove('post-flash'), 1600);
