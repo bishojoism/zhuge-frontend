@@ -116,6 +116,9 @@ export default function Layout({ children }: { children: ReactNode }) {
   const push = usePushNotify();
   // 通知弹窗（本地 state 单例）
   const [notifOpen, setNotifOpen] = useState(false);
+  // 头像下拉菜单（受控）：宫格按钮是自定义 button 而非 Menu.Item，Mantine 不会自动关闭，
+  // 打开徽章/角色卡等弹窗前先关菜单，避免弹窗与下拉叠在一起
+  const [menuOpen, setMenuOpen] = useState(false);
   // 调试模式（vConsole 虚拟控制台）：localStorage 记忆，dev 模式视为已开启
   const [debugOn, setDebugOn] = useState(() => isDebugMode() || import.meta.env.DEV);
   // 路由变化守卫：离开主题页（/d/:id，返回主页等）时归零页面滚动。
@@ -385,7 +388,7 @@ export default function Layout({ children }: { children: ReactNode }) {
                   {unread > 0 && <span className="notif-badge">{unread > 99 ? '99+' : unread}</span>}
                 </ActionIcon>
               </Tooltip>
-              <Menu position="bottom-end" withArrow>
+              <Menu position="bottom-end" withArrow opened={menuOpen} onChange={setMenuOpen}>
                 <Menu.Target>
                   {/* 不用 Button 包裹：避免按钮自身的 overflow/圆角裁剪性别徽标；
                       role=button 让 Mantine 注入的 aria-haspopup/aria-expanded 合法 */}
@@ -394,6 +397,7 @@ export default function Layout({ children }: { children: ReactNode }) {
                     aria-label="用户菜单"
                     role="button"
                     tabIndex={0}
+                    onClick={() => setMenuOpen(true)}
                   >
                     <Avatar user={user} size="md" showGender className="nav-avatar" />
                   </span>
@@ -430,7 +434,15 @@ export default function Layout({ children }: { children: ReactNode }) {
                         ? [{ icon: <IconShield size={20} />, label: '管理', onClick: () => navigate('/admin') }]
                         : []),
                     ].map((it) => (
-                      <button key={it.label} type="button" className="menu-grid-item" onClick={it.onClick}>
+                      <button
+                        key={it.label}
+                        type="button"
+                        className="menu-grid-item"
+                        onClick={() => {
+                          setMenuOpen(false);
+                          it.onClick();
+                        }}
+                      >
                         {it.icon}
                         <span>{it.label}</span>
                       </button>
