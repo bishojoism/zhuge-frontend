@@ -36,6 +36,7 @@ import {
 import { useAuth } from '../features/auth/AuthContext';
 import { useUnread, useCoins } from '../api/hooks';
 import { api } from '../api/client';
+import { levelLabel } from '../lib/coins';
 import { useNotifySocket } from '../lib/ws';
 import { usePwaInstall } from '../lib/pwa';
 import { usePushNotify } from '../lib/pushNotify';
@@ -402,6 +403,9 @@ export default function Layout({ children }: { children: ReactNode }) {
                     {user.username}
                     <Text component="span" size="xs" style={{ color: 'var(--primary)' }} ml={6}>
                       🪙 {coinData?.balance ?? ''}
+                    </Text>
+                    <Text component="span" size="xs" c="dimmed" ml={4}>
+                      {coinData ? `· ${levelLabel(coinData.level)}` : ''}
                     </Text>
                   </Menu.Label>
                   {/* 功能宫格：图标 + 短文字（去掉副信息，防菜单过宽过长） */}

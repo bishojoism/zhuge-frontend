@@ -605,6 +605,56 @@ function FeedCard({
 
   const lv = levelOf(d.author_earned);
 
+  // 一键三连：点赞 + 收藏 + 投币（已做的跳过；投币消耗 1 币）
+  const doTriple = async () => {
+    if (!postId) return;
+    if (!user) {
+      requireLogin('互动');
+      return;
+    }
+    if (user.id === d.user_id) {
+      notifications.show({ message: '不能给自己的帖子三连（投币需给他人）', color: 'orange' });
+      return;
+    }
+    setBusy(true);
+    let coinOk = true;
+    try {
+      if (!liked) {
+        const r = await api<{ active: boolean; coinReward?: number | null }>(`/posts/${postId}/like`, { method: 'POST' });
+        setLiked(r.active);
+        setLikeCount((c) => Math.max(0, c + (r.active ? 1 : 0)));
+        if (r.coinReward) {
+          notifications.show({ message: `🎉 首次点赞 +${r.coinReward} 格币`, color: 'green' });
+          void globalMutate<CoinInfo>('/me/coins');
+        }
+      }
+      if (!favorited) {
+        const r = await api<{ active: boolean; coinReward?: number | null }>(`/posts/${postId}/favorite`, { method: 'POST' });
+        setFavorited(r.active);
+        setFavCount((c) => Math.max(0, c + (r.active ? 1 : 0)));
+        if (r.coinReward) {
+          notifications.show({ message: `🎉 首次收藏 +${r.coinReward} 格币`, color: 'green' });
+          void globalMutate<CoinInfo>('/me/coins');
+        }
+      }
+      try {
+        await api(`/posts/${postId}/coin`, { method: 'POST' });
+        setCoinCount((c) => c + 1);
+        void globalMutate<CoinInfo>('/me/coins');
+      } catch {
+        coinOk = false;
+      }
+      notifications.show({
+        message: coinOk ? '一键三连完成 🎉' : '已点赞收藏，投币失败（余额不足？）',
+        color: coinOk ? 'green' : 'orange',
+      });
+    } catch (e) {
+      notifications.show({ message: e instanceof Error ? e.message : '三连失败', color: 'red' });
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const handleClick = (e: React.MouseEvent) => {
     const t = e.target as HTMLElement;
     if (t.closest('.feed-actions, .feed-tags, button')) return;
@@ -710,6 +760,17 @@ function FeedCard({
           {/* 一键三连（点赞/投币/收藏，针对首帖） */}
           {postId ? (
             <span className="feed-triple">
+              <button
+                type="button"
+                className="feed-act triple-main"
+                disabled={busy}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  void doTriple();
+                }}
+              >
+                🎉 三连
+              </button>
               <button
                 type="button"
                 className={`feed-act${liked ? ' on' : ''}`}

@@ -226,6 +226,52 @@ export function PostCard({
     openTipModal(post.id, author, () => setCoinCount((c) => c + 1));
   };
 
+  // 一键三连：一次点击完成 点赞 + 收藏 + 投币（已点赞/已收藏的跳过；投币消耗 1 币）
+  const doTriple = async () => {
+    if (needLogin()) return;
+    if (user && user.id === post.user_id) {
+      notifications.show({ message: '不能给自己的帖子三连（投币需给他人）', color: 'orange' });
+      return;
+    }
+    setBusy(true);
+    let coinOk = true;
+    try {
+      if (!liked) {
+        const r = await api<{ active: boolean; coinReward?: number | null }>(`/posts/${post.id}/like`, { method: 'POST' });
+        setLiked(r.active);
+        setLikeCount((c) => Math.max(0, c + (r.active ? 1 : 0)));
+        if (r.coinReward) {
+          notifications.show({ message: `🎉 首次点赞 +${r.coinReward} 格币`, color: 'green' });
+          void globalMutate<CoinInfo>('/me/coins');
+        }
+      }
+      if (!favorited) {
+        const r = await api<{ active: boolean; coinReward?: number | null }>(`/posts/${post.id}/favorite`, { method: 'POST' });
+        setFavorited(r.active);
+        setFavCount((c) => Math.max(0, c + (r.active ? 1 : 0)));
+        if (r.coinReward) {
+          notifications.show({ message: `🎉 首次收藏 +${r.coinReward} 格币`, color: 'green' });
+          void globalMutate<CoinInfo>('/me/coins');
+        }
+      }
+      try {
+        await api(`/posts/${post.id}/coin`, { method: 'POST' });
+        setCoinCount((c) => c + 1);
+        void globalMutate<CoinInfo>('/me/coins');
+      } catch {
+        coinOk = false; // 投币失败（如余额不足），点赞收藏仍完成
+      }
+      notifications.show({
+        message: coinOk ? '一键三连完成 🎉' : '已点赞收藏，投币失败（余额不足？）',
+        color: coinOk ? 'green' : 'orange',
+      });
+    } catch (e) {
+      notifications.show({ message: e instanceof Error ? e.message : '三连失败', color: 'red' });
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const lv = levelOf(post.author_earned);
 
   return (
@@ -398,6 +444,16 @@ export function PostCard({
           )}
           {/* 一键三连 + 打赏（点赞/收藏 toggle，投币固定 1 币，打赏自定义数额） */}
           <Group gap={2} wrap="nowrap" ml="auto">
+            <Button
+              size="compact-xs"
+              variant="filled"
+              color="clay"
+              loading={busy}
+              onClick={() => void doTriple()}
+              title="一键三连：点赞 + 投币 1 格币 + 收藏"
+            >
+              🎉 三连
+            </Button>
             <Button
               size="compact-xs"
               variant="subtle"
