@@ -33,12 +33,15 @@ function InviteContent({ discussionId }: { discussionId: number }) {
   const [q, setQ] = useState('');
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [sending, setSending] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0); // 换一批：重新随机拉取候选
 
   useEffect(() => {
+    setRows(null);
+    setSelected(new Set());
     api<{ data: Candidate[] }>(`/discussions/${discussionId}/invite-candidates`)
       .then((r) => setRows(r.data))
       .catch(() => setError(true));
-  }, [discussionId]);
+  }, [discussionId, refreshKey]);
 
   const filtered = useMemo(() => {
     if (!rows) return null;
@@ -103,13 +106,24 @@ function InviteContent({ discussionId }: { discussionId: number }) {
       <Text size="xs" c="dimmed">
         点名邀请戏友来接下这出戏（最多 {MAX_INVITE} 人）。被邀请者会收到通知，点击即可看戏接戏。
       </Text>
-      <TextInput
-        size="sm"
-        placeholder="搜索用户名…"
-        autoComplete="off"
-        value={q}
-        onChange={(e) => setQ(e.currentTarget.value)}
-      />
+      <Group justify="space-between" wrap="nowrap" gap={8}>
+        <TextInput
+          size="sm"
+          placeholder="搜索用户名…"
+          autoComplete="off"
+          value={q}
+          onChange={(e) => setQ(e.currentTarget.value)}
+          style={{ flex: 1 }}
+        />
+        <Button
+          size="compact-sm"
+          variant="light"
+          onClick={() => setRefreshKey((k) => k + 1)}
+          loading={!rows}
+        >
+          🔄 换一批
+        </Button>
+      </Group>
       {filtered === null || filtered.length === 0 ? (
         <Text size="sm" c="dimmed" ta="center" py="md">
           没有可邀请的用户（30 天内活跃且未被邀请过）
