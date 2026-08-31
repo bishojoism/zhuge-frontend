@@ -628,7 +628,14 @@
     .feed-card-title { font-size: 21px; font-weight: 700; line-height: 1.5; margin-bottom: 12px; letter-spacing: .2px; }
     .feed-card-excerpt { font-size: 15px; line-height: 1.9; color: var(--text-soft); }
     .feed-tags { margin-top: 16px; display: flex; gap: 6px; flex-wrap: wrap; }
-    .feed-actions { margin-top: 16px; display: flex; gap: 14px; }
+    .feed-actions {
+      margin-top: 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap; /* 统计 + 三连按钮空间不足时分行，不挤在一行 */
+    }
+    .feed-stats { display: inline-flex; gap: 14px; align-items: center; flex-wrap: wrap; }
     .feed-stat { font-size: 13px; color: var(--muted); }
     /* 一键三连：主按钮（整合）+ 点赞/收藏 toggle */
     .feed-triple { display: inline-flex; gap: 6px; align-items: center; margin-left: auto; }

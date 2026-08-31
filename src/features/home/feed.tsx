@@ -755,8 +755,10 @@ function FeedCard({
           </div>
         ) : null}
         <div className="feed-actions">
-          <span className="feed-stat">💬 {Math.max(0, (d.comment_count ?? 0) - 1)} 接戏</span>
-          {d.didi_count > 0 ? <span className="feed-stat">📨 {d.didi_count} 滴滴</span> : null}
+          <span className="feed-stats">
+            <span className="feed-stat">💬 {Math.max(0, (d.comment_count ?? 0) - 1)} 接戏</span>
+            {d.didi_count > 0 ? <span className="feed-stat">📨 {d.didi_count} 滴滴</span> : null}
+          </span>
           {/* 一键三连（点赞/投币/收藏，针对首帖） */}
           {postId ? (
             <span className="feed-triple">
