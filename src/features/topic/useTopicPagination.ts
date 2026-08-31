@@ -69,19 +69,23 @@ export function useTopicPagination(id: string | undefined) {
 
   const mergedPosts = useMemo(() => {
     const real = new Map<number, TopicPost>();
-    const optimistic: TopicPost[] = [];
+    // 乐观帖也按楼层去重：列表点入时同一份乐观种子（负 id 首帖占位）被同时写入
+    // order=new 与 order=old 两个 key，data（new page1）与 headData（old page1）都会并入
+    // loadedPages → 同一个乐观 1 楼会被合并两次 → 顶部主题卡之外再渲染一个 1 楼。
+    // 按 number 去重后只剩一个；真实数据（正 id）到达后同楼覆盖，行为不变。
+    const optimistic = new Map<number, TopicPost>();
     for (const d of Object.values(loadedPages)) {
       for (const p of (d?.posts || []) as TopicPost[]) {
         if (p.id > 0) real.set(p.number, p);
-        else optimistic.push(p);
+        else if (!optimistic.has(p.number)) optimistic.set(p.number, p);
       }
     }
     // 独立注入的乐观帖：同楼已有真实帖则被覆盖，否则保留显示
     for (const p of optimisticPosts) {
-      if (p.id < 0 && !real.has(p.number)) optimistic.push(p);
+      if (p.id < 0 && !real.has(p.number) && !optimistic.has(p.number)) optimistic.set(p.number, p);
     }
     const out = [...real.values()];
-    for (const p of optimistic) if (!real.has(p.number)) out.push(p);
+    for (const p of optimistic.values()) if (!real.has(p.number)) out.push(p);
     return out.sort((a, b) => a.number - b.number);
   }, [loadedPages, optimisticPosts]);
 
