@@ -168,7 +168,7 @@ export interface NotificationItem {
 
 export interface NotifListResult {
   data: NotificationItem[];
-  meta: { unread: number };
+  meta: { unread: number; page?: number; hasMore?: boolean };
 }
 
 export interface PasskeyInfo {

@@ -71,7 +71,7 @@ function buildSwrFallback(): Record<string, unknown> {
   // 角色卡（发帖/接戏选角色即时可用）
   if (Array.isArray(d.characters)) fb['/me/characters'] = { data: d.characters };
   // 未读数（useUnread 读 meta.unread；列表先空，后台重验证填充）
-  fb['/me/notifications'] = { data: [], meta: { unread: d.unread || 0 } };
+  fb['/me/notifications'] = { data: [], meta: { unread: d.unread || 0, page: 1, hasMore: false } };
 
   // 讨论列表：key 与 useDiscussions 完全一致（排序/标签/种子都取自内联数据）
   if (Array.isArray(d.discussions)) {

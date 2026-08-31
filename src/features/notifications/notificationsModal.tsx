@@ -38,7 +38,18 @@ export function NotificationsModalContent({ onClose }: { onClose: () => void }) 
   const navigate = useNavigate();
   const { data, isLoading } = useNotifications();
   const { tags } = useTags();
-  const list = data?.data ?? [];
+  // 分页：SWR 只拿第 1 页（20 条），"加载更多"追加本地 state（弹窗每次打开重新 mount，state 自然重置）
+  const [extra, setExtra] = useState<NotificationItem[]>([]);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  // 第 1 页数据变化（已读后 mutate/重拉）→ 重置追加页，避免与第 1 页重复或错乱
+  useEffect(() => {
+    setExtra([]);
+    setPage(1);
+    setHasMore(!!data?.meta?.hasMore);
+  }, [data]);
+  const list = [...(data?.data ?? []), ...extra];
   // 防重复：StrictMode 下 effect 会执行两次，且 user 在加载中/未登录间跳动时可能连续触发
   const promptedRef = useRef(false);
 
@@ -53,6 +64,27 @@ export function NotificationsModalContent({ onClose }: { onClose: () => void }) 
   }, [user, onClose]);
 
   if (user === null) return null;
+
+  // 加载更多（第 page+1 页，追加去重）
+  const loadMore = async () => {
+    if (loadingMore || !hasMore) return;
+    setLoadingMore(true);
+    try {
+      const next = page + 1;
+      const r = await api<NotifListResult>(`/me/notifications?page=${next}`);
+      const nextItems = r.data || [];
+      setExtra((prev) => {
+        const seen = new Set(prev.map((n) => n.id));
+        return [...prev, ...nextItems.filter((n) => !seen.has(n.id))];
+      });
+      setPage(next);
+      setHasMore(!!r.meta?.hasMore);
+    } catch {
+      /* 加载更多失败：保留现状，可重试 */
+    } finally {
+      setLoadingMore(false);
+    }
+  };
 
   // 点击单条：立即显示"正在打开…"加载反馈（跳转前）→ 标记已读 → 刷新 → 跳转 → 关闭弹窗
   // 接戏/滴滴通知：带 state 让主题页自动引用对方（回复框自动 @对方）
@@ -197,6 +229,19 @@ export function NotificationsModalContent({ onClose }: { onClose: () => void }) 
                 {!n.is_read && <span className="notif-dot" />}
               </div>
             ))}
+            {hasMore && (
+              <Button
+                variant="subtle"
+                size="compact-sm"
+                fullWidth
+                mt={4}
+                onClick={loadMore}
+                loading={loadingMore}
+                loaderProps={{ size: 'xs' }}
+              >
+                加载更多
+              </Button>
+            )}
           </Stack>
         )}
       </Stack>
