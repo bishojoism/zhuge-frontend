@@ -86,6 +86,21 @@ export default function HomePage() {
   const tagRef = useRef(urlTag);
   const sortRef = useRef(urlSort);
 
+  // hack：刷新看到不同推荐。SSR 首页/标签页走缓存（seed 分钟级，首屏秒开），
+  // 若沿用内联 seed 则每次刷新都是同一份缓存内容 → 挂载后换**随机** seed 重新请求推荐，
+  // 列表随即变成新顺序。仅挂载时执行一次（客户端切标签走 newSeed 命中预加载秒切，不触发）；
+  // 仅推荐模式需要（latest/hot 排序不用 seed）。
+  const shuffleSeedRef = useRef(false);
+  useEffect(() => {
+    if (shuffleSeedRef.current) return;
+    shuffleSeedRef.current = true;
+    if (sortRef.current !== 'recommend') return;
+    const t = window.setTimeout(() => {
+      setFeedSeed(Math.floor(Math.random() * 1e9) + 1);
+    }, 600);
+    return () => window.clearTimeout(t);
+  }, []);
+
   // URL 变化（点标签 / 前进后退 / 直接输入）→ 同步状态；
   // 换标签或进入推荐 → 重置随机种子（回到同一标签不重置，保持推荐顺序稳定）
   useEffect(() => {
