@@ -7,7 +7,7 @@ import { modals } from '@mantine/modals';
 import { mutate } from 'swr';
 import { useAuth } from '../auth/AuthContext';
 import { requireLogin } from '../auth/authModals';
-import { useDiscussions, useTags, refreshListsAfterWrite, preloadAllPrimaryLists } from '../../api/hooks';
+import { useDiscussions, useTags, refreshListsAfterWrite, preloadAllPrimaryLists, useCoins } from '../../api/hooks';
 import { readInitData } from '../../api/client';
 import { openModalOnce } from '../../lib/modals';
 import { focusOnEnter } from '../../lib/modalFocus';
@@ -26,11 +26,26 @@ const newSeed = () => Math.floor(Date.now() / 60000) + 1;
 
 const SORT_KEYS: SortKey[] = ['recommend', 'latest', 'hot'];
 
-// 扁横幅：仅提示可滴滴开私服（已去掉欢迎语与未登录注册引导按钮）
+// 扁横幅：已登录显示「下一步」任务引导（复用 get_daily_todo 的任务数据：/api/me/coins 同源，
+// 取第一个未完成且建议自动的任务）；未登录仅提示可滴滴开私服
 function Hero() {
+  const { user } = useAuth();
+  // 登录时才请求格币/任务（未登录 key=null 零请求）
+  const { data: coins } = useCoins(!!user);
+  // 建议自动完成的任务顺序（与 get_daily_todo 的 suggested 一致：滴滴/投币/打赏建议手动，不引导）
+  const next = (coins?.tasks || []).find((t) => !t.done && t.key !== 'didi' && t.key !== 'coin' && t.key !== 'tip');
   return (
     <div className="hero hero-slim">
-      <p>「滴滴」可一键创建仅双方可见的私密主题</p>
+      {user ? (
+        <p>
+          下一步：<b>{next ? next.label : '今日任务已全部完成 🎉'}</b>
+          <span style={{ opacity: 0.8, marginLeft: 8, fontSize: 12 }}>
+            {next ? `（+${next.amount} 格币）` : ''}
+          </span>
+        </p>
+      ) : (
+        <p>「滴滴」可一键创建仅双方可见的私密主题</p>
+      )}
     </div>
   );
 }
