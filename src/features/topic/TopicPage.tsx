@@ -251,6 +251,15 @@ export default function TopicPage() {
       (qReply && /^\d+$/.test(qReply) ? Number(qReply) : undefined);
     if (!replyPostId) return;
     const targetPost = mergedPosts.find((p) => p.id === replyPostId);
+    console.log('[zhuge-jump] TopicPage auto-reply effect', {
+      replyPostId,
+      ref: autoReplyHandledRef.current,
+      targetFound: !!targetPost,
+      search: routeLocation.search,
+      state: routeLocation.state,
+      mergedLen: mergedPosts.length,
+      hasData: !!data,
+    });
     // 只处理一次：navigate 清 query 与 data 更新（乐观→真实）的竞态会让本 effect 反复重跑
     // （记录的是 replyPostId 而非布尔：用户已在主题页时再点【另一条】通知（新 reply=）会重新定位；
     //   同一条通知的重复重跑（清 query 后 effect 再触发）仍被挡住）
@@ -270,6 +279,26 @@ export default function TopicPage() {
     navigate(routeLocation.pathname, { replace: true, state: null });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, data, mergedPosts, routeLocation.state, routeLocation.search, navigate]);
+
+  // 通知弹窗点击"相同 URL 的通知"时（React Router navigate 相同 URL 是 no-op，不会重跑上面的 effect）：
+  // 通知弹窗发 'zhuge:jump' 自定义事件，这里强制定位到该回复楼
+  useEffect(() => {
+    if (!user) return;
+    const onJump = (e: Event) => {
+      const d = (e as CustomEvent).detail as { replyPostId?: number; replyAuthor?: string };
+      if (!d?.replyPostId) return;
+      console.log('[zhuge-jump] zhuge:jump event', d);
+      const targetPost = mergedPosts.find((p) => p.id === d.replyPostId);
+      setReplyTarget({
+        postId: d.replyPostId,
+        author: d.replyAuthor || (targetPost ? displayName(targetPost) : ''),
+      });
+      setPendingTarget({ id: d.replyPostId });
+    };
+    window.addEventListener('zhuge:jump', onJump);
+    return () => window.removeEventListener('zhuge:jump', onJump);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, mergedPosts]);
 
   // 接戏：target 为 null 表示直接回复主题（首帖），否则回复指定帖子
   const startReply = useCallback(

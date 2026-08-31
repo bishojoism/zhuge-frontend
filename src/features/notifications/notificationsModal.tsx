@@ -140,9 +140,23 @@ export function NotificationsModalContent({ onClose }: { onClose: () => void }) 
         // 只在跨页面进入（缓存无该主题真实数据）时才种乐观首帧。
         const targetPath = n.url.split('?')[0];
         const alreadyHere = window.location.pathname === targetPath;
+        console.log('[zhuge-jump] markReadAndGo', { url: n.url, targetPath, alreadyHere, cur: window.location.pathname + window.location.search });
         if (!alreadyHere) seedTopicFromNotif(n);
+        // 相同 URL 时 React Router navigate 是 no-op（不触发 TopicPage 定位 effect）：
+        // 发自定义事件强制定位（TopicPage 监听 'zhuge:jump'）
+        if (n.url === window.location.pathname + window.location.search) {
+          console.log('[zhuge-jump] same URL → dispatch zhuge:jump', n.post_id);
+          window.dispatchEvent(
+            new CustomEvent('zhuge:jump', {
+              detail: { replyPostId: n.post_id, replyAuthor: n.actor_name || undefined },
+            })
+          );
+        } else {
+          navigate(n.url);
+        }
+      } else {
+        navigate(n.url);
       }
-      navigate(n.url);
     } else if (n.discussion_id) {
       seedTopicFromNotif(n);
       const isReply = n.type === 'reply' || n.type === 'didi';

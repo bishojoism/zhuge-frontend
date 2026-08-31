@@ -145,6 +145,11 @@ export function useTopicPagination(id: string | undefined) {
     const found = 'id' in pendingTarget
       ? mergedPosts.find((p) => p.id === pendingTarget.id)
       : mergedPosts.find((p) => p.number === pendingTarget.number);
+    console.log('[zhuge-jump] pendingTarget effect', {
+      pendingTarget,
+      found: found ? { id: found.id, number: found.number } : null,
+      mergedLen: mergedPosts.length,
+    });
     if (found) {
       // 数据已到位但 DOM 可能还没渲染（通知点入时 page1 缓存被乐观种子短暂覆盖又强制重验，
       // 真实楼层可能延后出现）：轮询等目标楼 DOM 出现再滚动，最多 ~2s，超时才放弃。
@@ -152,6 +157,7 @@ export function useTopicPagination(id: string | undefined) {
       let tries = 0;
       const tryScroll = () => {
         const el = document.querySelector(`[data-num="${num}"]`);
+        console.log(`[zhuge-jump] tryScroll num=${num} tries=${tries} el=${!!el}`);
         if (el) {
           (el as HTMLElement).scrollIntoView({ behavior: 'smooth', block: 'start' });
           const node = el as HTMLElement;
