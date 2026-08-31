@@ -171,6 +171,9 @@ export default function TopicPage() {
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const draftTimer = useRef<number | null>(null);
   const restored = useRef(false);
+  // 通知点入/定位跳转的 query 处理守卫：只处理一次（data 变化/navigate 清除 query 的竞态会导致 effect 反复重跑）
+  const autoReplyHandledRef = useRef(false);
+  const focusPostHandledRef = useRef(false);
 
   const draftKey = id ? `reply:${id}` : '';
 
@@ -304,6 +307,10 @@ export default function TopicPage() {
     if (!replyPostId) return;
     const targetPost = data.posts.find((p) => p.id === replyPostId);
     if (!targetPost) return;
+    // 只处理一次：navigate 清 query 与 data 更新（乐观→真实）的竞态会让本 effect 反复重跑
+    // （注意：在找到目标帖后才置位——乐观数据可能没有该帖，需等真实数据到达）
+    if (autoReplyHandledRef.current) return;
+    autoReplyHandledRef.current = true;
     const replyAuthor = st.replyAuthor || sp.get('replyAuthor') || undefined;
     setReplyTarget({ postId: replyPostId, author: replyAuthor || displayName(targetPost) });
     requestAnimationFrame(() => {
@@ -688,6 +695,9 @@ export default function TopicPage() {
     const sp = new URLSearchParams(routeLocation.search);
     const fp = sp.get('focusPost');
     if (!fp || !/^\d+$/.test(fp)) return;
+    // 只处理一次：navigate 清 query 与 data 更新（乐观→真实）的竞态会让本 effect 反复重跑 → 无限更新循环
+    if (focusPostHandledRef.current) return;
+    focusPostHandledRef.current = true;
     const targetId = Number(fp);
     // 数据 + DOM 渲染完成后跳转（帖子可能未渲染完，稍作延迟）
     const t = window.setTimeout(() => jumpToPost(targetId), 300);
