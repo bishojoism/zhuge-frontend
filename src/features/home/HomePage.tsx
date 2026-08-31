@@ -87,8 +87,9 @@ export default function HomePage() {
   const tagRef = useRef(urlTag);
   const sortRef = useRef(urlSort);
 
-  // URL 变化（点标签 / 前进后退 / 直接输入）→ 同步状态；
-  // 换标签或进入推荐 → 重置随机种子（回到同一标签不重置，保持推荐顺序稳定）
+  // URL 变化（点标签 / 前进后退 / 直接输入）→ 同步状态。
+  // 进入推荐 → 随机 seed（与 SSR 一致：每次看到不同的推荐 shuffle）；
+  // 切标签（仍在推荐）→ 分钟级 seed（预加载缓存命中，秒切）
   useEffect(() => {
     const tagChanged = urlTag !== tagRef.current;
     const enteringRecommend = urlSort === 'recommend' && sortRef.current !== 'recommend';
@@ -96,7 +97,11 @@ export default function HomePage() {
     sortRef.current = urlSort;
     setTag(urlTag);
     setSort(urlSort);
-    if (tagChanged || enteringRecommend) setFeedSeed(newSeed());
+    if (enteringRecommend) {
+      setFeedSeed(Math.floor(Math.random() * 1e9) + 1);
+    } else if (tagChanged) {
+      setFeedSeed(newSeed());
+    }
   }, [urlTag, urlSort]);
 
   // 分页累积（feed/列表共用 useDiscussions）
