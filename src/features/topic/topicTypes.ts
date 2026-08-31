@@ -2,7 +2,9 @@
 import type { Discussion, Post } from '../../types';
 
 // 回复分页大小（与后端 getDiscussionData 默认一致；SSR 内联第一页也是这个大小）
-export const PAGE_SIZE = 50;
+// 30/页：每帖详情 SQL 含 10 个子查询，50 条=500 次子查询 → 30 条=300 次，明显减负；
+// 前端滚动触底自动加载下一页（预取缓存命中几乎零等待）
+export const PAGE_SIZE = 30;
 
 // 性别徽标（角色下拉选项用）
 export const GENDER_LABEL: Record<string, string> = { male: '男', female: '女', other: '其他', secret: '保密' };

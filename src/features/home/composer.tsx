@@ -503,7 +503,7 @@ export function seedTopicCache(
     ],
     totalPosts: 1,
     page: 1,
-    pageSize: 50,
+    pageSize: 30,
     tags: pickedTags,
   };
   void globalMutate(`/discussions/${newId}?page=1&order=new`, optimistic, { revalidate: true });
@@ -602,7 +602,7 @@ export function seedTopicCacheFromList(
     ],
     totalPosts: d.comment_count || 1,
     page: 1,
-    pageSize: 50,
+    pageSize: 30,
     tags: tagArray,
   };
   void globalMutate(`/discussions/${d.id}?page=1&order=new`, optimistic, { revalidate: true });
