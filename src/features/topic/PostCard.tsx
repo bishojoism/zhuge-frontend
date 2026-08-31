@@ -102,9 +102,13 @@ export const LongContent = memo(function LongContent({
       {(expanded ? lines : headLines).map((line, i) => (
         <p key={i}>{renderLine(line, highlight)}</p>
       ))}
-      {!expanded && (
+      {!expanded ? (
         <button type="button" className="expand-post-btn" onClick={() => setExpanded(true)}>
           展开全文（{content.length} 字）▾
+        </button>
+      ) : (
+        <button type="button" className="expand-post-btn" onClick={() => setExpanded(false)}>
+          收起 ▴
         </button>
       )}
     </>
