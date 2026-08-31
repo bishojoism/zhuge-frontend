@@ -216,6 +216,24 @@ export function useTopicPagination(id: string | undefined) {
         setPendingTarget(null);
       }, 3000);
       const num = found.number;
+      // 目标楼能否滚到视口顶部：乐观帧只含少量楼层（缺目标楼之前的楼层），页面高度不足，
+      // 此时定位滚不到顶（视口顶部是主题数据），滚了也是白滚，等真实楼层到达页面变高后再定位。
+      // 用「目标楼到文档底部的高度 ≥ 视口高度」判断下方是否有足够内容把它顶到视口顶部。
+      const canPinToTop = (() => {
+        const el0 = document.querySelector(`[data-num="${num}"]`);
+        if (!el0) return true; // DOM 未渲染，先按可定位处理（轮询会重查）
+        const rect = el0.getBoundingClientRect();
+        const docEl = document.documentElement;
+        const heightBelow = docEl.scrollHeight - (rect.top + window.scrollY);
+        return heightBelow >= window.innerHeight;
+      })();
+      if (!canPinToTop) {
+        // 页面太矮定位不到位：跳过这次滚动，等 mergedPosts 变化（真实楼层插入）重跑本 effect
+        // 再瞬时定位（届时下方空间足够，一次到位，不再"先滚不到位再跳"）
+        console.log(`[zhuge-jump] skip scroll (page too short) num=${num} mergedLen=${mergedPosts.length}`);
+        firstScrollRef.current = false; // 下次直接瞬时跳转
+        return;
+      }
       let tries = 0;
       const tryScroll = () => {
         const el = document.querySelector(`[data-num="${num}"]`);
