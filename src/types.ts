@@ -52,7 +52,7 @@ export interface Discussion {
   tags?: string; // "A / B"
   /** 作者已获徽章（"icon:tier" 逗号分隔，tier=1 为进阶徽章带特效），作者名旁展示 */
   author_badges?: string | null;
-  // 一键三连：首帖的点赞/收藏/投币计数 + 当前用户状态（列表接口返回）
+  // 一键三连：点赞/收藏/投币计数 + 当前用户状态（后端联表返回）
   like_count?: number;
   favorite_count?: number;
   coin_count?: number;
@@ -60,6 +60,8 @@ export interface Discussion {
   favorited?: number | null;
   /** 作者累计获得的格币（等级徽章依据） */
   author_earned?: number | null;
+  /** 首帖被滴滴次数（列表接口返回，乐观帧显示） */
+  post_didi_count?: number;
 }
 
 // 我的格币（余额 / 累计 / 等级 / 今日任务）
@@ -104,6 +106,9 @@ export interface Post {
   favorited?: number | null;
   /** 作者累计获得的格币（等级徽章依据，Lv.2 起显示） */
   author_earned?: number | null;
+  /** 被滴滴次数 / 当前用户是否滴滴过（详情接口返回） */
+  didi_count?: number;
+  didi_by_me?: number;
 }
 
 export interface DiscussionDetail {

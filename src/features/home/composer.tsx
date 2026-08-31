@@ -590,13 +590,14 @@ export function seedTopicCacheFromList(
         author_avatar: d.author_avatar ?? null,
         character_id: d.first_character_id ?? null,
         author_badges: d.author_badges,
-        // 一键三连计数/状态 + 作者等级：列表接口已返回，乐观首帧即显示（真实数据到达后替换）
+        // 一键三连计数/状态 + 作者等级 + 滴滴数：列表接口已返回，乐观首帧即显示（真实数据到达后替换）
         like_count: d.like_count || 0,
         favorite_count: d.favorite_count || 0,
         coin_count: d.coin_count || 0,
         liked: d.liked ?? null,
         favorited: d.favorited ?? null,
         author_earned: d.author_earned ?? null,
+        didi_count: d.post_didi_count || 0,
       },
     ],
     totalPosts: d.comment_count || 1,
