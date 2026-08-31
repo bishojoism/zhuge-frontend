@@ -11,7 +11,7 @@ import { useDiscussions, useTags, refreshListsAfterWrite, preloadAllPrimaryLists
 import { readInitData } from '../../api/client';
 import { openModalOnce } from '../../lib/modals';
 import { focusOnEnter } from '../../lib/modalFocus';
-import type { Discussion, InitData, User } from '../../types';
+import type { Discussion, InitData } from '../../types';
 import TagBar, { type SortKey } from './tagbar';
 import FeedView from './feed';
 import ListView from './list';
@@ -26,36 +26,11 @@ const newSeed = () => Math.floor(Date.now() / 60000) + 1;
 
 const SORT_KEYS: SortKey[] = ['recommend', 'latest', 'hot'];
 
-// 打开注册弹窗（动态导入；点击手势内同步执行以便 iOS 聚焦）
-const openRegisterModal = () => import('../auth/authModals').then((m) => m.openRegisterModal());
-
-function Hero({ user }: { user: User | null | undefined }) {
-  // 未登录访客：欢迎语与已登录一致，额外加注册引导按钮（宣传落地引导）
-  if (!user) {
-    return (
-      <div className="hero hero-landing">
-        <h1>
-          欢迎来到《主格》
-          <span className="beta-badge" style={{ verticalAlign: 'middle', marginLeft: 8 }}>
-            快速迭代中
-          </span>
-        </h1>
-        <p>这是一个文字角色扮演（语C）平台，可以「滴滴」一键创建仅双方可见的私密主题。</p>
-        <button type="button" className="hero-cta" onClick={openRegisterModal}>
-          注册《主格》，开始你的故事
-        </button>
-      </div>
-    );
-  }
+// 扁横幅：仅提示可滴滴开私服（已去掉欢迎语与未登录注册引导按钮）
+function Hero() {
   return (
-    <div className="hero">
-      <h1>
-        欢迎来到《主格》
-        <span className="beta-badge" style={{ verticalAlign: 'middle', marginLeft: 8 }}>
-          快速迭代中
-        </span>
-      </h1>
-      <p>这是一个文字角色扮演（语C）平台，可以「滴滴」一键创建仅双方可见的私密主题。</p>
+    <div className="hero hero-slim">
+      <p>「滴滴」可一键创建仅双方可见的私密主题</p>
     </div>
   );
 }
@@ -286,7 +261,7 @@ export default function HomePage() {
     );
   }, [tags, tag, switchTag]);
 
-  const hero = <Hero user={user} />;
+  const hero = <Hero />;
   const tagbar = (
     <TagBar
       tags={tags}

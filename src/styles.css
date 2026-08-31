@@ -184,28 +184,19 @@
         radial-gradient(500px 200px at 88% 0%, rgba(255,255,255,.16), transparent 60%),
         linear-gradient(135deg, #8b9cb0, #74879c 60%, #64788f);
       color: #fff; border-radius: var(--radius-lg);
-      padding: 30px 28px; margin-bottom: 22px;
+      padding: 9px 16px; margin-bottom: 8px;
       position: relative; overflow: hidden;
+      display: flex; align-items: center;
+      min-height: 34px;
     }
     .hero::after {
       content: ''; position: absolute; right: -30px; top: -50px;
       width: 180px; height: 180px; border-radius: 50%;
       background: rgba(255,255,255,.07);
     }
-    .hero h1 { font-size: 23px; margin-bottom: 8px; font-weight: 700; letter-spacing: 1px; }
-    .hero p { opacity: .9; font-size: 13.5px; line-height: 1.7; }
-
-    /* 未登录落地引导：欢迎语 + 注册按钮 */
-    .hero-landing { padding: 26px 24px 24px; }
-    .hero-cta {
-      margin-top: 16px; width: 100%;
-      background: #fff; color: #64788f; border: none;
-      border-radius: 999px; padding: 12px 0;
-      font-size: 15px; font-weight: 700; cursor: pointer;
-      box-shadow: 0 2px 10px rgba(0,0,0,.15);
-      font-family: inherit;
+    .hero p {
+      margin: 0; opacity: .92; font-size: 13px; line-height: 1.5;
     }
-    .hero-cta:active { transform: scale(.98); }
 
     /* 鏍囩鏉★紙妯悜婊氬姩涓€琛岋紝鍙充晶鍥哄畾鎺掑簭/寮€鎴忥級 */
     .tagbar {
@@ -584,7 +575,7 @@
       .feed-mode { height: calc(100dvh - 82px); }
     }
     /* 鎺ㄨ崘妯″紡妯箙锛氫笌鍒楄〃妯″紡瀹屽叏涓€鑷达紙澶嶇敤 .hero 缁勪欢鏍峰紡锛岄棿璺濈粺涓€ 22px锛?*/
-    .feed-mode .hero { flex-shrink: 0; margin-bottom: 22px; }
+    .feed-mode .hero { flex-shrink: 0; margin-bottom: 8px; }
     .feed-body { position: relative; flex: 1; min-height: 0; }
     .feed-topbar {
       position: absolute; top: 0; left: 0; right: 0; z-index: 6;
@@ -747,7 +738,7 @@
     @media (max-width: 600px) {
       .nav { padding: 8px 12px; gap: 8px; }
       .container { padding: 16px 12px 32px; }
-      .hero { padding: 24px 20px; }
+      .hero { padding: 8px 14px; }
       /* 绉诲姩绔細70px = 瀵艰埅 ~54px + 瀹瑰櫒涓婂唴杈硅窛 16px */
       .feed-mode { height: calc(100vh - 70px); }
       @supports (height: 100dvh) {
@@ -814,7 +805,7 @@ body { margin: 0; }
 /* 导航头像徽标略大但仍克制 */
 .nav-avatar .gender-badge { width: 20px; height: 20px; font-size: 12px; padding-top: 2px; right: -2px; bottom: -2px; }
 /* 列表模式 hero 间距与 feed 一致 */
-.hero { margin-bottom: 22px; }
+.hero { margin-bottom: 8px; }
 
 /* Route fallback spinner fade-in (no jarring flash) */
 .page-fallback-fade {
