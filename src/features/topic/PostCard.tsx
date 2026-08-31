@@ -434,7 +434,7 @@ export function PostCard({
           <Group gap={2} wrap="nowrap" ml="auto">
             <Button
               size="compact-xs"
-              variant="filled"
+              variant="light"
               color="clay"
               loading={busy}
               onClick={() => void doTriple()}
