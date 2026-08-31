@@ -1,9 +1,12 @@
-// ===== 作者名片弹窗（点击作者名）：角色信息 → 作者（皮下）信息 → 滴滴统计 =====
+// ===== 作者名片弹窗（点击作者名）：角色信息 → 作者（皮下）信息 → 滴滴统计 → 屏蔽 =====
 import { useEffect, useState } from 'react';
-import { Divider, Group, Loader, Stack, Text } from '@mantine/core';
+import { Button, Divider, Group, Loader, Stack, Text } from '@mantine/core';
 import { modals } from '@mantine/modals';
+import { notifications } from '@mantine/notifications';
 import { api } from '../../api/client';
 import { openModalOnce } from '../../lib/modals';
+import { refreshListsAfterWrite } from '../../api/hooks';
+import { useAuth } from '../auth/AuthContext';
 import type { Gender } from '../../types';
 
 interface CharacterInfo {
@@ -21,6 +24,8 @@ interface AuthorCardData {
   character: CharacterInfo | null;
   badges: { code: string; name: string; description: string; icon: string; tier: number }[];
   didiStats: { total: number; accepted: number; declined: number; pending: number; rate: number | null };
+  /** 当前登录用户是否已屏蔽该名片用户 */
+  blocked?: boolean;
 }
 
 const GENDER_LABEL: Record<string, string> = { male: '男', female: '女', other: '其他', secret: '保密' };
@@ -36,16 +41,44 @@ export function openAuthorDidiStats(userId: number, username: string, characterI
 }
 
 function AuthorCardContent({ userId, characterId }: { userId: number; characterId: number | null }) {
+  const { user } = useAuth();
+  const isSelf = !!user && user.id === userId;
   const [data, setData] = useState<AuthorCardData | null>(null);
   const [error, setError] = useState(false);
+  const [blocked, setBlocked] = useState(false);
+  const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     const qs = new URLSearchParams({ userId: String(userId) });
     if (characterId) qs.set('characterId', String(characterId));
     api<{ data: AuthorCardData }>(`/author-card?${qs.toString()}`)
-      .then((r) => setData(r.data))
+      .then((r) => {
+        setData(r.data);
+        setBlocked(!!r.data.blocked);
+      })
       .catch(() => setError(true));
   }, [userId, characterId]);
+
+  // 屏蔽 / 取消屏蔽：屏蔽后该用户主题/帖子/通知全站不显示
+  const toggleBlock = async () => {
+    setBusy(true);
+    try {
+      if (blocked) {
+        await api(`/me/blocks/${userId}`, { method: 'DELETE' });
+        setBlocked(false);
+        notifications.show({ message: `已取消屏蔽 ${data?.user.username || ''}` });
+      } else {
+        await api('/me/blocks', { method: 'POST', body: { userId } });
+        setBlocked(true);
+        notifications.show({ message: `已屏蔽 ${data?.user.username || ''}，其主题/帖子/通知不再显示` });
+        void refreshListsAfterWrite(); // 屏蔽后列表立即移除其内容
+      }
+    } catch (e) {
+      notifications.show({ message: e instanceof Error ? e.message : '操作失败', color: 'red' });
+    } finally {
+      setBusy(false);
+    }
+  };
 
   if (error) {
     return (
@@ -215,6 +248,40 @@ function AuthorCardContent({ userId, characterId }: { userId: number; characterI
           接戏率 = 已接 / 被滴滴总数。滴滴前先看看对方的接戏习惯吧。
         </Text>
       </Stack>
+
+      {/* 4) 屏蔽操作：屏蔽后该用户主题/帖子/通知全站不显示 */}
+      {isSelf ? null : (
+        <>
+          <Divider my={2} />
+          <Button
+            variant={blocked ? 'filled' : 'light'}
+            color={blocked ? 'gray' : 'red'}
+            fullWidth
+            loading={busy}
+            onClick={() => {
+              // 屏蔽确认（取消屏蔽直接执行）
+              if (blocked) {
+                void toggleBlock();
+                return;
+              }
+              modals.openConfirmModal({
+                title: '屏蔽用户',
+                centered: true,
+                children: (
+                  <Text size="sm">
+                    屏蔽后，{data.user.username} 的主题、帖子、通知将不再显示。此操作可随时取消。
+                  </Text>
+                ),
+                labels: { confirm: '屏蔽', cancel: '取消' },
+                confirmProps: { color: 'red' },
+                onConfirm: () => void toggleBlock(),
+              });
+            }}
+          >
+            {blocked ? '已屏蔽（点击取消）' : '屏蔽该用户'}
+          </Button>
+        </>
+      )}
     </Stack>
   );
 }
