@@ -197,13 +197,9 @@ export function PostCard({
     }
   };
 
-  // 投币（固定 1 币，10% 税；被投币会通知作者）
+  // 投币（固定 1 币，10% 税；被投币会通知作者；允许给自己）
   const doCoin = async () => {
     if (needLogin()) return;
-    if (user && user.id === post.user_id) {
-      notifications.show({ message: '不能给自己的帖子投币', color: 'orange' });
-      return;
-    }
     setBusy(true);
     try {
       await api(`/posts/${post.id}/coin`, { method: 'POST' });
@@ -219,20 +215,12 @@ export function PostCard({
 
   const doTip = () => {
     if (needLogin()) return;
-    if (user && user.id === post.user_id) {
-      notifications.show({ message: '不能打赏自己的帖子', color: 'orange' });
-      return;
-    }
     openTipModal(post.id, author, () => setCoinCount((c) => c + 1));
   };
 
-  // 一键三连：一次点击完成 点赞 + 收藏 + 投币（已点赞/已收藏的跳过；投币消耗 1 币）
+  // 一键三连：一次点击完成 点赞 + 收藏 + 投币（已点赞/已收藏的跳过；投币消耗 1 币；允许给自己）
   const doTriple = async () => {
     if (needLogin()) return;
-    if (user && user.id === post.user_id) {
-      notifications.show({ message: '不能给自己的帖子三连（投币需给他人）', color: 'orange' });
-      return;
-    }
     setBusy(true);
     let coinOk = true;
     try {

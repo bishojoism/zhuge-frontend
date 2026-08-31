@@ -101,10 +101,6 @@ export function TopicCard({
       requireLogin('互动');
       return;
     }
-    if (kind === 'coin' && user.id === d.user_id) {
-      notifications.show({ message: '不能给自己的帖子投币', color: 'orange' });
-      return;
-    }
     setBusy(true);
     try {
       if (kind === 'like') {
@@ -147,15 +143,11 @@ export function TopicCard({
     }
   };
 
-  // 一键三连：点赞 + 收藏 + 投币（已做的跳过）
+  // 一键三连：点赞 + 收藏 + 投币（已做的跳过；允许给自己）
   const doTriple = async () => {
     if (!postId) return;
     if (!user) {
       requireLogin('互动');
-      return;
-    }
-    if (user.id === d.user_id) {
-      notifications.show({ message: '不能给自己的帖子三连（投币需给他人）', color: 'orange' });
       return;
     }
     setBusy(true);
