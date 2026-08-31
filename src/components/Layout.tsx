@@ -571,8 +571,10 @@ export default function Layout({ children }: { children: ReactNode }) {
           )}
         </div>
       </nav>
-      {/* 通知弹窗：单例（本地 state 控制，避免 modals 栈叠加） */}
-      <Modal opened={notifOpen} onClose={() => setNotifOpen(false)} title="通知" size={480} centered>
+      {/* 通知弹窗：单例（本地 state 控制，避免 modals 栈叠加）
+          transition duration 0：点击通知跳转时弹窗立即消失，不做 200ms 淡出——
+          否则用户会看到"点击后弹窗慢慢淡出"的延迟感（误以为加载中） */}
+      <Modal opened={notifOpen} onClose={() => setNotifOpen(false)} title="通知" size={480} centered transitionProps={{ transition: 'pop', duration: 0 }}>
         <NotificationsModalContent onClose={() => setNotifOpen(false)} />
       </Modal>
       <div className="container">{children}</div>
