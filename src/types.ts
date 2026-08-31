@@ -80,6 +80,12 @@ export interface DiscussionDetail {
   discussion: Discussion;
   posts: Post[];
   tags: Tag[];
+  /** 帖子总数（分页元信息：当前页条数 + 总数，前端据此判断加载更多/显示总楼层） */
+  totalPosts?: number;
+  /** 当前返回的是第几页 */
+  page?: number;
+  /** 每页条数 */
+  pageSize?: number;
   /** 私密主题：当前用户是否为收件人（被滴滴方）。仅收件人可看到"接受/婉拒"响应条 */
   isRecipient?: boolean;
   /** 私密主题（滴滴）：被滴滴的原帖信息（定位原帖用） */

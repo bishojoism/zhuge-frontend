@@ -434,9 +434,10 @@ export function ComposerContent({ user, tags, onPosted }: ComposerContentProps) 
   );
 }
 
-// 发帖成功后乐观种入新主题详情数据（key: /discussions/:id）：
+// 发帖成功后乐观种入新主题详情数据（key: /discussions/:id?page=1&order=new|old）：
 // 详情页跳转后首帧直接用这段数据渲染（不闪骨架屏），SWR revalidate 拿真实数据替换。
 // 帖子 id 用负值标记"乐观帖"，详情页据此显示（同回复乐观更新的约定）。
+// 种两个 order 的 key：默认"从新到旧"命中，切到"从旧到新"也零请求。
 export function seedTopicCache(
   user: User,
   newId: number,
@@ -495,14 +496,19 @@ export function seedTopicCache(
         character_name: char ? char.name : null,
       },
     ],
+    totalPosts: 1,
+    page: 1,
+    pageSize: 50,
     tags: pickedTags,
   };
-  void globalMutate(`/discussions/${newId}`, optimistic, { revalidate: true });
+  void globalMutate(`/discussions/${newId}?page=1&order=new`, optimistic, { revalidate: true });
+  void globalMutate(`/discussions/${newId}?page=1&order=old`, optimistic, { revalidate: true });
 }
 
 // 主题列表点进主题时乐观种入详情缓存：用列表已有数据（标题/作者/摘要/配图）构造乐观详情，
 // 详情页跳转后首帧直接渲染（不闪骨架屏），后台 revalidate 拉真实数据（完整首帖/回复）替换。
 // 首帖 content 用列表摘要（excerpt）填充——不是全文，但足够首帧展示；帖子 id 用负值标记乐观帖。
+// 种两个 order 的 key（同 seedTopicCache）。
 // 参数用宽松类型（Partial<Discussion>）：首页 feed/list、搜索、我的主题、私密列表的条目都可传。
 export function seedTopicCacheFromList(d: Partial<Discussion> & { id: number; title: string }): void {
   const now = new Date().toISOString().replace('T', ' ').slice(0, 19);
@@ -553,7 +559,11 @@ export function seedTopicCacheFromList(d: Partial<Discussion> & { id: number; ti
         author_badges: d.author_badges,
       },
     ],
+    totalPosts: d.comment_count || 1,
+    page: 1,
+    pageSize: 50,
     tags: [],
   };
-  void globalMutate(`/discussions/${d.id}`, optimistic, { revalidate: true });
+  void globalMutate(`/discussions/${d.id}?page=1&order=new`, optimistic, { revalidate: true });
+  void globalMutate(`/discussions/${d.id}?page=1&order=old`, optimistic, { revalidate: true });
 }

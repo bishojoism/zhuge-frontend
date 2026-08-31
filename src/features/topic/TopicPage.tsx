@@ -20,7 +20,10 @@ import { copyText, displayName, imgSrc, pickImageFile, tagTextColorOf, timeAgo, 
 import Avatar from '../../components/Avatar';
 import BBCodeEditor from '../../components/BBCodeEditor';
 import { clearDraft, saveDraft } from '../../lib/drafts';
-import type { CharacterItem, Discussion, Post, Tag, User } from '../../types';
+import type { CharacterItem, Discussion, DiscussionDetail, Post, Tag, User } from '../../types';
+
+// 回复分页大小（与后端 getDiscussionData 默认一致；SSR 内联第一页也是这个大小）
+const PAGE_SIZE = 50;
 
 // 性别徽标（角色下拉选项用）
 const GENDER_LABEL: Record<string, string> = { male: '男', female: '女', other: '其他', secret: '保密' };
@@ -110,7 +113,13 @@ export default function TopicPage() {
   const navigate = useNavigate();
   const routeLocation = useLocation();
   const { user } = useAuth();
-  const { data, error, isLoading, mutate } = useTopic(id);
+  // 回复分页：每页 PAGE_SIZE 楼，滚动到底加载更多（后端分页，避免长主题一次性全量返回）
+  const [postOrder, setPostOrder] = useState<'new' | 'old'>('new'); // 回复排序：默认从新到旧
+  const [page, setPage] = useState(1); // 当前已加载到的页码（含预取缓存）
+  const { data, error, isLoading, mutate } = useTopic(id, page, postOrder);
+  // 首帖页：'new'（从新到旧）时最新一页不含首帖（1楼），恒拉 asc 第 1 页补首帖；
+  // 'old' 模式与主 hook 的 page=1 同 key，SWR dedupe 不重复请求
+  const { data: headData } = useTopic(id, 1, 'old');
   const { mutate: refreshUnread } = useUnread();
   const { data: draftsData, mutate: mutateDrafts } = useDrafts();
 
@@ -130,6 +139,7 @@ export default function TopicPage() {
   const [submitting, setSubmitting] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [draftStatus, setDraftStatus] = useState('');
+  const [exporting, setExporting] = useState<'image' | 'text' | null>(null); // 导出全量楼层中（限流严格）
   const [didiLoading, setDidiLoading] = useState<number | null>(null); // 正在滴滴的帖子 id
   // 滴滴身份：点击滴滴前在按钮旁 Select 选好角色（留空 = 本人）
   const [didiCharId, setDidiCharId] = useState<string | null>(null);
@@ -148,7 +158,6 @@ export default function TopicPage() {
   });
   // 用户是否手动操作过角色选择（手动选过/清空后，不再自动覆盖为主题角色）
   const replyCharTouchedRef = useRef(false);
-  const [postOrder, setPostOrder] = useState<'new' | 'old'>('new'); // 回复排序：默认从新到旧
   const [searchOpen, setSearchOpen] = useState(false); // 主题内搜索框开关
   const [searchQ, setSearchQ] = useState(''); // 主题内搜索关键词
   // 阅读位置记忆：上次读到的楼层 → 再次打开时提示跳转（长戏不迷路）
@@ -176,6 +185,122 @@ export default function TopicPage() {
   const focusPostHandledRef = useRef(false);
 
   const draftKey = id ? `reply:${id}` : '';
+
+  // ===== 回复分页状态 =====
+  // loadedPages：已加载的各页数据（key=页码）。当前页（data）与首帖页（headData）变化时自动并入，
+  // mergedPosts 按楼层合并去重（真实帖覆盖同楼乐观帖）。切换排序时清空重载。
+  const [loadedPages, setLoadedPages] = useState<Record<number, DiscussionDetail>>({});
+  useEffect(() => {
+    if (data) setLoadedPages((prev) => ({ ...prev, [page]: data }));
+  }, [data, page]);
+  useEffect(() => {
+    if (headData) setLoadedPages((prev) => ({ ...prev, [1]: headData }));
+  }, [headData]);
+  const changeOrder = (v: 'new' | 'old') => {
+    setPostOrder(v);
+    setPage(1);
+    // 清空已加载页但保留首帖页（headData 引用不变，并入 effect 不会重跑）
+    setLoadedPages(headData ? { [1]: headData } : {});
+  };
+
+  const mergedPosts = useMemo(() => {
+    const real = new Map<number, TopicPost>();
+    const optimistic: TopicPost[] = [];
+    for (const d of Object.values(loadedPages)) {
+      for (const p of (d?.posts || []) as TopicPost[]) {
+        if (p.id > 0) real.set(p.number, p);
+        else optimistic.push(p);
+      }
+    }
+    const out = [...real.values()];
+    for (const p of optimistic) if (!real.has(p.number)) out.push(p);
+    return out.sort((a, b) => a.number - b.number);
+  }, [loadedPages]);
+
+  const totalPosts = data?.totalPosts ?? headData?.totalPosts ?? mergedPosts.length;
+  const hasMore = page * PAGE_SIZE < totalPosts;
+
+  // 预加载：当前页到位后预取下一页、下下页（填充 SWR 缓存，滚到底零等待）
+  useEffect(() => {
+    if (!id || !hasMore) return;
+    const prefetch = (p: number) => {
+      const key = `/discussions/${id}?page=${p}&order=${postOrder}`;
+      void globalMutate<DiscussionDetail>(
+        key,
+        async () => {
+          const r = await api<{ data: DiscussionDetail }>(key);
+          return r.data;
+        },
+        { revalidate: false }
+      ).catch(() => {});
+    };
+    const t1 = window.setTimeout(() => prefetch(page + 1), 600);
+    const t2 = window.setTimeout(() => prefetch(page + 2), 1400);
+    return () => {
+      window.clearTimeout(t1);
+      window.clearTimeout(t2);
+    };
+  }, [id, page, postOrder, hasMore]);
+
+  // 滚动到底部哨兵 → 加载下一页
+  const loadMoreRef = useRef<HTMLDivElement | null>(null);
+  const [loadingMore, setLoadingMore] = useState(false);
+  useEffect(() => {
+    if (!hasMore) return;
+    setLoadingMore(true);
+    const el = loadMoreRef.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((e) => e.isIntersecting)) setPage((p) => p + 1);
+      },
+      { rootMargin: '300px 0px' }
+    );
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, [hasMore, page, postOrder, id]);
+
+  // 目标帖定位：auto-reply/focusPost/跳楼目标不在已加载楼层时，请求其所在页（around）并入，
+  // 到位后滚动高亮。id 目标用 aroundPostId，楼层目标用 aroundNumber（后端算页码）。
+  type PendingTarget = { id: number } | { number: number };
+  const [pendingTarget, setPendingTarget] = useState<PendingTarget | null>(null);
+  const targetFetchingRef = useRef(false);
+  useEffect(() => {
+    if (!pendingTarget || !id) return;
+    const found = 'id' in pendingTarget
+      ? mergedPosts.find((p) => p.id === pendingTarget.id)
+      : mergedPosts.find((p) => p.number === pendingTarget.number);
+    if (found) {
+      setPendingTarget(null);
+      const num = found.number;
+      window.setTimeout(() => {
+        const el = document.querySelector(`[data-num="${num}"]`);
+        if (el) {
+          (el as HTMLElement).scrollIntoView({ behavior: 'smooth', block: 'start' });
+          const node = el as HTMLElement;
+          node.classList.add('post-flash');
+          window.setTimeout(() => node.classList.remove('post-flash'), 1600);
+        }
+      }, 250); // 等该楼 DOM 渲染完成
+      return;
+    }
+    if (targetFetchingRef.current) return; // 定位请求进行中，等结果
+    targetFetchingRef.current = true;
+    const qs = 'id' in pendingTarget
+      ? `aroundPostId=${pendingTarget.id}`
+      : `aroundNumber=${pendingTarget.number}`;
+    api<{ data: DiscussionDetail }>(`/discussions/${id}?page=1&order=old&${qs}`)
+      .then((r) => {
+        setLoadedPages((prev) => ({ ...prev, [r.data.page ?? 99]: r.data }));
+      })
+      .catch(() => {
+        setPendingTarget(null);
+        notifications.show({ message: '目标楼层不存在或已删除', color: 'red' });
+      })
+      .finally(() => {
+        targetFetchingRef.current = false;
+      });
+  }, [pendingTarget, id, mergedPosts]);
 
   // 组件卸载时清掉未触发的防抖定时器
   useEffect(
@@ -214,8 +339,8 @@ export default function TopicPage() {
   // 记录阅读位置：视野上沿附近出现的帖子视为"正在阅读"
   // （必须在骨架屏 return 之前——hooks 数量须一致）
   useEffect(() => {
-    const posts = data?.posts || [];
-    if (!posts.length) return;
+    const postsArr = mergedPosts;
+    if (!postsArr.length) return;
     const els = document.querySelectorAll('.post');
     const obs = new IntersectionObserver(
       (entries) => {
@@ -236,14 +361,12 @@ export default function TopicPage() {
     );
     els.forEach((el) => obs.observe(el));
     return () => obs.disconnect();
-  }, [data, id, postOrder, searchOpen]);
+  }, [mergedPosts, id, postOrder, searchOpen]);
 
-  // 有上次位置且未读到底 → 显示"回到上次位置"
+  // 有上次位置且未读到底 → 显示"回到上次位置"（用总楼层判断是否已读到底）
   useEffect(() => {
-    const posts = data?.posts || [];
-    const last = posts.length ? posts[posts.length - 1].number : 0;
-    setShowJump(lastPos !== null && lastPos < last);
-  }, [data, lastPos]);
+    setShowJump(lastPos !== null && lastPos < totalPosts);
+  }, [totalPosts, lastPos]);
 
   // 回复草稿恢复：先强制刷新云草稿（SSR fallback 旧快照），刷新完成后一次性恢复
   // （restored 防止覆盖用户输入）
@@ -305,8 +428,12 @@ export default function TopicPage() {
       st.replyPostId ??
       (qReply && /^\d+$/.test(qReply) ? Number(qReply) : undefined);
     if (!replyPostId) return;
-    const targetPost = data.posts.find((p) => p.id === replyPostId);
-    if (!targetPost) return;
+    const targetPost = mergedPosts.find((p) => p.id === replyPostId);
+    if (!targetPost) {
+      // 目标楼未加载（分页）：先定位加载其所在页，到位后再接戏（不置 handled，等数据到达重跑）
+      setPendingTarget((prev) => prev ?? { id: replyPostId });
+      return;
+    }
     // 只处理一次：navigate 清 query 与 data 更新（乐观→真实）的竞态会让本 effect 反复重跑
     // （注意：在找到目标帖后才置位——乐观数据可能没有该帖，需等真实数据到达）
     if (autoReplyHandledRef.current) return;
@@ -319,7 +446,7 @@ export default function TopicPage() {
     // 清除 state + query：仅首次进入时生效，刷新/返回不重复触发
     navigate(routeLocation.pathname, { replace: true, state: null });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, data, routeLocation.state, routeLocation.search, navigate]);
+  }, [user, data, mergedPosts, routeLocation.state, routeLocation.search, navigate]);
 
   // 接戏：target 为 null 表示直接回复主题（首帖），否则回复指定帖子
   const startReply = useCallback(
@@ -416,7 +543,7 @@ export default function TopicPage() {
     const optimisticPost: TopicPost = {
       id: Date.now() * -1, // 临时负 id 标记乐观帖
       discussion_id: Number(id),
-      number: (data?.posts?.length ?? 1) + 1,
+      number: (totalPosts ?? mergedPosts.length) + 1, // 新楼 = 总楼层 + 1（分页下 posts.length 只是已加载数）
       created_at: new Date().toISOString().replace('T', ' ').slice(0, 19),
       user_id: user.id,
       content: trimmed,
@@ -570,8 +697,9 @@ export default function TopicPage() {
   }
 
   const d = data.discussion as TopicDiscussion;
-  const posts = (data.posts || []) as TopicPost[];
-  const firstPost = posts[0] || null;
+  // 分页合并后的全部已加载帖子（按楼层正序；'new' 模式渲染时再倒序）
+  const posts = mergedPosts as TopicPost[];
+  const firstPost = posts.find((p) => p.number === 1) || null;
 
   // 删除自己的帖子/主题（作者本人或管理员；首帖删除 = 删整个主题）
   // 作者自删：一个弹窗内完成「确认 + 自选密码/通行密钥验证 + 删除」；
@@ -656,15 +784,38 @@ export default function TopicPage() {
     () => (kw ? replies.filter((p) => (p.content || '').toLowerCase().includes(kw)) : replies),
     [kw, replies]
   );
-  const totalMatched = kw ? (firstMatched ? 1 : 0) + visibleReplies.length : posts.length;
+  const totalMatched = kw ? (firstMatched ? 1 : 0) + visibleReplies.length : totalPosts;
 
-  // 导出：图片记录（自选样式）/ 文字记录（全部帖子）
-  const exportImage = () => {
-    openImageExportModal(d, posts as TopicPost[]);
+  // 导出：图片记录（自选样式）/ 文字记录 —— 需全量楼层，走专用导出接口（一次性全量返回，
+  // 但限流 3 次/分钟，比普通读取严格得多；主题内只加载了分页，不能直接拿已加载的 posts）
+  const fetchAllPosts = async (): Promise<TopicPost[]> => {
+    const r = await api<{ data: DiscussionDetail }>(`/discussions/${Number(id)}/export`);
+    return (r.data.posts || []) as TopicPost[];
   };
-  const exportText = () => {
-    exportTextLog(d, posts as TopicPost[]);
-    notifications.show({ message: `已导出文字记录（${posts.length} 条）` });
+  const exportImage = async () => {
+    if (exporting) return;
+    setExporting('image');
+    try {
+      const all = await fetchAllPosts();
+      openImageExportModal(d, all);
+    } catch (e) {
+      notifications.show({ message: e instanceof Error ? e.message : '导出失败', color: 'red' });
+    } finally {
+      setExporting(null);
+    }
+  };
+  const exportText = async () => {
+    if (exporting) return;
+    setExporting('text');
+    try {
+      const all = await fetchAllPosts();
+      exportTextLog(d, all);
+      notifications.show({ message: `已导出文字记录（${all.length} 条）` });
+    } catch (e) {
+      notifications.show({ message: e instanceof Error ? e.message : '导出失败', color: 'red' });
+    } finally {
+      setExporting(null);
+    }
   };
 
   const jumpToLast = () => {
@@ -672,13 +823,20 @@ export default function TopicPage() {
     const el = document.querySelector(`[data-num="${lastPos}"]`);
     if (el) {
       (el as HTMLElement).scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } else {
+      // 目标楼未加载（分页）：定位其所在页加载后跳转
+      setPendingTarget({ number: lastPos });
     }
   };
 
   // 点击回复引用 → 跳转到被回复的帖子并短暂高亮
   const jumpToPost = (targetId: number) => {
-    const target = data?.posts?.find((p) => p.id === targetId);
-    if (!target) return;
+    const target = posts.find((p) => p.id === targetId);
+    if (!target) {
+      // 目标未加载（可能在前面的分页里）：定位加载后跳转
+      setPendingTarget({ id: targetId });
+      return;
+    }
     const el = document.querySelector(`[data-num="${target.number}"]`);
     if (el) {
       (el as HTMLElement).scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -695,16 +853,21 @@ export default function TopicPage() {
     const sp = new URLSearchParams(routeLocation.search);
     const fp = sp.get('focusPost');
     if (!fp || !/^\d+$/.test(fp)) return;
+    const targetId = Number(fp);
+    // 目标未加载（分页）：先定位加载其所在页，到位后跳转（不置 handled，等数据到达重跑）
+    if (!mergedPosts.some((p) => p.id === targetId)) {
+      setPendingTarget({ id: targetId });
+      return;
+    }
     // 只处理一次：navigate 清 query 与 data 更新（乐观→真实）的竞态会让本 effect 反复重跑 → 无限更新循环
     if (focusPostHandledRef.current) return;
     focusPostHandledRef.current = true;
-    const targetId = Number(fp);
     // 数据 + DOM 渲染完成后跳转（帖子可能未渲染完，稍作延迟）
     const t = window.setTimeout(() => jumpToPost(targetId), 300);
     navigate(routeLocation.pathname, { replace: true, state: null });
     return () => window.clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [data, routeLocation.search, navigate]);
+  }, [data, mergedPosts, routeLocation.search, navigate]);
 
   // 回复引用：优先用后端 reply_to_author，缺失时按 id 查帖子
   const replyToAuthorOf = (p: TopicPost): string | null => {
@@ -1017,11 +1180,19 @@ export default function TopicPage() {
             </Button>
           </Menu.Target>
           <Menu.Dropdown>
-            <Menu.Item leftSection={<span>🖼</span>} onClick={exportImage}>
-              导出图片记录
+            <Menu.Item
+              leftSection={<span>🖼</span>}
+              onClick={() => void exportImage()}
+              disabled={!!exporting}
+            >
+              导出图片记录{exporting === 'image' ? '（加载中…）' : ''}
             </Menu.Item>
-            <Menu.Item leftSection={<span>📄</span>} onClick={exportText}>
-              导出文字记录
+            <Menu.Item
+              leftSection={<span>📄</span>}
+              onClick={() => void exportText()}
+              disabled={!!exporting}
+            >
+              导出文字记录{exporting === 'text' ? '（加载中…）' : ''}
             </Menu.Item>
           </Menu.Dropdown>
         </Menu>
@@ -1053,7 +1224,7 @@ export default function TopicPage() {
           fullWidth
           mb="sm"
           value={postOrder}
-          onChange={(v) => setPostOrder(v as 'new' | 'old')}
+          onChange={(v) => changeOrder(v as 'new' | 'old')}
           data={[
             { label: '从新到旧', value: 'new' },
             { label: '从旧到新', value: 'old' },
@@ -1063,8 +1234,8 @@ export default function TopicPage() {
       {kw && (
         <Text size="xs" c="dimmed" mb="sm">
           {totalMatched === 0
-            ? `在 ${posts.length} 条帖子中没有找到「${searchQ.trim()}」`
-            : `在 ${posts.length} 条帖子中匹配到 ${totalMatched} 条「${searchQ.trim()}」`}
+            ? `在已加载的 ${posts.length} 条中没有找到「${searchQ.trim()}」${hasMore ? '（继续向下加载可搜到更多）' : ''}`
+            : `在已加载的 ${posts.length} 条中匹配到 ${totalMatched} 条「${searchQ.trim()}」${hasMore ? '（继续向下加载可搜到更多）' : ''}`}
         </Text>
       )}
       {kw && totalMatched === 0 && <div className="empty">没有匹配的帖子</div>}
@@ -1104,6 +1275,19 @@ export default function TopicPage() {
         />
       ))}
       {posts.length === 0 && <div className="empty">暂无内容</div>}
+      {/* 分页加载更多：滚到底自动加载下一页（预取缓存命中，几乎零等待）；全部加载完显示总楼层 */}
+      {hasMore ? (
+        <>
+          <div ref={loadMoreRef} style={{ height: 1 }} aria-hidden />
+          <Text size="xs" c="dimmed" ta="center" my="sm">
+            {loadingMore ? '加载中…' : '继续向下加载更多'}
+          </Text>
+        </>
+      ) : posts.length > 1 ? (
+        <Text size="xs" c="dimmed" ta="center" my="sm">
+          已加载全部 {totalPosts} 楼
+        </Text>
+      ) : null}
       {/* 从旧到新：接戏输入卡片放在最末尾（所有回复之后） */}
       {postOrder === 'old' && composerCard}
 

@@ -26,6 +26,7 @@ import {
   IconUserCircle,
   IconAward,
   IconApi,
+  IconBan,
   IconRobot,
   IconLogin,
   IconUserPlus,
@@ -68,6 +69,7 @@ const openBadgesModal = (userId: number) => import('../features/badges/badgesMod
 const openInviteModal = (userId: number, username: string) => import('../features/badges/inviteModal').then((m) => m.openInviteModal(userId, username));
 const openApiTokensModal = () => import('../features/api/apiTokensModal').then((m) => m.openApiTokensModal());
 const openMcpModal = () => import('../features/api/mcpModal').then((m) => m.openMcpModal());
+const openBlocksModal = () => import('../features/private/blocksModal').then((m) => m.openBlocksModal());
 // iOS 安装指引静态引入：modals.open 需在点击手势内同步执行，iOS 才显示弹窗
 // （动态 import 会延到手势之外，弹窗可能不出现）
 import { openIosInstallHint } from '../features/pwa/installHint';
@@ -489,6 +491,12 @@ export default function Layout({ children }: { children: ReactNode }) {
                   </Menu.Item>
                   <Menu.Item leftSection={<IconDeviceMobile size={16} />} onClick={() => openDeviceAuthsModal()}>
                     设备授权
+                  </Menu.Item>
+                  <Menu.Item leftSection={<IconBan size={16} />} onClick={() => openBlocksModal()}>
+                    屏蔽管理
+                    <Text span size="xs" c="dimmed" ml={6}>
+                      我屏蔽的人
+                    </Text>
                   </Menu.Item>
                   {user.isAdmin && (
                     <Menu.Item leftSection={<IconShield size={16} />} onClick={() => navigate('/admin')}>

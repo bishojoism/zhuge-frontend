@@ -135,8 +135,10 @@ export function useDiscussions(params: DiscussionParams) {
   return { result: data, isLoading, mutate, key };
 }
 
-export function useTopic(id: number | string | undefined) {
-  const key = id ? `/discussions/${id}` : null;
+// 主题详情（帖子分页）：key 含 page/order（'new'=从新到旧 desc / 'old'=从旧到新 asc），
+// 每页独立缓存，前端滚动加载 + 预取下一页；SSR 内联的是 page=1&order=new
+export function useTopic(id: number | string | undefined, page: number = 1, order: 'new' | 'old' = 'new') {
+  const key = id ? `/discussions/${id}?page=${page}&order=${order}` : null;
   return useSWR<DiscussionDetail>(key, async (p: string) => {
     const r = await api<{ data: DiscussionDetail }>(p);
     return r.data;

@@ -87,8 +87,8 @@ function buildSwrFallback(): Record<string, unknown> {
     };
   }
 
-  // 主题详情页（useTopic 解析 r.data → topicData）
-  if (d.topicData) fb[`/discussions/${d.topicId}`] = d.topicData;
+  // 主题详情页（useTopic 解析 r.data → topicData；SSR 内联 page=1&order=new）
+  if (d.topicData) fb[`/discussions/${d.topicId}?page=1&order=new`] = d.topicData;
   // 我的滴滴（usePrivateList 解析 r.data → privateList）
   if (Array.isArray(d.privateList)) fb['/me/private'] = d.privateList;
   // 我的主题（useMyDiscussions 解析 r.data → myDiscussions）
