@@ -11,6 +11,7 @@ import { clearDraft, saveDraft } from '../../lib/drafts';
 import { pickImageFile, uploadImageFile } from '../../lib/utils';
 import BBCodeEditor from '../../components/BBCodeEditor';
 import type { CharacterItem, Discussion, DiscussionDetail, Gender, Tag, User } from '../../types';
+import type { TopicPost } from '../topic/topicTypes';
 
 // 角色性别显示
 const GENDER_LABEL: Record<string, string> = { male: '男', female: '女', other: '其他', secret: '保密' };
@@ -524,24 +525,9 @@ export function seedTopicCache(
 // 参数用宽松类型（Partial<Discussion>）：首页 feed/list、搜索、我的主题、私密列表的条目都可传。
 // extraPosts：附加的乐观帖（如通知点入时的"触发回复 + 被回复的那楼"回复链），负 id 标记乐观，
 // 按 number 与首帖一起并入，真实数据到达后同楼覆盖。
-// 字段带全渲染所需的（回复引用/配图/作者等），首帧与真实数据视觉一致，替换时页面不"变一下"。
-export interface OptimisticExtraPost {
-  number: number;
-  content: string;
-  author: string;
-  reply_to_post_id?: number | null;
-  reply_to_author?: string | null;
-  image_url?: string | null;
-  author_avatar?: string | null;
-  author_gender?: Gender | null;
-  character_id?: number | null;
-  like_count?: number;
-  favorite_count?: number;
-  coin_count?: number;
-  liked?: number | null;
-  favorited?: number | null;
-  didi_count?: number;
-}
+// 用 Partial<TopicPost> 全字段透传：created_at/author_badges/author_earned/reply_to_* /
+// 三连计数等，让乐观帧与真实数据视觉完全一致（时间/徽章/等级/回复引用不"变一下"）。
+export type OptimisticExtraPost = Partial<TopicPost> & { number: number; content: string };
 export function seedTopicCacheFromList(
   d: Partial<Discussion> & { id: number; title: string },
   allTags?: Tag[],
@@ -628,32 +614,20 @@ export function seedTopicCacheFromList(
       },
       // 附加乐观帖（回复链：被回复的那楼 + 触发回复；或通知预取的目标页楼层）：负 id，
       // 楼层号用真实值（后端通知/预取带），mergedPosts 按 number 排序显示在正确位置。
-      // 带全渲染字段：回复引用（reply_to_post_id/reply_to_author）、配图、作者信息等，
-      // 让乐观帧与真实数据视觉一致（首帧即有"回复 @xxx ↩ 跳转"引用条，替换时不"变一下"）
+      // 全字段透传（...p）：created_at/author_badges/author_earned/reply_to_*/配图/三连计数等
+      // 一并带入，首帧与真实数据视觉完全一致（时间/徽章/等级/回复引用不"变一下"）
       ...(extraPosts || []).map((p, i) => ({
-        id: -Date.now() - i - 1,
+        ...p,
+        id: -Date.now() - i - 1, // 负 id 标记乐观
         discussion_id: d.id,
-        number: p.number,
-        created_at: now,
-        user_id: 0,
-        content: p.content,
-        edited_at: null,
-        is_private: 0,
+        created_at: p.created_at || now,
+        user_id: p.user_id ?? 0,
+        edited_at: p.edited_at ?? null,
+        is_private: p.is_private ?? 0,
         reply_to_post_id: p.reply_to_post_id ?? null,
-        reply_to_author: p.reply_to_author ?? null,
         image_url: p.image_url ?? null,
-        author: p.author,
-        author_gender: p.author_gender ?? undefined,
-        author_avatar: p.author_avatar ?? undefined,
-        character_id: p.character_id ?? null,
-        author_badges: null,
-        like_count: p.like_count || 0,
-        favorite_count: p.favorite_count || 0,
-        coin_count: p.coin_count || 0,
-        liked: p.liked ?? null,
-        favorited: p.favorited ?? null,
-        author_earned: null,
-        didi_count: p.didi_count || 0,
+        author_badges: p.author_badges ?? null,
+        author_earned: p.author_earned ?? null,
       })),
     ],
     totalPosts: d.comment_count || 1,

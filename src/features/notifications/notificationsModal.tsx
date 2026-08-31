@@ -168,23 +168,9 @@ export function NotificationsModalContent({ onClose }: { onClose: () => void }) 
                 if (r.status !== 'fulfilled') continue;
                 for (const p of (r.value.data.posts || []) as TopicPost[]) {
                   if (!merged.has(p.number)) {
-                    merged.set(p.number, {
-                      number: p.number,
-                      content: p.content,
-                      author: p.author || '',
-                      reply_to_post_id: p.reply_to_post_id ?? null,
-                      reply_to_author: p.reply_to_author ?? null,
-                      image_url: p.image_url ?? null,
-                      author_avatar: p.author_avatar ?? null,
-                      author_gender: p.author_gender ?? undefined,
-                      character_id: p.character_id ?? null,
-                      like_count: p.like_count || 0,
-                      favorite_count: p.favorite_count || 0,
-                      coin_count: p.coin_count || 0,
-                      liked: p.liked ?? null,
-                      favorited: p.favorited ?? null,
-                      didi_count: p.didi_count || 0,
-                    });
+                    // 整个帖子对象透传（Partial<TopicPost>）：created_at/author_badges/
+                    // author_earned/reply_to_*/配图/三连计数等全带，首帧与真实数据视觉一致
+                    merged.set(p.number, { ...p });
                   }
                 }
               }
