@@ -20,6 +20,8 @@ const GROUPS: { title: string; items: Endpoint[] }[] = [
       { method: 'GET', path: '/api/discussions/:id/export', desc: '主题记录导出（一次性全量楼层，上限 5000；限流 3 次/分钟）', auth: false },
       { method: 'POST', path: '/api/discussions', desc: '发布主题（至少选一个标签；可选角色/图片）', auth: true, body: '{ title, content, tagIds[], imageUrl?, characterId? }' },
       { method: 'POST', path: '/api/discussions/:id/posts', desc: '接戏回复（可选回复目标/角色/图片；Ctrl+Enter 同逻辑）', auth: true, body: '{ content, replyTo?, imageUrl?, characterId? }' },
+      { method: 'POST', path: '/api/discussions/:id/invite', desc: '邀请接戏（仅作者，点名邀请 1-3 人接自己的戏，被邀请者收通知）', auth: true, body: '{ userIds: number[] }' },
+      { method: 'GET', path: '/api/discussions/:id/invite-candidates', desc: '邀请候选用户（30 天活跃、同标签优先、排除已邀请）', auth: true },
       { method: 'POST', path: '/api/zhuge/didi', desc: '滴滴：一键创建私密主题（可选以角色身份）', auth: true, body: '{ postId, characterId? }' },
       { method: 'POST', path: '/api/discussions/:id/didi-response', desc: '接受 / 婉拒滴滴', auth: true, body: '{ status: "accepted" | "declined" }' },
     ],
