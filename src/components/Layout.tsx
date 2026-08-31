@@ -36,7 +36,6 @@ import {
 import { useAuth } from '../features/auth/AuthContext';
 import { useUnread, useCoins } from '../api/hooks';
 import { api } from '../api/client';
-import { levelLabel } from '../lib/coins';
 import { useNotifySocket } from '../lib/ws';
 import { usePwaInstall } from '../lib/pwa';
 import { usePushNotify } from '../lib/pushNotify';
@@ -95,7 +94,7 @@ export default function Layout({ children }: { children: ReactNode }) {
   const navigate = useNavigate();
   // 未登录不请求通知（首屏零 API）
   const { unread, mutate: refreshUnread } = useUnread(!!user);
-  const { data: coinData, mutate: mutateCoins } = useCoins();
+  const { mutate: mutateCoins } = useCoins();
   // 每日打开应用自动领格币（+10；当天已领则 no-op，静默）
   useEffect(() => {
     if (!user) return;
@@ -397,49 +396,35 @@ export default function Layout({ children }: { children: ReactNode }) {
                 </Menu.Target>
                 <Menu.Dropdown>
                   <Menu.Label>{user.username}</Menu.Label>
-                  <Menu.Item leftSection={<IconHeartHandshake size={16} />} onClick={() => navigate('/private')}>
-                    我的滴滴
-                  </Menu.Item>
-                  <Menu.Item leftSection={<IconFolder size={16} />} onClick={() => navigate('/my')}>
-                    我的主题
-                  </Menu.Item>
-                  <Menu.Item leftSection={<IconListCheck size={16} />} onClick={() => openCoinsModal()}>
-                    今日任务
-                    <Text span size="xs" c="dimmed" ml={6}>
-                      {coinData ? `${coinData.balance} 币 · ${levelLabel(coinData.level)}` : ''}
-                    </Text>
-                  </Menu.Item>
-                  <Menu.Item leftSection={<IconStar size={16} />} onClick={() => openFavoritesModal()}>
-                    收藏夹
-                  </Menu.Item>
+                  {/* 功能宫格：图标 + 短文字（去掉副信息，防菜单过宽过长） */}
+                  <div className="menu-grid">
+                    {[
+                      { icon: <IconHeartHandshake size={20} />, label: '我的滴滴', onClick: () => navigate('/private') },
+                      { icon: <IconFolder size={20} />, label: '我的主题', onClick: () => navigate('/my') },
+                      { icon: <IconListCheck size={20} />, label: '今日任务', onClick: () => openCoinsModal() },
+                      { icon: <IconStar size={20} />, label: '收藏夹', onClick: () => openFavoritesModal() },
+                      { icon: <IconPhoto size={20} />, label: '上传头像', onClick: () => openAvatarModal() },
+                      { icon: <IconUserCog size={20} />, label: '性别', onClick: () => openGenderModal() },
+                      { icon: <IconMasksTheater size={20} />, label: '角色卡', onClick: () => openCharactersModal() },
+                      { icon: <IconAward size={20} />, label: '我的徽章', onClick: () => openBadgesModal(user.id) },
+                      { icon: <IconUserPlus size={20} />, label: '邀请好友', onClick: () => openInviteModal(user.id, user.username) },
+                      { icon: <IconHelpCircle size={20} />, label: '帮助', onClick: () => openHelpModal() },
+                      { icon: <IconKey size={20} />, label: '账号安全', onClick: () => openSecurityModal() },
+                      { icon: <IconApi size={20} />, label: '开放 API', onClick: () => openApiTokensModal() },
+                      { icon: <IconRobot size={20} />, label: 'MCP', onClick: () => openMcpModal() },
+                      { icon: <IconDeviceMobile size={20} />, label: '设备授权', onClick: () => openDeviceAuthsModal() },
+                      { icon: <IconBan size={20} />, label: '屏蔽管理', onClick: () => openBlocksModal() },
+                      ...(user.isAdmin
+                        ? [{ icon: <IconShield size={20} />, label: '管理', onClick: () => navigate('/admin') }]
+                        : []),
+                    ].map((it) => (
+                      <button key={it.label} type="button" className="menu-grid-item" onClick={it.onClick}>
+                        {it.icon}
+                        <span>{it.label}</span>
+                      </button>
+                    ))}
+                  </div>
                   <Menu.Divider />
-                  <Menu.Item leftSection={<IconPhoto size={16} />} onClick={() => openAvatarModal()}>
-                    上传头像
-                  </Menu.Item>
-                  <Menu.Item leftSection={<IconUserCog size={16} />} onClick={() => openGenderModal()}>
-                    性别
-                  </Menu.Item>
-                  <Menu.Item leftSection={<IconMasksTheater size={16} />} onClick={() => openCharactersModal()}>
-                    角色卡
-                    <Text span size="xs" c="dimmed" ml={6}>
-                      人设
-                    </Text>
-                  </Menu.Item>
-                  <Menu.Item leftSection={<IconAward size={16} />} onClick={() => openBadgesModal(user.id)}>
-                    我的徽章
-                    <Text span size="xs" c="dimmed" ml={6}>
-                      成就 / 邀请
-                    </Text>
-                  </Menu.Item>
-                  <Menu.Item leftSection={<IconUserPlus size={16} />} onClick={() => openInviteModal(user.id, user.username)}>
-                    邀请好友
-                    <Text span size="xs" c="dimmed" ml={6}>
-                      链接 / 海报
-                    </Text>
-                  </Menu.Item>
-                  <Menu.Item leftSection={<IconHelpCircle size={16} />} onClick={() => openHelpModal()}>
-                    使用帮助
-                  </Menu.Item>
                   {/* 调试模式开关（vConsole 虚拟控制台）：同系统通知，用自定义 div 保证 Switch 点击可靠 */}
                   <div className="menu-push-row" role="menuitem" onClick={(e) => e.stopPropagation()}>
                     <Group justify="space-between" wrap="nowrap" w="100%">
@@ -500,38 +485,6 @@ export default function Layout({ children }: { children: ReactNode }) {
                       </Box>
                     </Group>
                   </div>
-                  <Menu.Item leftSection={<IconKey size={16} />} onClick={() => openSecurityModal()}>
-                    账号安全
-                    <Text span size="xs" c="dimmed" ml={6}>
-                      密码 / 通行密钥
-                    </Text>
-                  </Menu.Item>
-                  <Menu.Item leftSection={<IconApi size={16} />} onClick={() => openApiTokensModal()}>
-                    开放 API
-                    <Text span size="xs" c="dimmed" ml={6}>
-                      令牌
-                    </Text>
-                  </Menu.Item>
-                  <Menu.Item leftSection={<IconRobot size={16} />} onClick={() => openMcpModal()}>
-                    MCP
-                    <Text span size="xs" c="dimmed" ml={6}>
-                      AI 接入
-                    </Text>
-                  </Menu.Item>
-                  <Menu.Item leftSection={<IconDeviceMobile size={16} />} onClick={() => openDeviceAuthsModal()}>
-                    设备授权
-                  </Menu.Item>
-                  <Menu.Item leftSection={<IconBan size={16} />} onClick={() => openBlocksModal()}>
-                    屏蔽管理
-                    <Text span size="xs" c="dimmed" ml={6}>
-                      我屏蔽的人
-                    </Text>
-                  </Menu.Item>
-                  {user.isAdmin && (
-                    <Menu.Item leftSection={<IconShield size={16} />} onClick={() => navigate('/admin')}>
-                      管理
-                    </Menu.Item>
-                  )}
                   <Menu.Divider />
                   <Menu.Item leftSection={<IconLogout size={16} />} onClick={handleLogout}>
                     <Text component="span" style={{ color: 'var(--st-danger)' }}>

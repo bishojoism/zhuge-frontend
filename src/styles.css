@@ -878,3 +878,34 @@ body { margin: 0; }
   background: var(--mantine-color-default-hover, rgba(127, 127, 127, 0.1));
 }
 
+/* Avatar menu: 功能宫格（图标 + 短文字，4 列网格，替代超长纵向菜单） */
+.menu-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 2px;
+  padding: 6px;
+  min-width: 264px;
+}
+.menu-grid-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 2px 8px;
+  border: none;
+  background: transparent;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 11px;
+  color: var(--text);
+  line-height: 1.2;
+  font-family: inherit;
+}
+.menu-grid-item:hover {
+  background: var(--mantine-color-default-hover, rgba(127, 127, 127, 0.1));
+}
+.menu-grid-item svg {
+  color: var(--muted, #8b9cb0);
+}
+
+
