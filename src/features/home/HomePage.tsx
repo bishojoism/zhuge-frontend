@@ -26,8 +26,8 @@ const newSeed = () => Math.floor(Date.now() / 60000) + 1;
 
 const SORT_KEYS: SortKey[] = ['recommend', 'latest', 'hot'];
 
-// 扁横幅：已登录显示「下一步」任务引导（复用 get_daily_todo 的任务数据：/api/me/coins 同源，
-// 取第一个未完成且建议自动的任务）；未登录仅提示可滴滴开私服
+// 扁横幅：显示「下一步」引导——已登录取首个未完成且建议自动的任务（复用 get_daily_todo 逻辑，
+// /api/me/coins 同源数据）；未登录显示"注册"；任务全部完成显示 🎉
 function Hero() {
   const { user } = useAuth();
   // 登录时才请求格币/任务（未登录 key=null 零请求）
@@ -44,7 +44,10 @@ function Hero() {
           </span>
         </p>
       ) : (
-        <p>「滴滴」可一键创建仅双方可见的私密主题</p>
+        <p>
+          下一步：<b>注册《主格》，开始你的故事</b>
+          <span style={{ opacity: 0.8, marginLeft: 8, fontSize: 12 }}>（免费 · 支持指纹/面容登录）</span>
+        </p>
       )}
     </div>
   );
