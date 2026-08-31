@@ -88,7 +88,8 @@ export default function HomePage() {
   const sortRef = useRef(urlSort);
 
   // URL 变化（点标签 / 前进后退 / 直接输入）→ 同步状态。
-  // 进入推荐 → 随机 seed（与 SSR 一致：每次看到不同的推荐 shuffle）；
+  // 进入推荐 → 用 SSR 内联 seed（每次刷新网页时 SSR 重新随机 → 刷新前后切回推荐的序列不同；
+  //   且与 SSR 预渲染的内联数据同 seed 同序列 → 请求结果一致，预渲染生效、零 API 秒开、无跳变）；
   // 切标签（仍在推荐）→ 分钟级 seed（预加载缓存命中，秒切）
   useEffect(() => {
     const tagChanged = urlTag !== tagRef.current;
@@ -98,7 +99,7 @@ export default function HomePage() {
     setTag(urlTag);
     setSort(urlSort);
     if (enteringRecommend) {
-      setFeedSeed(Math.floor(Math.random() * 1e9) + 1);
+      setFeedSeed(initSnap.seed);
     } else if (tagChanged) {
       setFeedSeed(newSeed());
     }
