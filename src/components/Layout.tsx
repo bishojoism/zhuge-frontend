@@ -459,7 +459,15 @@ export default function Layout({ children }: { children: ReactNode }) {
                           {debugOn ? '已开启' : '未开启'}
                         </Text>
                       </Group>
-                      <Switch size="sm" checked={debugOn} onChange={handleDebugToggle} aria-label="调试模式" />
+                      <Box
+                        pos="relative"
+                        display="inline-flex"
+                        style={{ alignItems: 'center', justifyContent: 'center' }}
+                        w={44}
+                        h={22}
+                      >
+                        <Switch size="sm" checked={debugOn} onChange={handleDebugToggle} aria-label="调试模式" />
+                      </Box>
                     </Group>
                   </div>
                   {/* 系统通知开关：不用 Menu.Item（button 内嵌 Switch 非法嵌套，点击可能被吞），
@@ -495,7 +503,13 @@ export default function Layout({ children }: { children: ReactNode }) {
                           </Text>
                         )}
                       </Group>
-                      <Box pos="relative" display="inline-flex" w={44} h={22}>
+                      <Box
+                        pos="relative"
+                        display="inline-flex"
+                        style={{ alignItems: 'center', justifyContent: 'center' }}
+                        w={44}
+                        h={22}
+                      >
                         <Switch
                           size="sm"
                           checked={push.state === 'subscribed'}
