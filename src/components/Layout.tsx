@@ -424,7 +424,6 @@ export default function Layout({ children }: { children: ReactNode }) {
                       { icon: <IconMasksTheater size={20} />, label: '角色卡', onClick: () => openCharactersModal() },
                       { icon: <IconAward size={20} />, label: '我的徽章', onClick: () => openBadgesModal(user.id) },
                       { icon: <IconUserPlus size={20} />, label: '邀请好友', onClick: () => openInviteModal(user.id, user.username) },
-                      { icon: <IconHelpCircle size={20} />, label: '帮助', onClick: () => openHelpModal() },
                       { icon: <IconKey size={20} />, label: '账号安全', onClick: () => openSecurityModal() },
                       { icon: <IconApi size={20} />, label: '开放 API', onClick: () => openApiTokensModal() },
                       { icon: <IconRobot size={20} />, label: 'MCP', onClick: () => openMcpModal() },
@@ -560,10 +559,6 @@ export default function Layout({ children }: { children: ReactNode }) {
                   </Menu.Item>
                   <Menu.Item leftSection={<IconRobot size={16} />} onClick={() => navigate('/docs/mcp')}>
                     MCP
-                  </Menu.Item>
-                  <Menu.Divider />
-                  <Menu.Item leftSection={<IconHelpCircle size={16} />} onClick={() => openHelpModal()}>
-                    使用帮助
                   </Menu.Item>
                 </Menu.Dropdown>
               </Menu>
