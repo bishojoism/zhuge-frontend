@@ -81,29 +81,11 @@ export default function HomePage() {
 
   const [sort, setSort] = useState<SortKey>(urlSort);
   const [tag, setTag] = useState<number | null>(urlTag);
-  // 初始种子：SSR 内联（与内联讨论列表同 key，命中 SWR fallback 零请求）；否则随机
+  // 初始种子：SSR 内联（每次请求随机 → 推荐池 shuffle 每次不同；与内联讨论列表同 key，
+  // 命中 SWR fallback 零请求）；否则随机
   const [feedSeed, setFeedSeed] = useState<number>(initSnap.seed);
   const tagRef = useRef(urlTag);
   const sortRef = useRef(urlSort);
-
-  // hack：刷新看到不同推荐。SSR 首页/标签页走缓存（seed 分钟级，首屏秒开），
-  // 若沿用内联 seed 则每次刷新都是同一份缓存内容 → 挂载后换**随机** seed 重新请求推荐。
-  // 新 seed 数据**追加到 SSR 列表之后（去重）**，首屏卡片保持不变，用户滑动自然看到新内容。
-  // 仅挂载时执行一次（客户端切标签走 newSeed 命中预加载秒切，不触发）；
-  // 仅推荐模式需要（latest/hot 排序不用 seed）。
-  const shuffleSeedRef = useRef(false);
-  // 标记"本次 result 是 shuffle 换 seed 的增量数据，应追加去重而非整体替换"
-  const shuffleAppendRef = useRef(false);
-  useEffect(() => {
-    if (shuffleSeedRef.current) return;
-    shuffleSeedRef.current = true;
-    if (sortRef.current !== 'recommend') return;
-    const t = window.setTimeout(() => {
-      shuffleAppendRef.current = true;
-      setFeedSeed(Math.floor(Math.random() * 1e9) + 1);
-    }, 600);
-    return () => window.clearTimeout(t);
-  }, []);
 
   // URL 变化（点标签 / 前进后退 / 直接输入）→ 同步状态；
   // 换标签或进入推荐 → 重置随机种子（回到同一标签不重置，保持推荐顺序稳定）
@@ -144,17 +126,11 @@ export default function HomePage() {
     seed: sort === 'recommend' ? feedSeed : undefined,
   });
 
-  // 切标签/排序/换 seed → 重置分页。
-  // 仅 sort/tag 变化时清空列表（内容确实变了，防旧卡片闪现）；
-  // seed 变化（首页 shuffle 换随机种子）**保留旧列表**——旧内容继续显示，
-  // 新 seed 数据到达后由数据就绪 effect 整体替换（避免换种子闪"加载中"）
-  const prevSortTagRef = useRef(`${sort}:${tag ?? 'all'}`);
+  // 切标签/排序/换 seed → 重置分页并清空当前列表。
+  // SSR 内联 seed 与前端请求 seed 一致（同 key 同序列），整体替换后内容一致，无跳变
   useEffect(() => {
-    const cur = `${sort}:${tag ?? 'all'}`;
-    const sortTagChanged = prevSortTagRef.current !== cur;
-    prevSortTagRef.current = cur;
     setPage(1);
-    if (sortTagChanged) setItems([]);
+    setItems([]);
     setHasMore(true);
     loadingMoreRef.current = false;
     setLoadingMore(false);
@@ -168,19 +144,7 @@ export default function HomePage() {
       // 首次（key 变化/标签切换）→ 整体替换；
       // 同 key 的 SWR 重新验证（聚焦回来/后台刷新）→ 保持现有列表，
       // 避免推荐流重排导致当前显示的卡片瞬间变成另一张（"一闪而逝换主题"）
-      if (shuffleAppendRef.current) {
-        // shuffle 换 seed 的增量：新 seed 数据**追加**到现有列表之后（按 id 去重），
-        // 首屏 SSR 卡片保持不变，用户滑动自然看到新 seed 的内容
-        shuffleAppendRef.current = false;
-        appliedKeyRef.current = key;
-        setItemsBase(baseKeyRef.current);
-        setItems((prev) => {
-          const seen = new Set(prev.map((x) => x.id));
-          return [...prev, ...(result.data || []).filter((x) => !seen.has(x.id))];
-        });
-        // 追加后仍可能继续加载更多（沿用新 seed 的分页）
-        setHasMore(result.meta.hasMore || hasMore);
-      } else if (appliedKeyRef.current === key && itemsRef2.current.length > 0) {
+      if (appliedKeyRef.current === key && itemsRef2.current.length > 0) {
         setHasMore(result.meta.hasMore);
       } else {
         appliedKeyRef.current = key;
@@ -317,14 +281,11 @@ export default function HomePage() {
     const ready = itemsBase === baseKey;
     // 预加载缓存命中：切换标签后 result 立即就绪（SWR 同步读缓存），但 itemsBase 门控与 items
     // state 要等数据就绪 effect 下一轮才同步 → 第一帧直接用 result.data 渲染，消除"加载中"闪帧；
-    // 数据就绪 effect 随后把 items/itemsBase 对齐（cacheHit 只作用于切换瞬间的中间帧）。
-    // 注意：cacheHit 仅当 items 为空（切标签/首次加载）时生效——shuffle 换 seed 期间 items 非空，
-    // 必须继续显示旧列表（新数据由数据就绪 effect 追加到尾部），否则新 seed 返回会整体替换跳变
-    const cacheHit = !!result && !ready && items.length === 0;
+    // 数据就绪 effect 随后把 items/itemsBase 对齐（cacheHit 只作用于切换瞬间的中间帧）
+    const cacheHit = !!result && !ready;
     const displayItems = cacheHit ? result.data : items;
     const displayHasMore = cacheHit ? result.meta.hasMore : hasMore;
-    // 有可显示内容（旧 items 或新 result）→ 直接渲染；seed shuffle 期间旧列表继续显示，
-    // 不闪"加载中"（新 seed 数据到达后由数据就绪 effect 追加）。仅首次加载/切换中（无内容）显示加载中
+    // 有可显示内容（旧 items 或新 result）→ 直接渲染；仅首次加载/切换中（无内容）显示加载中
     if (displayItems.length === 0) {
       // 空态（首次加载 / 切换中 / 无数据）：不挂 feed，保持页面正常滚动。
       // 判定用 result 而非 isLoading：SWR 的 isLoading 首帧恒为 true（即使 fallback 命中），
@@ -356,8 +317,8 @@ export default function HomePage() {
 
   // ===== 列表模式（最新/热门）=====
   const listReady = itemsBase === baseKey;
-  // 同推荐模式：预加载缓存命中时第一帧直接用 result.data，避免"加载中"闪帧（仅 items 为空时）
-  const listCacheHit = !!result && !listReady && items.length === 0;
+  // 同推荐模式：预加载缓存命中时第一帧直接用 result.data，避免"加载中"闪帧
+  const listCacheHit = !!result && !listReady;
   const listItems = listCacheHit ? result.data : items;
   const listHasMore = listCacheHit ? result.meta.hasMore : hasMore;
   return (
