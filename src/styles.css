@@ -709,6 +709,23 @@
       text-align: center; color: var(--muted);
       padding: 20px 0; font-size: 13px;
     }
+    /* feed 加载骨架：与卡片同高占位，避免"加载中…"文字闪一帧 */
+    .feed-loading-skeleton { padding: 4px 0; }
+    .feed-skeleton-card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: var(--radius-md); padding: 22px 26px; margin-bottom: 14px;
+      box-shadow: var(--shadow-sm);
+    }
+    .feed-skeleton-block {
+      background: linear-gradient(90deg, var(--border) 25%, var(--primary-soft) 50%, var(--border) 75%);
+      background-size: 200% 100%;
+      animation: feed-skeleton-shimmer 1.4s ease infinite;
+      border-radius: 6px;
+    }
+    @keyframes feed-skeleton-shimmer {
+      0% { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
     @media (max-width: 600px) {
       .feed-card { padding: 12px; }
       .feed-card-inner { padding: 18px; }

@@ -332,14 +332,28 @@ export default function HomePage() {
     if (displayItems.length === 0) {
       // 空态（首次加载 / 切换中 / 无数据）：不挂 feed，保持页面正常滚动。
       // 判定用 result 而非 isLoading：SWR 的 isLoading 首帧恒为 true（即使 fallback 命中），
-      // 会闪"加载中"；result 在 fallback/内联数据命中时首帧即存在
+      // 会闪"加载中"；result 在 fallback/内联数据命中时首帧即存在。
+      // 加载中用骨架卡片占位（与 feed 卡片同高），避免"加载中…"文字闪一帧突兀。
+      const loading = !result || (!ready && !cacheHit);
       return (
         <>
           {hero}
           {tagbar}
-          <div className={!result || (!ready && !cacheHit) ? 'load-more' : 'empty'}>
-            {!result || (!ready && !cacheHit) ? '加载中…' : '还没有主题，来发第一个吧！'}
-          </div>
+          {loading ? (
+            <div className="feed-loading-skeleton" aria-hidden>
+              {[0, 1].map((i) => (
+                <div key={i} className="feed-skeleton-card">
+                  <div className="feed-skeleton-block" style={{ width: '30%', height: 14 }} />
+                  <div className="feed-skeleton-block" style={{ width: '70%', height: 20, marginTop: 8 }} />
+                  <div className="feed-skeleton-block" style={{ width: '100%', height: 12, marginTop: 8 }} />
+                  <div className="feed-skeleton-block" style={{ width: '90%', height: 12, marginTop: 6 }} />
+                  <div className="feed-skeleton-block" style={{ width: '50%', height: 24, marginTop: 12 }} />
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="empty">还没有主题，来发第一个吧！</div>
+          )}
         </>
       );
     }
@@ -370,9 +384,20 @@ export default function HomePage() {
       {hero}
       {tagbar}
       {listItems.length === 0 ? (
-        <div className={!result || (!listReady && !listCacheHit) ? 'load-more' : 'empty'}>
-          {!result || (!listReady && !listCacheHit) ? '加载中…' : '还没有主题，来发第一个吧！'}
-        </div>
+        !result || (!listReady && !listCacheHit) ? (
+          <div className="feed-loading-skeleton" aria-hidden>
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="feed-skeleton-card">
+                <div className="feed-skeleton-block" style={{ width: '30%', height: 14 }} />
+                <div className="feed-skeleton-block" style={{ width: '70%', height: 18, marginTop: 8 }} />
+                <div className="feed-skeleton-block" style={{ width: '100%', height: 12, marginTop: 8 }} />
+                <div className="feed-skeleton-block" style={{ width: '50%', height: 20, marginTop: 12 }} />
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="empty">还没有主题，来发第一个吧！</div>
+        )
       ) : (
         <ListView
           items={listItems}
