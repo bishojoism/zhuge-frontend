@@ -140,10 +140,17 @@ export default function HomePage() {
     seed: sort === 'recommend' ? feedSeed : undefined,
   });
 
-  // 切标签/排序/换 seed → 重置分页并清空当前列表（渲染门控兜底，防止旧卡片闪现）
+  // 切标签/排序/换 seed → 重置分页。
+  // 仅 sort/tag 变化时清空列表（内容确实变了，防旧卡片闪现）；
+  // seed 变化（首页 shuffle 换随机种子）**保留旧列表**——旧内容继续显示，
+  // 新 seed 数据到达后由数据就绪 effect 整体替换（避免换种子闪"加载中"）
+  const prevSortTagRef = useRef(`${sort}:${tag ?? 'all'}`);
   useEffect(() => {
+    const cur = `${sort}:${tag ?? 'all'}`;
+    const sortTagChanged = prevSortTagRef.current !== cur;
+    prevSortTagRef.current = cur;
     setPage(1);
-    setItems([]);
+    if (sortTagChanged) setItems([]);
     setHasMore(true);
     loadingMoreRef.current = false;
     setLoadingMore(false);
@@ -298,7 +305,9 @@ export default function HomePage() {
     const cacheHit = !!result && !ready;
     const displayItems = cacheHit ? result.data : items;
     const displayHasMore = cacheHit ? result.meta.hasMore : hasMore;
-    if ((!ready && !cacheHit) || displayItems.length === 0) {
+    // 有可显示内容（旧 items 或新 result）→ 直接渲染；seed shuffle 期间旧列表继续显示，
+    // 不闪"加载中"（新 seed 数据到达后由数据就绪 effect 替换）。仅首次加载/切换中（无内容）显示加载中
+    if (displayItems.length === 0) {
       // 空态（首次加载 / 切换中 / 无数据）：不挂 feed，保持页面正常滚动。
       // 判定用 result 而非 isLoading：SWR 的 isLoading 首帧恒为 true（即使 fallback 命中），
       // 会闪"加载中"；result 在 fallback/内联数据命中时首帧即存在
@@ -337,7 +346,7 @@ export default function HomePage() {
     <>
       {hero}
       {tagbar}
-      {(!listReady && !listCacheHit) || listItems.length === 0 ? (
+      {listItems.length === 0 ? (
         <div className={!result || (!listReady && !listCacheHit) ? 'load-more' : 'empty'}>
           {!result || (!listReady && !listCacheHit) ? '加载中…' : '还没有主题，来发第一个吧！'}
         </div>
