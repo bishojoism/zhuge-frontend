@@ -20,6 +20,28 @@ export function useTopicPagination(id: string | undefined) {
   // 'old' 模式与主 hook 的 page=1 同 key，SWR dedupe 不重复请求
   const { data: headData, mutate: mutateHead } = useTopic(id, 1, 'old');
 
+  // 【诊断】SWR 主数据/页码/加载态变化
+  useEffect(() => {
+    console.log('[zhuge-ssr] useTopicPagination state', {
+      id,
+      page,
+      postOrder,
+      dataPosts: data?.posts?.length ?? 'undefined',
+      dataTotal: data?.totalPosts ?? 'undefined',
+      isLoading,
+      hasError: !!error,
+    });
+  }, [id, page, postOrder, data, isLoading, error]);
+
+  // 【诊断】headData（首帖页 order=old page1）状态
+  useEffect(() => {
+    console.log('[zhuge-ssr] headData state', {
+      id,
+      headPosts: headData?.posts?.length ?? 'undefined',
+      headTotal: headData?.totalPosts ?? 'undefined',
+    });
+  }, [id, headData]);
+
   // 乐观种子强制重验：从列表点进主题时（seedTopicCacheFromList / seedTopicCache）会往 SWR
   // 缓存写入"只有 1 条首帖（id 为负值）"的乐观数据，而全局 revalidateIfStale:false 会抑制
   // 挂载后的自动重新验证 → 详情永远停留在乐观数据，回复列表为空。
@@ -89,8 +111,26 @@ export function useTopicPagination(id: string | undefined) {
     return out.sort((a, b) => a.number - b.number);
   }, [loadedPages, optimisticPosts]);
 
+  // 【诊断】mergedPosts 与 loadedPages 推导
+  useEffect(() => {
+    console.log('[zhuge-ssr] merged derived', {
+      mergedLen: mergedPosts.length,
+      loadedKeys: Object.keys(loadedPages),
+      optimisticLen: optimisticPosts.length,
+    });
+  }, [mergedPosts, loadedPages, optimisticPosts]);
+
   const totalPosts = data?.totalPosts ?? headData?.totalPosts ?? mergedPosts.length;
   const hasMore = page * PAGE_SIZE < totalPosts;
+
+  // 稳定数据源：主 data（当前 page 的 key）在翻页/换序的瞬间会短暂 undefined（新 key 无缓存），
+  // 若直接暴露给页面，TopicPage 会闪骨架屏/误报"主题不存在"。只要任何一页已加载，
+  // 就用已加载页顶替（同一主题的 discussion/tags 各页相同），等主 data 到达自然替换。
+  const stableData = useMemo(() => {
+    if (data) return data;
+    for (const d of Object.values(loadedPages)) if (d) return d;
+    return headData || undefined;
+  }, [data, loadedPages, headData]);
 
   // 预加载：当前页到位后预取下一页、下下页（填充 SWR 缓存，滚到底零等待）
   useEffect(() => {
@@ -192,7 +232,7 @@ export function useTopicPagination(id: string | undefined) {
   }, [pendingTarget, id, mergedPosts]);
 
   return {
-    data,
+    data: stableData,
     error,
     isLoading,
     mutate,

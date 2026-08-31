@@ -100,6 +100,7 @@ function buildSwrFallback(): Record<string, unknown> {
 }
 
 const swrFallback = buildSwrFallback();
+console.log('[zhuge-ssr] fallback keys:', Object.keys(swrFallback), 'hasTopic:', !!swrFallback['/discussions/85?page=1&order=new']);
 
 // Provider 顺序说明：@mantine/modals 的弹窗内容渲染在 ModalsProvider 之下、
 // 与 children 平级（portal 但上下文继承），因此 SWRConfig / BrowserRouter /

@@ -551,7 +551,8 @@ export default function TopicPage() {
   // 不一致 → React #300（fewer）/ #310（more）白屏。因此这里把原本在 return 之后的
   // useCallback/useMemo（handleDelete/replies/visibleReplies）及它们依赖的派生数据全部上移。
   // 分页合并后的全部已加载帖子（按楼层正序；'new' 模式渲染时再倒序）
-  const posts = (data ? mergedPosts : []) as TopicPost[];
+  // 直接用 mergedPosts：翻页/换序瞬间主 data 短暂 undefined 时，已加载楼层仍完整渲染（不闪骨架/不误报 404）
+  const posts = mergedPosts as TopicPost[];
   const firstPost = posts.find((p) => p.number === 1) || null;
 
   // 删除自己的帖子/主题（作者本人或管理员；首帖删除 = 删整个主题）
@@ -698,7 +699,11 @@ export default function TopicPage() {
   }, [data, mergedPosts, routeLocation.search, navigate]);
 
   // ===== 加载中骨架 =====
-  if (isLoading && !data) {
+  // 条件用 mergedPosts（已合并所有已加载页）而非裸 data：SSR 首帧渲染后底部哨兵可能
+  // 立即触发翻页（total > 每页 20），主 data 的 key 切到 page=2（无缓存）→ data 短暂 undefined。
+  // 此时 mergedPosts 仍有 page1 内容，不应闪骨架屏；真正空数据（无任何已加载楼层）才骨架。
+  if (isLoading && mergedPosts.length === 0 && !data) {
+    console.log('[zhuge-ssr] SKELETON branch hit', { isLoading, mergedLen: mergedPosts.length });
     return (
       <>
         <Skeleton height={36} width={120} radius="md" mb={12} />
@@ -710,6 +715,8 @@ export default function TopicPage() {
   }
 
   // ===== 404 / 无权限（有数据（含 SSR 内联 fallback）时优先渲染，后台重验证失败不覆盖） =====
+  // data 来自 useTopicPagination 的 stableData：翻页/换序瞬间主 data 短暂 undefined 时
+  // 已用已加载页顶替，只有真正无任何数据（主题不存在/无权限）才走到这里
   if (!data?.discussion) {
     return (
       <div className="empty">
