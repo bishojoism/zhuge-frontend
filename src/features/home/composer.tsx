@@ -517,7 +517,8 @@ export function seedTopicCache(
 
 // 主题列表点进主题时乐观种入详情缓存：用列表已有数据（标题/作者/摘要/配图）构造乐观详情，
 // 详情页跳转后首帧直接渲染（不闪骨架屏），后台 revalidate 拉真实数据（完整首帖/回复）替换。
-// 首帖 content 用列表摘要（excerpt）填充——不是全文，但足够首帧展示；帖子 id 用负值标记乐观帖。
+// 首帖 content 用列表返回的完整首帖内容（后端不截断；主页卡片由前端 CSS line-clamp 截断显示）——
+// 点进主题的乐观首帧即显示全文，无需等真实数据替换；帖子 id 用负值标记乐观帖。
 // allTags：全量标签（useTags）用于匹配真实标签颜色，乐观帧即显示正确颜色（不传则用默认色）。
 // 种两个 order 的 key（同 seedTopicCache）。
 // 参数用宽松类型（Partial<Discussion>）：首页 feed/list、搜索、我的主题、私密列表的条目都可传。
