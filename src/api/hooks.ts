@@ -26,9 +26,15 @@ export function refreshListsAfterWrite() {
 // 注意：只预取公开页数据；分页 page=1（首页数据，滑动加载后续页时才请求）。
 export function preloadAllPrimaryLists(tags: Tag[]) {
   const primary = (tags || []).filter((t) => t.position != null && !t.is_hidden);
-  if (!primary.length) return;
   const seed = Math.floor(Date.now() / 60000) + 1;
   const keys: string[] = [];
+  // "全部"标签（首页默认 tag=null）优先预加载：其他页面（详情页等）停留时预热首页，
+  // 回首页直接命中缓存，零请求零骨架
+  for (const sort of ['recommend', 'latest', 'hot'] as const) {
+    const qs = new URLSearchParams({ sort, page: '1' });
+    if (sort === 'recommend') qs.set('seed', String(seed));
+    keys.push('/discussions?' + qs.toString());
+  }
   for (const t of primary) {
     for (const sort of ['recommend', 'latest', 'hot'] as const) {
       const qs = new URLSearchParams({ sort, page: '1' });

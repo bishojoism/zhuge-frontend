@@ -34,7 +34,7 @@ import {
   IconStar,
 } from '@tabler/icons-react';
 import { useAuth } from '../features/auth/AuthContext';
-import { useUnread, useCoins } from '../api/hooks';
+import { useUnread, useCoins, useTags, preloadAllPrimaryLists } from '../api/hooks';
 import { api } from '../api/client';
 import { levelLabel } from '../lib/coins';
 import { useNotifySocket } from '../lib/ws';
@@ -96,6 +96,16 @@ export default function Layout({ children }: { children: ReactNode }) {
   // 未登录不请求通知（首屏零 API）
   const { unread, mutate: refreshUnread } = useUnread(!!user);
   const { data: coinData, mutate: mutateCoins } = useCoins(!!user);
+  // 全局预热首页列表：在任意页面（详情页/我的/私密等）停留时后台预加载
+  // "全部 × recommend/latest/hot" + 主标签列表 → 回首页直接命中 SWR 缓存，
+  // 零请求零骨架（其他页面点 logo 回首页不再闪加载）。
+  // 首页自身挂载时也会触发（HomePage 同函数），同 key 重复请求由 SWR dedupe 吸收。
+  const { tags: layoutTags } = useTags();
+  const homePreloadPath = useLocation().pathname;
+  useEffect(() => {
+    if (layoutTags.length) preloadAllPrimaryLists(layoutTags);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [layoutTags, homePreloadPath]);
   // 每日打开应用自动领格币（+10；当天已领则 no-op，领到提示）
   useEffect(() => {
     if (!user) return;
