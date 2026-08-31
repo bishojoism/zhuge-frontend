@@ -1,4 +1,5 @@
 // ===== SWR hooks：按领域组织的取数 hooks（数据/缓存/重验证都在这里） =====
+import { useEffect } from 'react';
 import useSWR, { mutate as globalMutate } from 'swr';
 import { api, readInitData } from './client';
 
@@ -153,6 +154,14 @@ export function useUnread(enabled: boolean = true): { unread: number; mutate: ()
   const { data, mutate } = useSWR<NotifListResult>(enabled ? '/me/notifications' : null, fetcher, {
     refreshInterval: enabled ? 60000 : 0,
   });
+  // 通知列表预加载：SSR fallback 只内联了 unread 数（data 为空列表），而全局
+  // revalidateIfStale:false 会抑制挂载后的自动重新验证 → 通知列表一直是空的，
+  // 点铃铛打开弹窗时才现拉，先闪"还没有通知"再转 loading。
+  // 登录就绪时强制重拉一次，把真实通知列表预加载进缓存（弹窗打开即显示，无闪烁）。
+  useEffect(() => {
+    if (enabled) void mutate();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [enabled]);
   return { unread: data?.meta?.unread || 0, mutate: () => mutate() };
 }
 
