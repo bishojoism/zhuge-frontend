@@ -34,12 +34,13 @@ export function OverviewTab({
   ipStats,
   userRows,
   reportRows,
+  ipTotals,
 }: {
   ipStats: IpStatRow[];
   userRows: AdminUserRow[];
   reportRows: AdminReportRow[];
+  ipTotals: { ips: number; visits: number };
 }) {
-  const totalVisits = ipStats.reduce((s, r) => s + (Number(r.visits) || 0), 0);
   const bannedUsers = userRows.filter((u) => u.is_banned).length;
   const admins = userRows.filter((u) => u.is_admin).length;
   const pendingReports = reportRows.filter((r) => r.status === 'pending').length;
@@ -55,8 +56,9 @@ export function OverviewTab({
         <StatCard label="待处理举报" value={pendingReports} />
       </Group>
       <Group grow>
-        <StatCard label="独立 IP 数" value={ipStats.length} />
-        <StatCard label="IP 访问总次数" value={totalVisits} />
+        {/* 真实独立 IP 数与总访问量（后端 totals，不受 TOP200 表格截断影响） */}
+        <StatCard label="独立 IP 数" value={ipTotals.ips} />
+        <StatCard label="IP 访问总次数" value={ipTotals.visits} />
       </Group>
       <Card withBorder>
         <Text fw={600} mb="sm">

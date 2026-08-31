@@ -41,9 +41,17 @@ export default function AdminPage() {
   const users = useAdminUsers();
   const ipLogs = useIpLogs();
 
-  // 后端实际返回：/admin/ip-logs/stats → { data: IpStatRow[] }；其余列表 → { data: Row[] }
+  // 后端实际返回：/admin/ip-logs/stats → { data: IpStatRow[]（前 200）, totals: 真实总数 }；其余列表 → { data: Row[] }
   const ipStats = useMemo(
     () => (stats.data as unknown as { data?: IpStatRow[] } | undefined)?.data ?? [],
+    [stats.data]
+  );
+  const ipTotals = useMemo(
+    () =>
+      (stats.data as unknown as { totals?: { ips: number; visits: number } } | undefined)?.totals ?? {
+        ips: 0,
+        visits: 0,
+      },
     [stats.data]
   );
   const reportRows = useMemo(
@@ -94,7 +102,7 @@ export default function AdminPage() {
         </Tabs.List>
 
         <Tabs.Panel value="overview" pt="md">
-          <OverviewTab ipStats={ipStats} userRows={userRows} reportRows={reportRows} />
+          <OverviewTab ipStats={ipStats} ipTotals={ipTotals} userRows={userRows} reportRows={reportRows} />
         </Tabs.Panel>
 
         <Tabs.Panel value="promo" pt="md">
