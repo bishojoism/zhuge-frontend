@@ -110,13 +110,27 @@ export function deleteContent(opts: { targetType: 'discussion' | 'post'; targetI
 // GET /api/admin/overview → { data: OverviewStats }
 // 读取已改用 SWR hook useAdminOverview（api/hooks.ts）；本模块仅保留类型与写操作
 export interface OverviewStats {
+  // 用户
   users: number;
   newUsers7d: number;
+  newUsers30d: number;
+  activeUsers7d: number;
+  // 内容
   discussions: number;
+  topics7d: number;
   posts: number;
+  posts7d: number;
   didis: number;
   invited: number;
   stickyCount: number;
+  // 互动
+  topicsWithReplies: number;
+  topicsNoReply: number;
+  avgReplies: number;
+  didiAccepted: number;
+  didiDeclined: number;
+  didiPending: number;
+  didiTotal: number;
 }
 
 // ===== 主题置顶（站长推荐位） =====

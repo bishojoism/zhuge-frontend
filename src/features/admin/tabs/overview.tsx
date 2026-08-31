@@ -12,6 +12,7 @@ import {
   type AdminReportRow,
   type AdminUserRow,
   type IpStatRow,
+  type OverviewStats,
   setDiscussionSticky,
 } from '../adminApi';
 
@@ -29,33 +30,79 @@ export function StatCard({ label, value }: { label: string; value: number | stri
   );
 }
 
-// ============ 概览统计 ============
+// ============ 概览统计（运营看板） ============
 export function OverviewTab({
   ipStats,
   userRows,
   reportRows,
   ipTotals,
+  overview,
 }: {
   ipStats: IpStatRow[];
   userRows: AdminUserRow[];
   reportRows: AdminReportRow[];
   ipTotals: { ips: number; visits: number };
+  overview?: OverviewStats;
 }) {
   const bannedUsers = userRows.filter((u) => u.is_banned).length;
-  const admins = userRows.filter((u) => u.is_admin).length;
   const pendingReports = reportRows.filter((r) => r.status === 'pending').length;
-  // 后端管理接口未提供主题总数；帖子总数由用户列表的 post_count 求和得到
-  const totalPosts = userRows.reduce((s, u) => s + (Number(u.post_count) || 0), 0);
+  const o = overview;
+  const didiRate =
+    o && o.didiTotal > 0 ? Math.round((o.didiAccepted / o.didiTotal) * 100) : null;
 
   return (
     <Stack gap="md">
+      {/* 用户增长 */}
+      <Text fw={600} size="sm">
+        👥 用户增长
+      </Text>
       <Group grow>
-        <StatCard label="用户总数" value={userRows.length} />
-        <StatCard label="帖子总数" value={totalPosts} />
+        <StatCard label="总用户" value={o?.users ?? '…'} />
+        <StatCard label="7 天新增" value={o?.newUsers7d ?? '…'} />
+        <StatCard label="30 天新增" value={o?.newUsers30d ?? '…'} />
+        <StatCard label="7 天活跃" value={o?.activeUsers7d ?? '…'} />
+      </Group>
+
+      {/* 内容产出 */}
+      <Text fw={600} size="sm">
+        📝 内容产出
+      </Text>
+      <Group grow>
+        <StatCard label="主题总数" value={o?.discussions ?? '…'} />
+        <StatCard label="7 天新主题" value={o?.topics7d ?? '…'} />
+        <StatCard label="帖子总数" value={o?.posts ?? '…'} />
+        <StatCard label="7 天新帖子" value={o?.posts7d ?? '…'} />
+      </Group>
+
+      {/* 互动质量 */}
+      <Text fw={600} size="sm">
+        💬 互动质量
+      </Text>
+      <Group grow>
+        <StatCard label="有人接戏的主题" value={o?.topicsWithReplies ?? '…'} />
+        <StatCard label="无人接戏的主题" value={o?.topicsNoReply ?? '…'} />
+        <StatCard label="平均每主题回复" value={o?.avgReplies ?? '…'} />
+        <StatCard label="滴滴总次数" value={o?.didis ?? '…'} />
+      </Group>
+
+      {/* 滴滴接戏率 */}
+      <Text fw={600} size="sm">
+        💌 滴滴接戏率
+      </Text>
+      <Group grow>
+        <StatCard label="已接受" value={o?.didiAccepted ?? '…'} />
+        <StatCard label="婉拒" value={o?.didiDeclined ?? '…'} />
+        <StatCard label="待回应" value={o?.didiPending ?? '…'} />
+        <StatCard label="接戏率" value={didiRate !== null ? `${didiRate}%` : '…'} />
+      </Group>
+
+      {/* 平台健康 / 流量 */}
+      <Text fw={600} size="sm">
+        🛡️ 平台健康 / 流量
+      </Text>
+      <Group grow>
         <StatCard label="封禁用户" value={bannedUsers} />
         <StatCard label="待处理举报" value={pendingReports} />
-      </Group>
-      <Group grow>
         {/* 真实独立 IP 数与总访问量（后端 totals，不受 TOP200 表格截断影响） */}
         <StatCard label="独立 IP 数" value={ipTotals.ips} />
         <StatCard label="IP 访问总次数" value={ipTotals.visits} />

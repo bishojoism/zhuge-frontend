@@ -10,9 +10,10 @@ import {
   useAdminReports,
   useAdminStats,
   useAdminUsers,
+  useAdminOverview,
   useIpLogs,
 } from '../../api/hooks';
-import type { AdminIpLogRow, AdminReportRow, AdminUserRow, IpStatRow } from './adminApi';
+import type { AdminIpLogRow, AdminReportRow, AdminUserRow, IpStatRow, OverviewStats } from './adminApi';
 import { OverviewTab, PromoTab } from './tabs/overview';
 import { TagRequestsTab } from './tabs/tagreqs';
 import { TagsTab } from './tabs/tags';
@@ -40,6 +41,8 @@ export default function AdminPage() {
   const reports = useAdminReports();
   const users = useAdminUsers();
   const ipLogs = useIpLogs();
+  const { data: overviewData } = useAdminOverview();
+  const overview = overviewData as OverviewStats | undefined;
 
   // 后端实际返回：/admin/ip-logs/stats → { data: IpStatRow[]（前 200）, totals: 真实总数 }；其余列表 → { data: Row[] }
   const ipStats = useMemo(
@@ -102,7 +105,13 @@ export default function AdminPage() {
         </Tabs.List>
 
         <Tabs.Panel value="overview" pt="md">
-          <OverviewTab ipStats={ipStats} ipTotals={ipTotals} userRows={userRows} reportRows={reportRows} />
+          <OverviewTab
+            ipStats={ipStats}
+            ipTotals={ipTotals}
+            userRows={userRows}
+            reportRows={reportRows}
+            overview={overview}
+          />
         </Tabs.Panel>
 
         <Tabs.Panel value="promo" pt="md">
