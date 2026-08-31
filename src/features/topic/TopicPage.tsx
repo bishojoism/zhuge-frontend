@@ -259,10 +259,9 @@ export default function TopicPage() {
     if (autoReplyHandledRef.current) return;
     autoReplyHandledRef.current = true;
     const replyAuthor = st.replyAuthor || sp.get('replyAuthor') || undefined;
+    // 自动 @对方（顶部回复框显示"接 xxx"）；滚动定位交给 useTopicPagination 的 pendingTarget 定位
+    //（滚到目标楼层并高亮）——这里不再滚动到回复框，否则会把定位滚动又拉回顶部（"跳了又跳回一楼"）
     setReplyTarget({ postId: replyPostId, author: replyAuthor || displayName(targetPost) });
-    requestAnimationFrame(() => {
-      composerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    });
     // 清除 state + query：仅首次进入时生效，刷新/返回不重复触发
     navigate(routeLocation.pathname, { replace: true, state: null });
     // eslint-disable-next-line react-hooks/exhaustive-deps

@@ -37,13 +37,15 @@ export function useTopicPagination(id: string | undefined) {
   }, [id, data, headData]);
 
   // loadedPages：已加载的各页数据（key=页码）。当前页（data）与首帖页（headData）变化时自动并入，
-  // mergedPosts 按楼层合并去重（真实帖覆盖同楼乐观帖）。切换排序时清空重载。
-  const [loadedPages, setLoadedPages] = useState<Record<number, DiscussionDetail>>({});
+  // loadedPages：已加载的各页数据。key 用 'head'（首帖页/order=old page1）与 String(page)（当前 order 的当前页）
+  // 分开——不能都用 page 作 key：order=new 的 page1 和 order=old 的 page1 会互相覆盖，
+  // 从通知点入时两者并发拉取，headData（旧→最旧楼）常覆盖 data（新→最新页），导致最新回复丢失。
+  const [loadedPages, setLoadedPages] = useState<Record<string, DiscussionDetail>>({});
   useEffect(() => {
-    if (data) setLoadedPages((prev) => ({ ...prev, [page]: data }));
+    if (data) setLoadedPages((prev) => ({ ...prev, [String(page)]: data }));
   }, [data, page]);
   useEffect(() => {
-    if (headData) setLoadedPages((prev) => ({ ...prev, [1]: headData }));
+    if (headData) setLoadedPages((prev) => ({ ...prev, head: headData }));
   }, [headData]);
 
   // 独立乐观帖：回复后注入（负 id 标记），不塞进任何一页的 posts——
@@ -62,7 +64,7 @@ export function useTopicPagination(id: string | undefined) {
     setPostOrder(v);
     setPage(1);
     // 清空已加载页但保留首帖页（headData 引用不变，并入 effect 不会重跑）
-    setLoadedPages(headData ? { [1]: headData } : {});
+    setLoadedPages(headData ? { head: headData } : {});
   };
 
   const mergedPosts = useMemo(() => {
@@ -156,7 +158,8 @@ export function useTopicPagination(id: string | undefined) {
       : `aroundNumber=${pendingTarget.number}`;
     api<{ data: DiscussionDetail }>(`/discussions/${id}?page=1&order=old&${qs}`)
       .then((r) => {
-        setLoadedPages((prev) => ({ ...prev, [r.data.page ?? 99]: r.data }));
+        // key 用 'old:' 前缀：定位请求是 order=old 的页，不能占用当前 order 的 page key（否则覆盖最新页）
+        setLoadedPages((prev) => ({ ...prev, [`old:${r.data.page ?? 99}`]: r.data }));
       })
       .catch(() => {
         setPendingTarget(null);
