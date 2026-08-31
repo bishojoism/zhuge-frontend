@@ -513,6 +513,25 @@ export function seedTopicCache(
 export function seedTopicCacheFromList(d: Partial<Discussion> & { id: number; title: string }): void {
   const now = new Date().toISOString().replace('T', ' ').slice(0, 19);
   const excerpt = (d.excerpt || '').trim();
+  // 详情标签数组：列表条目只带标签字符串（"标签A / 标签B"），转成占位 Tag[]（id 负值标记占位，
+  // 颜色用默认值），首帧即显示主题标签；真实数据到达后由 revalidate 替换
+  const tagArray: Tag[] = (d.tags || '')
+    .split('/')
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .map((name, i) => ({
+      id: -i - 1,
+      name,
+      slug: null,
+      description: null,
+      color: '#8b9cb0',
+      position: null,
+      is_restricted: 0,
+      is_hidden: 0,
+      discussion_count: 0,
+      icon: null,
+      is_primary: 0,
+    }));
   const optimistic: DiscussionDetail = {
     discussion: {
       id: d.id,
@@ -562,7 +581,7 @@ export function seedTopicCacheFromList(d: Partial<Discussion> & { id: number; ti
     totalPosts: d.comment_count || 1,
     page: 1,
     pageSize: 50,
-    tags: [],
+    tags: tagArray,
   };
   void globalMutate(`/discussions/${d.id}?page=1&order=new`, optimistic, { revalidate: true });
   void globalMutate(`/discussions/${d.id}?page=1&order=old`, optimistic, { revalidate: true });
