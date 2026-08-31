@@ -220,9 +220,16 @@ export default function TopicPage() {
   }, [navigate, routeLocation.state]);
 
   const scrollToComposer = useCallback(() => {
+    // iOS Safari：focus 必须在点击手势内同步调用，延迟到 requestAnimationFrame 会被忽略
+    // （弹不出键盘/不聚焦）；滚动不依赖手势时序，留在 rAF 平滑滚动即可。
+    // 接戏输入卡始终渲染（两种排序都在），点击接戏时 textarea 已挂载，同步 focus 可靠。
+    try {
+      textareaRef.current?.focus();
+    } catch {
+      /* 忽略 */
+    }
     requestAnimationFrame(() => {
       composerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      textareaRef.current?.focus();
     });
   }, []);
 
