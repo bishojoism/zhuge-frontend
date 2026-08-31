@@ -3,7 +3,7 @@
 // 滚动到底自动加载下一页并预取下两页（SWR 缓存命中零等待）。
 // 同时负责"目标帖定位"：auto-reply/focusPost/跳楼目标不在已加载楼层时，
 // 请求其所在页（around 参数，后端算页码）并入，到位后滚动高亮。
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { mutate as globalMutate } from 'swr';
 import { notifications } from '@mantine/notifications';
 import { api } from '../../api/client';
@@ -182,19 +182,15 @@ export function useTopicPagination(id: string | undefined) {
 
   // 目标帖定位：目标不在已加载楼层时，请求其所在页（around）并入，到位后滚动高亮。
   // id 目标用 aroundPostId，楼层目标用 aroundNumber（后端算页码）。
+  // 用 useLayoutEffect：乐观帧已含目标楼（含其前后楼层），DOM 在 paint 前就绪时同步滚动，
+  // 第一帧绘制出来就是目标楼位置，不会先闪"页面顶部主题数据"再跳。
   const [pendingTarget, setPendingTarget] = useState<PendingTarget | null>(null);
   const targetFetchingRef = useRef(false);
   // 定位后的"校正窗口"：乐观帖(负 id)随后被真实帖(正 id)替换（React key=id → DOM 重建），
   // 且目标楼上方的楼层陆续插入 → 目标楼位置会漂移。mergedPosts 变化会重跑本 effect，
   // found 仍命中 → 重新滚动到目标楼校正；3 秒无变化视为数据稳定，清空定位结束校正。
   const jumpSettleTimerRef = useRef<number | null>(null);
-  // 首次定位用平滑滚动；数据到达触发的校正重滚用瞬时跳转（避免 smooth 追赶动画像闪烁）
-  const firstScrollRef = useRef(true);
-  useEffect(() => {
-    // 新目标（pendingTarget 变化）→ 重置为首次（平滑滚动）
-    firstScrollRef.current = true;
-  }, [pendingTarget]);
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!pendingTarget || !id) return;
     const found = 'id' in pendingTarget
       ? mergedPosts.find((p) => p.id === pendingTarget.id)
@@ -231,7 +227,6 @@ export function useTopicPagination(id: string | undefined) {
         // 页面太矮定位不到位：跳过这次滚动，等 mergedPosts 变化（真实楼层插入）重跑本 effect
         // 再瞬时定位（届时下方空间足够，一次到位，不再"先滚不到位再跳"）
         console.log(`[zhuge-jump] skip scroll (page too short) num=${num} mergedLen=${mergedPosts.length}`);
-        firstScrollRef.current = false; // 下次直接瞬时跳转
         return;
       }
       let tries = 0;
@@ -239,11 +234,9 @@ export function useTopicPagination(id: string | undefined) {
         const el = document.querySelector(`[data-num="${num}"]`);
         console.log(`[zhuge-jump] tryScroll num=${num} tries=${tries} el=${!!el}`);
         if (el) {
-          (el as HTMLElement).scrollIntoView({
-            behavior: firstScrollRef.current ? 'smooth' : 'auto',
-            block: 'start',
-          });
-          firstScrollRef.current = false;
+          // 统一瞬时跳转：useLayoutEffect 在浏览器绘制前同步执行，瞬时滚动发生在 paint 前，
+          // 第一帧绘制出来就是目标楼位置（不闪"页面顶部主题数据"再跳）；数据到达的校正也瞬时
+          (el as HTMLElement).scrollIntoView({ behavior: 'auto', block: 'start' });
           const node = el as HTMLElement;
           node.classList.add('post-flash');
           window.setTimeout(() => node.classList.remove('post-flash'), 1600);
