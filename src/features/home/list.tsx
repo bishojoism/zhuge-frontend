@@ -71,7 +71,10 @@ export function TopicCard({
   tags: Tag[];
   onOpenTopic: (id: number) => void;
 }) {
-  const excerpt = (d.excerpt || '').replace(/\s+/g, ' ').trim();
+  // 摘要保留换行（.topic-excerpt 用 pre-line + max-height 按行截断）：
+  // 不能 replace(/\s+/g,' ') 压成单行——会把 \n 变空格，长文全挤一行；
+  // 仅把连续空行压缩为单个换行，避免摘要顶部大段空白
+  const excerpt = (d.excerpt || '').replace(/\n{2,}/g, '\n').trim();
   const tagNames = (d.tags || '')
     .split(' / ')
     .map((s) => s.trim())

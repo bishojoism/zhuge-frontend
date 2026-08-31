@@ -536,7 +536,10 @@ function FeedCard({
   /** 挂载/卸载时注册 DOM（updateFeedPosition 只处理窗口内卡） */
   registerEl: (el: HTMLDivElement | null) => void;
 }) {
-  const excerpt = (d.excerpt || '').replace(/\s+/g, ' ').trim();
+  // 摘要保留换行（.feed-card-excerpt 用 pre-line + max-height 按行截断）：
+  // 不能 replace(/\s+/g,' ') 压成单行——会把 \n 变空格，长文全挤一行；
+  // 仅把连续空行压缩为单个换行，避免摘要顶部大段空白
+  const excerpt = (d.excerpt || '').replace(/\n{2,}/g, '\n').trim();
   const tagNames = (d.tags || '')
     .split(' / ')
     .map((s) => s.trim())
