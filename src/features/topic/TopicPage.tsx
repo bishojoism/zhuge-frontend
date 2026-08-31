@@ -249,7 +249,11 @@ export default function TopicPage() {
     const replyPostId =
       st.replyPostId ??
       (qReply && /^\d+$/.test(qReply) ? Number(qReply) : undefined);
-    if (!replyPostId) return;
+    if (!replyPostId) {
+      // URL 已无 reply（处理完清 query 后的重跑）：重置守卫，下次再点【同一条】通知可重新定位
+      autoReplyHandledRef.current = null;
+      return;
+    }
     const targetPost = mergedPosts.find((p) => p.id === replyPostId);
     console.log('[zhuge-jump] TopicPage auto-reply effect', {
       replyPostId,
@@ -671,7 +675,11 @@ export default function TopicPage() {
     if (!data) return;
     const sp = new URLSearchParams(routeLocation.search);
     const fp = sp.get('focusPost');
-    if (!fp || !/^\d+$/.test(fp)) return;
+    if (!fp || !/^\d+$/.test(fp)) {
+      // URL 已无 focusPost（处理完清 query 后的重跑）：重置守卫，下次再点【同一条】定位通知可重新定位
+      focusPostHandledRef.current = null;
+      return;
+    }
     const targetId = Number(fp);
     // 目标未加载（分页）：先定位加载其所在页，到位后跳转（不置 handled，等数据到达重跑）
     if (!mergedPosts.some((p) => p.id === targetId)) {
