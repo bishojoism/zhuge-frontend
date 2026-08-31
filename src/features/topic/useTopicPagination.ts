@@ -6,9 +6,9 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { mutate as globalMutate } from 'swr';
 import { notifications } from '@mantine/notifications';
-import { api } from '../../api/client';
+import { api, readInitData } from '../../api/client';
 import { useTopic } from '../../api/hooks';
-import type { DiscussionDetail } from '../../types';
+import type { DiscussionDetail, InitData } from '../../types';
 import { PAGE_SIZE, type PendingTarget, type TopicPost } from './topicTypes';
 
 export function useTopicPagination(id: string | undefined) {
@@ -62,7 +62,16 @@ export function useTopicPagination(id: string | undefined) {
   // loadedPages：已加载的各页数据。key 用 'head'（首帖页/order=old page1）与 String(page)（当前 order 的当前页）
   // 分开——不能都用 page 作 key：order=new 的 page1 和 order=old 的 page1 会互相覆盖，
   // 从通知点入时两者并发拉取，headData（旧→最旧楼）常覆盖 data（新→最新页），导致最新回复丢失。
-  const [loadedPages, setLoadedPages] = useState<Record<string, DiscussionDetail>>({});
+  // SSR 内联的定位目标页（topicAround，系统通知 ?replyNumber=/?focusPost= 点入时）并入初始
+  // loadedPages：首帧即有目标楼，useLayoutEffect 直接定位，不走"进入→拉页→跳转"兜底。
+  const [loadedPages, setLoadedPages] = useState<Record<string, DiscussionDetail>>(() => {
+    const init = readInitData<InitData>();
+    const around = init?.topicAround ?? null;
+    if (!around) return {};
+    const pages: Record<string, DiscussionDetail> = {};
+    pages.around = around;
+    return pages;
+  });
   useEffect(() => {
     if (data) setLoadedPages((prev) => ({ ...prev, [String(page)]: data }));
   }, [data, page]);

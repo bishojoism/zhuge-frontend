@@ -301,6 +301,9 @@ export interface InitData {
   // 首帖页（asc page1，含 1 楼）：SSR 一并内联，前端种入 order=old fallback，
   // 首帧即有 1 楼（不闪"无首帖卡片"），headData 请求零等待
   topicHead?: DiscussionDetail | null;
+  // 定位目标所在页（around，系统通知 ?replyNumber=/?focusPost= 点入时 SSR 内联）：
+  // 前端并入已加载楼层，首帧即有目标楼，useLayoutEffect 直接定位（不走兜底跳转）
+  topicAround?: DiscussionDetail | null;
   topicError?: string;
   privateList?: PrivateItem[];
   myDiscussions?: MyTopicItem[];
