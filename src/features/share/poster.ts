@@ -3,15 +3,75 @@
 // 海报信息只包含：主题标题 + 主题内容（+ 配图），不出现站名/作者/链接
 // 尺寸：900x1200（3:4 竖版）
 
-// 剥离 BBCode 标签（海报 canvas 纯文本绘制，不支持格式标签）
-function stripBBCode(text: string): string {
-  let out = text;
-  for (let i = 0; i < 20; i++) {
-    const m = out.match(/\[([a-z]+)(?:=[^\]\s]*)?\]([\s\S]*?)\[\/\1\]/i);
-    if (!m) break;
-    out = out.slice(0, m.index ?? 0) + m[2] + out.slice((m.index ?? 0) + m[0].length);
+import {
+  parseBBCodeCanvas,
+  wrapFormattedLines,
+  fontForSpan,
+  spanColor,
+  type FormattedLine,
+} from '../../lib/bbcodeCanvas';
+
+// 绘制 BBCode 格式化的 excerpt（粗体/颜色/字号在 canvas 还原，骰子内容保留不丢）。
+// 返回结束 y。内部按格式段设置 font/颜色逐字绘制，替代原 stripBBCode + wrapText 纯文本。
+function drawFormattedExcerpt(
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  x: number,
+  y: number,
+  maxWidth: number,
+  maxLines: number,
+  lineHeight: number,
+  align: CanvasTextAlign,
+  baseFont: string,
+  baseSize: number,
+  defaultColor: string
+): number {
+  const parsed = parseBBCodeCanvas(text);
+  const lines = wrapFormattedLines(ctx, parsed, baseFont, baseSize, maxWidth).slice(0, maxLines);
+  let cy = y;
+  ctx.save();
+  ctx.textAlign = align;
+  ctx.textBaseline = 'top';
+  for (const ln of lines) {
+    if (align === 'center') {
+      let total = 0;
+      for (const s of ln.spans) {
+        ctx.font = fontForSpan(baseFont, s, baseSize);
+        total += ctx.measureText(s.text).width;
+      }
+      let bx = x - total / 2;
+      for (const s of ln.spans) {
+        ctx.font = fontForSpan(baseFont, s, baseSize);
+        ctx.fillStyle = spanColor(s, defaultColor);
+        ctx.fillText(s.text, bx, cy);
+        bx += ctx.measureText(s.text).width;
+      }
+    } else if (align === 'right') {
+      let total = 0;
+      for (const s of ln.spans) {
+        ctx.font = fontForSpan(baseFont, s, baseSize);
+        total += ctx.measureText(s.text).width;
+      }
+      let bx = x - total;
+      for (const s of ln.spans) {
+        ctx.font = fontForSpan(baseFont, s, baseSize);
+        ctx.fillStyle = spanColor(s, defaultColor);
+        ctx.fillText(s.text, bx, cy);
+        bx += ctx.measureText(s.text).width;
+      }
+    } else {
+      let bx = x;
+      for (const s of ln.spans) {
+        ctx.font = fontForSpan(baseFont, s, baseSize);
+        ctx.fillStyle = spanColor(s, defaultColor);
+        ctx.fillText(s.text, bx, cy);
+        bx += ctx.measureText(s.text).width;
+      }
+    }
+    cy += lineHeight;
   }
-  return out;
+  ctx.restore();
+  return cy;
 }
 
 const W = 900;
@@ -150,12 +210,8 @@ function drawContent(ctx: CanvasRenderingContext2D, data: PosterDrawData, opts: 
     ctx.textBaseline = 'top';
     ctx.fillStyle = contentColor;
     ctx.font = contentFont;
-    const cLines = wrapText(ctx, data.excerpt, W - 210).slice(0, maxContent);
     let cy = (data.image && data.image.naturalWidth > 0 ? imgY : y) + contentGap;
-    for (const line of cLines) {
-      ctx.fillText(line, tx, cy);
-      cy += 42;
-    }
+    cy = drawFormattedExcerpt(ctx, data.excerpt, tx, cy, W - 210, maxContent, 42, align, contentFont, 27, contentColor);
     endY = cy;
     ctx.restore();
   }
@@ -566,12 +622,8 @@ function drawTemplateNeon(ctx: CanvasRenderingContext2D, data: PosterDrawData): 
     ctx.textBaseline = 'top';
     ctx.fillStyle = 'rgba(220,235,255,.9)';
     ctx.font = `27px ${FONT}`;
-    const lines = wrapText(ctx, data.excerpt, W - 210).slice(0, 8);
     let y = 300 + Math.min(4, wrapText(ctx, data.title, W - 160).length) * 84 + 56;
-    for (const line of lines) {
-      ctx.fillText(line, W / 2, y);
-      y += 42;
-    }
+    y = drawFormattedExcerpt(ctx, data.excerpt, W / 2, y, W - 210, 8, 42, 'center', `27px ${FONT}`, 27, 'rgba(220,235,255,.9)');
     ctx.restore();
   }
 }
@@ -693,12 +745,8 @@ function drawTemplateMono(ctx: CanvasRenderingContext2D, data: PosterDrawData): 
     ctx.textBaseline = 'top';
     ctx.fillStyle = 'rgba(17,17,17,.65)';
     ctx.font = `27px ${FONT}`;
-    const cLines = wrapText(ctx, data.excerpt, W - 280).slice(0, 9);
     let cy = y + 60;
-    for (const line of cLines) {
-      ctx.fillText(line, 110, cy);
-      cy += 44;
-    }
+    cy = drawFormattedExcerpt(ctx, data.excerpt, 110, cy, W - 280, 9, 44, 'left', `27px ${FONT}`, 27, 'rgba(17,17,17,.65)');
     ctx.restore();
   }
 
@@ -976,13 +1024,9 @@ function drawTemplateGold(ctx: CanvasRenderingContext2D, data: PosterDrawData): 
     ctx.textBaseline = 'top';
     ctx.fillStyle = 'rgba(240,225,180,.9)';
     ctx.font = `27px ${FONT}`;
-    const lines = wrapText(ctx, data.excerpt, W - 220).slice(0, 8);
     const titleLines = wrapText(ctx, data.title, W - 160).length;
     let y = 280 + Math.min(4, titleLines) * 84 + 58;
-    for (const line of lines) {
-      ctx.fillText(line, W / 2, y);
-      y += 44;
-    }
+    y = drawFormattedExcerpt(ctx, data.excerpt, W / 2, y, W - 220, 8, 44, 'center', `27px ${FONT}`, 27, 'rgba(240,225,180,.9)');
     ctx.restore();
   }
 }
@@ -1221,7 +1265,8 @@ export function drawShareCard(canvas: HTMLCanvasElement, opts: DrawShareCardOpts
       : undefined;
     tpl.draw(ctx, {
       title: opts.title || '',
-      excerpt: stripBBCode(opts.content || ''),
+      // 直接传原始 BBCode：drawFormattedExcerpt 内部解析并渲染格式（粗体/颜色/骰子保留）
+      excerpt: opts.content || '',
       image,
       seed: seedOf(opts.title),
       author,

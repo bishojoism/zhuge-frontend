@@ -5,7 +5,7 @@ import { Button, SimpleGrid, Stack, Text } from '@mantine/core';
 import { modals } from '@mantine/modals';
 import { notifications } from '@mantine/notifications';
 import { openModalOnce } from '../../lib/modals';
-import { stripBBCodeKeepAll } from '../../lib/bbcode';
+import { parseBBCodeCanvas, wrapFormattedLines, fontForSpan, spanColor, type FormattedLine } from '../../lib/bbcodeCanvas';
 import type { Discussion, Gender, Post } from '../../types';
 import { displayName } from '../../lib/utils';
 
@@ -186,7 +186,7 @@ export async function exportImageLog(d: Discussion, posts: ExportPost[], style: 
     floor: string;
     time: string;
     ref: string;
-    bodyLines: string[];
+    bodyLines: FormattedLine[];
     hasImage: boolean;
     h: number;
   }
@@ -200,7 +200,9 @@ export async function exportImageLog(d: Discussion, posts: ExportPost[], style: 
     const floor = `${p.number}楼`;
     const time = String(p.created_at || '').slice(0, 16);
     const ref = p.reply_to_author ? `回复 @${p.reply_to_author}` : '';
-    const bodyLines = wrap(ctx, stripBBCodeKeepAll(p.content || ''), bodyFont(17), cardBodyW);
+    // 正文：解析 BBCode 为格式段并按行换行（canvas 渲染粗体/颜色，骰子内容保留）
+    const parsed = parseBBCodeCanvas(p.content || '');
+    const bodyLines = wrapFormattedLines(ctx, parsed, bodyFont(17), 17, cardBodyW);
     const hasImage = !!p.image_url;
     const bodyH = bodyLines.length * 27;
     const imgH = hasImage ? 20 : 0;
@@ -407,12 +409,18 @@ export async function exportImageLog(d: Discussion, posts: ExportPost[], style: 
     ctx.fillText(timeText, fx + 52, fy + 34);
     ctx.textBaseline = 'alphabetic';
 
-    // 正文
-    ctx.fillStyle = style.body;
-    ctx.font = bodyFont(17);
+    // 正文（BBCode 格式渲染：逐段设置 font/颜色）
     let by = y + 20 + avatarRowH + 8;
     for (const ln of b.bodyLines) {
-      ctx.fillText(ln, cx0, by + 20);
+      let bx = cx0;
+      for (const s of ln.spans) {
+        ctx.font = fontForSpan(bodyFont(17), s, 17);
+        ctx.fillStyle = spanColor(s, style.body);
+        ctx.fillText(s.text, bx, by + 20);
+        bx += ctx.measureText(s.text).width;
+      }
+      ctx.font = bodyFont(17);
+      ctx.fillStyle = style.body;
       by += 27;
     }
     if (b.hasImage) {

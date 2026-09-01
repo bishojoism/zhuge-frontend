@@ -286,16 +286,6 @@ export function stripBBCode(text: string): string {
   // 统一剥壳取内容文本（strip 语义：只留文本，标签全剥）。
   // 注意：dice（骰子）标签整体跳过——表达式/结果是"代码部分"，纯文本里不该出现
   //（如 [dice]1d20[/dice] 或注入格式 [dice=1d20|17|17]）。
-  return stripBBCodeImpl(text, true);
-}
-
-/** 剥离 BBCode 得纯文本但**保留全部内容**（图片导出用）：与 stripBBCode 的唯一区别是
- * 骰子内容不跳过——导出图片时骰子表达式/结果应可见，不能丢失 */
-export function stripBBCodeKeepAll(text: string): string {
-  return stripBBCodeImpl(text, false);
-}
-
-function stripBBCodeImpl(text: string, skipDice: boolean): string {
   let ast: BBNode[] = [];
   try {
     ast = parse(String(text || ''), { caseFreeTags: true });
@@ -315,8 +305,8 @@ function stripBBCodeImpl(text: string, skipDice: boolean): string {
       if (typeof n === 'string') {
         parts.push(n);
       } else if (n && Array.isArray(n.content)) {
-        // 骰子：skipDice=true（摘要）整体跳过；false（导出）保留内容
-        if (skipDice && String(n.tag || '').toLowerCase() === 'dice') continue;
+        // 骰子整体跳过（表达式/结果不进入纯文本）
+        if (String(n.tag || '').toLowerCase() === 'dice') continue;
         walk(n.content as BBNode[]);
       }
     }
