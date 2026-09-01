@@ -57,22 +57,26 @@ export function ComposerContent({ user, tags, defaultTagId, onPosted }: Composer
 
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
-  // 初始标签：当前标签页默认选中（仅当该标签在列表中存在；"全部"页不默认）
-  const [tagIds, setTagIds] = useState<number[]>(() =>
-    defaultTagId != null && tags.some((t) => t.id === defaultTagId) ? [defaultTagId] : []
-  );
+  // 初始标签：当前标签页上下文（defaultTagId）优先；"全部"页无上下文
+  const [tagIds, setTagIds] = useState<number[]>(() => (defaultTagId != null ? [defaultTagId] : []));
   // 折叠模式（表单简化）：默认只显示标题 + 提交 + 高级按钮；内容/标签/角色/插图收进"高级设置"
   const [advanced, setAdvanced] = useState(false);
-  // 用户是否手动操作过标签：手动操作后不再自动预选"讨论区"（避免清空标签被重选）
+  // 用户是否手动操作过标签：手动操作后不再自动预选（避免清空标签被重选）
   const tagTouchedRef = useRef(false);
-  // 标签默认选「讨论区」：tags 就绪后若未手动操作且未选，自动预选（开戏弹窗折叠态零配置可提交）
+  // 打开弹窗时的标签上下文（defaultTagId 在弹窗生命周期内不变，存 ref 防 effect 依赖抖动）
+  const ctxTagRef = useRef(defaultTagId);
+  // 兜底默认标签：「讨论区」，或不存在时第一个标签
   const defaultTag = useMemo(() => {
     const disc = tags.find((t) => t.name === '讨论区');
     return (disc ?? tags[0])?.id ?? null;
   }, [tags]);
+  // 默认标签选择（tags 就绪后统一处理；不能依赖初始 useState——tags 异步加载时判断会失败）：
+  // 在某个标签页开戏 → 默认该标签；"全部"页 → 默认讨论区
   useEffect(() => {
     if (tagTouchedRef.current || tagIds.length > 0 || defaultTag == null) return;
-    setTagIds([defaultTag]);
+    const ctx = ctxTagRef.current;
+    const want = ctx != null && tags.some((t) => t.id === ctx) ? ctx : defaultTag;
+    setTagIds([want]);
   }, [tags, tagIds, defaultTag]);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
@@ -257,9 +261,9 @@ export function ComposerContent({ user, tags, defaultTagId, onPosted }: Composer
           scheduleSave(v, content, tagIds, imageUrl);
         }}
       />
-      {!advanced && defaultTag != null && (
+      {!advanced && tagIds.length > 0 && (
         <Text size="xs" c="dimmed">
-          将发布到「{tags.find((t) => t.id === defaultTag)?.name ?? ''}」（可展开修改）
+          将发布到「{tags.find((t) => t.id === tagIds[0])?.name ?? ''}」（可展开修改）
         </Text>
       )}
       {/* 提交行：高级设置开关 + 保存状态 + 开戏（始终可见） */}
