@@ -16,6 +16,7 @@ import { openReportModal, type ReportTargetType } from './reportModal';
 import { openPostAdminModal, type AdminTargetType } from './postAdminModal';
 import { openDeleteConfirmModal } from './deleteVerifyModal';
 import { copyText, displayName, pickImageFile, tagTextColorOf, timeAgo, uploadImageFile } from '../../lib/utils';
+import { docYBelowNav } from '../../lib/navOffset';
 import Avatar from '../../components/Avatar';
 import BBCodeEditor from '../../components/BBCodeEditor';
 import { clearDraft, saveDraft } from '../../lib/drafts';
@@ -649,7 +650,9 @@ export default function TopicPage() {
     if (lastPos === null) return;
     const el = document.querySelector(`[data-num="${lastPos}"]`);
     if (el) {
-      (el as HTMLElement).scrollIntoView({ behavior: 'smooth', block: 'start' });
+      // 滚动到目标楼（顶部对齐导航栏下方）：window.scrollTo smooth + 动态测量导航栏高度，
+      // 与通知定位（useTopicPagination doScroll）同一套补偿，避免写死 64px 在移动端偏大
+      window.scrollTo({ top: docYBelowNav(el as HTMLElement), behavior: 'smooth' });
     } else {
       // 目标楼未加载（分页）：定位其所在页加载后跳转
       setPendingTarget({ number: lastPos });
@@ -666,8 +669,8 @@ export default function TopicPage() {
     }
     const el = document.querySelector(`[data-num="${target.number}"]`);
     if (el) {
-      (el as HTMLElement).scrollIntoView({ behavior: 'smooth', block: 'start' });
       const node = el as HTMLElement;
+      window.scrollTo({ top: docYBelowNav(node), behavior: 'smooth' });
       node.classList.add('post-flash');
       window.setTimeout(() => node.classList.remove('post-flash'), 1600);
     }

@@ -8,6 +8,7 @@ import { mutate as globalMutate } from 'swr';
 import { notifications } from '@mantine/notifications';
 import { api, readInitData } from '../../api/client';
 import { useTopic } from '../../api/hooks';
+import { docYBelowNav } from '../../lib/navOffset';
 import type { DiscussionDetail, InitData } from '../../types';
 import { PAGE_SIZE, type PendingTarget, type TopicPost } from './topicTypes';
 
@@ -253,21 +254,14 @@ export function useTopicPagination(id: string | undefined) {
       // 确定性滚动：不用 scrollIntoView——iOS Safari 对刚更新的 DOM 调用 scrollIntoView
       // 是异步的，可能被延迟/取消/与浏览器滚动恢复冲突（表现为"先闪顶部再跳"）。
       // 用 getBoundingClientRect 计算目标楼相对文档的绝对 y，window.scrollTo 同步设置
-      // （语义同 scrollIntoView block:'start'：目标楼顶部对齐视口顶部）。
-      // 减去 sticky 导航栏高度：目标楼顶部对齐「导航栏下方」，否则被 .nav（55px，吸顶）
-      // 盖住。动态测量 .nav 实际高度（移动端可能不同），兜底 55。
-      const navOffset = (() => {
-        const nav = document.querySelector('.nav');
-        const h = nav ? nav.getBoundingClientRect().height : 0;
-        return h > 0 ? h : 55;
-      })();
+      // （语义同 scrollIntoView block:'start'：目标楼顶部对齐视口顶部，扣除 sticky 导航栏高度）。
       const doScroll = (el: HTMLElement) => {
-        const absY = Math.max(0, Math.round(el.getBoundingClientRect().top + window.scrollY - navOffset));
-        console.log(`[zhuge-jump] scrollTo num=${num} y=${absY} nav=${navOffset} before=${Math.round(window.scrollY)}`);
+        const absY = docYBelowNav(el);
+        console.log(`[zhuge-jump] scrollTo num=${num} y=${absY} before=${Math.round(window.scrollY)}`);
         window.scrollTo(0, absY);
         // 下一帧验证：滚动若被浏览器异步化/取消，实测位置与目标偏差 → 补滚一次
         requestAnimationFrame(() => {
-          const want = Math.max(0, Math.round(el.getBoundingClientRect().top + window.scrollY - navOffset));
+          const want = docYBelowNav(el);
           if (Math.abs(window.scrollY - want) > 4) {
             console.log(`[zhuge-jump] scrollTo verify drift before=${Math.round(window.scrollY)} want=${want} → re-scroll`);
             window.scrollTo(0, want);
