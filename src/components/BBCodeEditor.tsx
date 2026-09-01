@@ -27,6 +27,8 @@ interface BBCodeEditorProps {
   placeholder?: string;
   minRows?: number;
   autosize?: boolean;
+  /** 是否显示工具栏（折叠模式可隐藏，减少表单视觉负担） */
+  showToolbar?: boolean;
   /** 编辑态 textarea 的 ref（外部需要聚焦/滚动定位时用） */
   inputRef?: React.MutableRefObject<HTMLTextAreaElement | null>;
   onKeyDown?: (e: React.KeyboardEvent<HTMLTextAreaElement>) => void;
@@ -90,6 +92,7 @@ export default function BBCodeEditor({
   inputRef,
   onKeyDown,
   showPreview = true,
+  showToolbar = true,
 }: BBCodeEditorProps) {
   const internalRef = useRef<HTMLTextAreaElement | null>(null);
   const [mode, setMode] = useState<'edit' | 'preview'>('edit');
@@ -120,7 +123,8 @@ export default function BBCodeEditor({
 
   return (
     <div>
-      {/* 工具栏 */}
+      {/* 工具栏（showToolbar=false 时隐藏，折叠表单模式） */}
+      {showToolbar && (
       <Group gap={4} mb={4} wrap="wrap" align="center">
         <TplBtn label="B" tip="加粗" onClick={() => wrap('[b]', '[/b]')} />
         <TplBtn label="I" tip="斜体" onClick={() => wrap('[i]', '[/i]')} style={{ fontStyle: 'italic' }} />
@@ -172,6 +176,7 @@ export default function BBCodeEditor({
           </>
         ) : null}
       </Group>
+      )}
 
       {mode === 'edit' || !showPreview ? (
         <Textarea

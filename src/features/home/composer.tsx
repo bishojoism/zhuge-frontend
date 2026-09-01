@@ -61,6 +61,19 @@ export function ComposerContent({ user, tags, defaultTagId, onPosted }: Composer
   const [tagIds, setTagIds] = useState<number[]>(() =>
     defaultTagId != null && tags.some((t) => t.id === defaultTagId) ? [defaultTagId] : []
   );
+  // 折叠模式（表单简化）：默认只显示标题 + 提交 + 高级按钮；内容/标签/角色/插图收进"高级设置"
+  const [advanced, setAdvanced] = useState(false);
+  // 用户是否手动操作过标签：手动操作后不再自动预选"讨论区"（避免清空标签被重选）
+  const tagTouchedRef = useRef(false);
+  // 标签默认选「讨论区」：tags 就绪后若未手动操作且未选，自动预选（开戏弹窗折叠态零配置可提交）
+  const defaultTag = useMemo(() => {
+    const disc = tags.find((t) => t.name === '讨论区');
+    return (disc ?? tags[0])?.id ?? null;
+  }, [tags]);
+  useEffect(() => {
+    if (tagTouchedRef.current || tagIds.length > 0 || defaultTag == null) return;
+    setTagIds([defaultTag]);
+  }, [tags, tagIds, defaultTag]);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
   const [uploading, setUploading] = useState(false);
@@ -146,6 +159,7 @@ export function ComposerContent({ user, tags, defaultTagId, onPosted }: Composer
   };
 
   const toggleTag = (id: number) => {
+    tagTouchedRef.current = true; // 手动操作过标签：不再自动预选讨论区
     const next = tagIds.includes(id) ? tagIds.filter((x) => x !== id) : [...tagIds, id];
     setTagIds(next);
     scheduleSave(title, content, next, imageUrl);
@@ -229,6 +243,7 @@ export function ComposerContent({ user, tags, defaultTagId, onPosted }: Composer
 
   return (
     <Stack gap="sm" style={{ maxHeight: '70vh', overflowY: 'auto', paddingRight: 2 }}>
+      {/* 折叠模式：默认唯一输入框 = 标题（标签默认讨论区，填完标题即可开戏） */}
       <TextInput
         placeholder="标题（不能为空）"
         maxLength={40}
@@ -242,6 +257,23 @@ export function ComposerContent({ user, tags, defaultTagId, onPosted }: Composer
           scheduleSave(v, content, tagIds, imageUrl);
         }}
       />
+      {!advanced && defaultTag != null && (
+        <Text size="xs" c="dimmed">
+          将发布到「{tags.find((t) => t.id === defaultTag)?.name ?? ''}」（可展开修改）
+        </Text>
+      )}
+      {/* 提交行：高级设置开关 + 保存状态 + 开戏（始终可见） */}
+      <Group justify="space-between" wrap="nowrap" align="center">
+        <Button variant="subtle" size="compact-sm" onClick={() => setAdvanced((v) => !v)}>
+          {advanced ? '收起高级设置 ▴' : '高级设置 ▾'}
+        </Button>
+        <span style={{ fontSize: 12, color: 'var(--muted)', minHeight: 16 }}>{saveLabel}</span>
+        <Button onClick={handleSubmit} loading={submitting}>
+          开戏
+        </Button>
+      </Group>
+      {advanced && (
+        <>
       <BBCodeEditor
         value={content}
         onChange={(v) => {
@@ -423,24 +455,8 @@ export function ComposerContent({ user, tags, defaultTagId, onPosted }: Composer
           </Text>
         ) : null}
       </div>
-      {/* 提交按钮固定在底部：弹窗内容超高时滚动，按钮始终可见可点 */}
-      <Group
-        justify="space-between"
-        mt="sm"
-        style={{
-          position: 'sticky',
-          bottom: 0,
-          background: 'var(--card)',
-          paddingTop: 8,
-          paddingBottom: 4,
-          zIndex: 1,
-        }}
-      >
-        <span style={{ fontSize: 12, color: 'var(--muted)', minHeight: 16 }}>{saveLabel}</span>
-        <Button loading={submitting} onClick={handleSubmit}>
-          开戏
-        </Button>
-      </Group>
+        </>
+      )}
     </Stack>
   );
 }

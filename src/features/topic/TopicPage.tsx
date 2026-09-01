@@ -68,6 +68,8 @@ export default function TopicPage() {
   const [content, setContent] = useState('');
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [replyTarget, setReplyTarget] = useState<{ postId: number; author: string } | null>(null);
+  // 接戏表单折叠（表单简化）：默认只显示输入框 + 提交 + 高级按钮；角色/插图/格式工具栏收进高级
+  const [composerAdvanced, setComposerAdvanced] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [draftStatus, setDraftStatus] = useState('');
@@ -814,7 +816,7 @@ export default function TopicPage() {
         </div>
       ) : (
         <>
-          {replyCharacters.length > 0 && (
+          {composerAdvanced && replyCharacters.length > 0 && (
             <Select
               size="xs"
               label="以角色身份接戏（可选）"
@@ -873,6 +875,7 @@ export default function TopicPage() {
                 void submitReply();
               }
             }}
+            showToolbar={composerAdvanced}
             placeholder={
               // 私密主题（滴滴/一对一私聊）用"回复"措辞（P4 措辞统一）；公开主题用"接戏"
               replyTarget
@@ -883,6 +886,11 @@ export default function TopicPage() {
             }
           />
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <Button variant="subtle" size="compact-sm" onClick={() => setComposerAdvanced((v) => !v)}>
+              {composerAdvanced ? '收起高级设置 ▴' : '高级设置 ▾'}
+            </Button>
+            {composerAdvanced && (
+              <>
             <Button variant="subtle" size="compact-sm" onClick={handlePickImage} loading={uploading}>
               🖼 插图
             </Button>
@@ -922,6 +930,8 @@ export default function TopicPage() {
               </span>
             )}
             <span style={{ fontSize: 12, color: 'var(--muted)' }}>每帖最多一张</span>
+              </>
+            )}
             <span style={{ flex: 1 }} />
             {isPrivate && (
               <span className="private-badge" style={{ marginRight: 8 }}>

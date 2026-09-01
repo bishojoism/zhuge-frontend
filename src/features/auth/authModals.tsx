@@ -83,7 +83,7 @@ function AuthTabs({
 }
 
 // ============ 登录弹窗 ============
-function LoginModal({ initialTab = 'pk' }: { initialTab?: AuthTab }) {
+function LoginModal({ initialTab = 'pw' }: { initialTab?: AuthTab }) {
   const [tab, setTab] = useState<AuthTab>(initialTab);
   const [view, setView] = useState<'form' | 'verifying' | 'needRegister' | 'error'>('form');
   const [username, setUsername] = useState('');
@@ -319,7 +319,7 @@ function getInvitedBy(): number | undefined {
   return undefined;
 }
 
-function RegisterModal({ initialTab = 'pk' }: { initialTab?: AuthTab }) {
+function RegisterModal({ initialTab = 'pw' }: { initialTab?: AuthTab }) {
   const [tab, setTab] = useState<AuthTab>(initialTab);
   const [view, setView] = useState<'form' | 'waitingDevice' | 'denied' | 'expired'>('form');
   const [username, setUsername] = useState('');
@@ -622,8 +622,8 @@ function RegisterModal({ initialTab = 'pk' }: { initialTab?: AuthTab }) {
 
 // ============ 对外入口 ============
 
-/** 打开登录弹窗（默认通行密钥优先） */
-export function openLoginModal(tab: AuthTab = 'pk'): void {
+/** 打开登录弹窗（默认密码页签：新用户第一眼看到输入框，而非生物识别说明） */
+export function openLoginModal(tab: AuthTab = 'pw'): void {
   // 全局互斥打开：同 id 防抖 + 关闭动画等待，任意时序下都只出现一个弹窗
   openModalOnce(
     'auth-login',
@@ -641,8 +641,8 @@ export function openLoginModal(tab: AuthTab = 'pk'): void {
   );
 }
 
-/** 打开注册弹窗（默认通行密钥优先） */
-export function openRegisterModal(tab: AuthTab = 'pk'): void {
+/** 打开注册弹窗（默认密码页签） */
+export function openRegisterModal(tab: AuthTab = 'pw'): void {
   openModalOnce(
     'auth-register',
     (m) => {

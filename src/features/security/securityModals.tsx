@@ -167,19 +167,14 @@ function SecurityModal() {
     void startReauthFlow({ type: 'changePassword' });
   };
 
-  // 保存新密码
+  // 保存新密码（P-表单简化：删除冗余的"确认新密码"，与注册去确认密码同源——密码可见性切换已够防误输）
   const savePassword = async (
     reauthToken: string | null,
     currentPassword: string,
-    newPassword: string,
-    confirmPassword: string
+    newPassword: string
   ): Promise<void> => {
     if (newPassword.length < 8) {
       toast('密码至少 8 位');
-      return;
-    }
-    if (newPassword !== confirmPassword) {
-      toast('两次输入的密码不一致');
       return;
     }
     if (!reauthToken && !currentPassword) {
@@ -358,7 +353,7 @@ function SecurityModal() {
         <NewPasswordForm
           reauthToken={step.reauthToken}
           busy={busy}
-          onSave={(cur, next, confirm) => void savePassword(step.reauthToken, cur, next, confirm)}
+          onSave={(cur, next) => void savePassword(step.reauthToken, cur, next)}
           onBack={goMain}
         />
       )}
@@ -542,14 +537,13 @@ function ReauthView({ busy, onVerify, onBack }: ReauthViewProps) {
 interface NewPasswordFormProps {
   reauthToken: string | null;
   busy: boolean;
-  onSave: (currentPassword: string, newPassword: string, confirmPassword: string) => void;
+  onSave: (currentPassword: string, newPassword: string) => void;
   onBack: () => void;
 }
 
 function NewPasswordForm({ reauthToken, busy, onSave, onBack }: NewPasswordFormProps) {
   const [current, setCurrent] = useState('');
   const [next, setNext] = useState('');
-  const [confirm, setConfirm] = useState('');
   // iOS：挂载后延迟聚焦当前密码（或新密码）
   useEffect(() => {
     focusModalInput(reauthToken ? 'input[autocomplete="new-password"]' : 'input[autocomplete="current-password"]');
@@ -579,18 +573,10 @@ function NewPasswordForm({ reauthToken, busy, onSave, onBack }: NewPasswordFormP
         data-autofocus
         value={next}
         onChange={(e) => setNext(e.currentTarget.value)}
-        mb="sm"
-        autoComplete="new-password"
-      />
-      <PasswordInput
-        label="确认新密码"
-        placeholder="请再次输入新密码"
-        value={confirm}
-        onChange={(e) => setConfirm(e.currentTarget.value)}
         mb="lg"
         autoComplete="new-password"
       />
-      <Button fullWidth onClick={() => onSave(current, next, confirm)} loading={busy}>
+      <Button fullWidth onClick={() => onSave(current, next)} loading={busy}>
         保存
       </Button>
       <Button fullWidth mt="xs" variant="default" onClick={onBack} disabled={busy}>

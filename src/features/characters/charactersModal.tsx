@@ -184,51 +184,59 @@ function CharacterForm({ character, onSaved, onCancel }: { character: Character 
     }
   };
 
+  // 表单简化：默认只显示必填（姓名）+ 性别；年龄/身份/备注/外貌收进「更多资料」
+  const [more, setMore] = useState(false);
   return (
     <Stack gap="sm">
       <TextInput label="姓名" required autoComplete="off" value={name} onChange={(e) => setName(e.currentTarget.value)} placeholder="如：林晚秋" />
-      <Group grow>
-        <Select
-          label="性别"
-          placeholder="选择"
-          data={GENDER_OPTIONS}
-          value={gender}
-          onChange={(v) => setGender((v as Gender) || null)}
-          clearable
-        />
-        <TextInput label="年龄" autoComplete="off" value={age} onChange={(e) => setAge(e.currentTarget.value)} placeholder="如：22" />
-      </Group>
-      <TextInput label="身份" autoComplete="off" value={identity} onChange={(e) => setIdentity(e.currentTarget.value)} placeholder="如：书院山长之女 / 江湖郎中" />
-      <Textarea label="备注" autoComplete="off" value={note} onChange={(e) => setNote(e.currentTarget.value)} placeholder="性格、背景、口头禅等补充…" minRows={2} autosize />
-      <Stack gap={6}>
-        <Text size="sm">外貌（图片）</Text>
-        {appearance ? (
-          <div style={{ position: 'relative', display: 'inline-block', alignSelf: 'flex-start' }}>
-            <img
-              src={appearance}
-              alt="外貌"
-              style={{ width: 96, height: 96, borderRadius: '50%', objectFit: 'cover', display: 'block', border: '1px solid var(--border)' }}
-            />
-            <ActionIcon
-              variant="filled"
-              color="dark"
-              size="sm"
-              style={{ position: 'absolute', top: 2, right: 2 }}
-              onClick={() => setAppearance('')}
-              aria-label="移除外貌图片"
-            >
-              ✕
-            </ActionIcon>
-          </div>
-        ) : (
-          <Button variant="subtle" size="compact-sm" loading={uploading} onClick={handlePickAppearance}>
-            🖼 上传外貌图片
-          </Button>
-        )}
-        <Text size="xs" c="dimmed">
-          开戏选择此角色后，帖子里的头像/性别/名字会显示成角色的样子
-        </Text>
-      </Stack>
+      <Select
+        label="性别"
+        placeholder="选择"
+        data={GENDER_OPTIONS}
+        value={gender}
+        onChange={(v) => setGender((v as Gender) || null)}
+        clearable
+      />
+      {more ? (
+        <>
+          <TextInput label="年龄" autoComplete="off" value={age} onChange={(e) => setAge(e.currentTarget.value)} placeholder="如：22" />
+          <TextInput label="身份" autoComplete="off" value={identity} onChange={(e) => setIdentity(e.currentTarget.value)} placeholder="如：书院山长之女 / 江湖郎中" />
+          <Textarea label="备注" autoComplete="off" value={note} onChange={(e) => setNote(e.currentTarget.value)} placeholder="性格、背景、口头禅等补充…" minRows={2} autosize />
+          <Stack gap={6}>
+            <Text size="sm">外貌（图片）</Text>
+            {appearance ? (
+              <div style={{ position: 'relative', display: 'inline-block', alignSelf: 'flex-start' }}>
+                <img
+                  src={appearance}
+                  alt="外貌"
+                  style={{ width: 96, height: 96, borderRadius: '50%', objectFit: 'cover', display: 'block', border: '1px solid var(--border)' }}
+                />
+                <ActionIcon
+                  variant="filled"
+                  color="dark"
+                  size="sm"
+                  style={{ position: 'absolute', top: 2, right: 2 }}
+                  onClick={() => setAppearance('')}
+                  aria-label="移除外貌图片"
+                >
+                  ✕
+                </ActionIcon>
+              </div>
+            ) : (
+              <Button variant="subtle" size="compact-sm" loading={uploading} onClick={handlePickAppearance}>
+                🖼 上传外貌图片
+              </Button>
+            )}
+            <Text size="xs" c="dimmed">
+              开戏选择此角色后，帖子里的头像/性别/名字会显示成角色的样子
+            </Text>
+          </Stack>
+        </>
+      ) : (
+        <Button variant="subtle" size="compact-sm" onClick={() => setMore(true)}>
+          更多资料（年龄 / 身份 / 备注 / 外貌）▾
+        </Button>
+      )}
       <Group justify="flex-end" mt="xs">
         <Button variant="subtle" onClick={onCancel}>
           取消
