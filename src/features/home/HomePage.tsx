@@ -104,7 +104,10 @@ export default function HomePage() {
     setTag(urlTag);
     setSort(urlSort);
     if (enteringRecommend) {
-      setFeedSeed(initSnap.seed);
+      // 从列表模式切回推荐：用当前分钟 seed（与 preloadAllPrimaryLists 预热一致，
+      // 推荐缓存命中 → 切回立即显示内容，不闪骨架/闪烁）。
+      // 不能用 initSnap.seed（页面加载时旧种子，可能已过期且无缓存）。
+      setFeedSeed(newSeed());
     } else if (tagChanged) {
       setFeedSeed(newSeed());
     }
