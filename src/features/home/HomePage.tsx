@@ -137,6 +137,27 @@ export default function HomePage() {
     seed: sort === 'recommend' ? feedSeed : undefined,
   });
 
+  // 【诊断】列表模式空隙排查（所有条件 return 之前，hooks 数量须一致）
+  useEffect(() => {
+    requestAnimationFrame(() => {
+      const nav = document.querySelector('.nav');
+      const sticky = document.querySelector('.list-sticky');
+      const container = document.querySelector('.container');
+      const hero = document.querySelector('.hero');
+      console.log('[zhuge-list-gap]', {
+        bodyZhugeHome: document.body.classList.contains('zhuge-home'),
+        navH: nav ? nav.getBoundingClientRect().height : null,
+        navBottom: nav ? nav.getBoundingClientRect().bottom : null,
+        stickyTop: sticky ? sticky.getBoundingClientRect().top : null,
+        stickyMarginTop: sticky ? getComputedStyle(sticky).marginTop : null,
+        containerPT: container ? getComputedStyle(container).paddingTop : null,
+        heroMarginTop: hero ? getComputedStyle(hero).marginTop : null,
+        innerH: window.innerHeight,
+      });
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sort, tag]);
+
   // 【诊断】回首页列表为空排查
   useEffect(() => {
     console.log('[zhuge-home] mounted', {
@@ -392,6 +413,7 @@ export default function HomePage() {
   const listHasMore = listReady
     ? items.length > 0 ? hasMore : result?.meta.hasMore || false
     : listCacheHit ? result.meta.hasMore : false;
+
   return (
     /* 列表模式：hero/tagbar 用 sticky 吸顶（不随列表滚走），列表区正常文档流滚动。
        不锁页面高度——页面滚动条保留但横幅/标签固定，无需像素估算、无溢出问题 */

@@ -604,9 +604,9 @@
     /* 鎺ㄨ崘妯″紡妯箙锛氫笌鍒楄〃妯″紡瀹屽叏涓€鑷达紙澶嶇敤 .hero 缁勪欢鏍峰紡锛岄棿璺濈粺涓€ 22px锛?*/
     /* 列表模式（最新/热门）：hero/tagbar 吸顶固定（sticky），列表区正常文档流滚动——
        页面保留滚动条但横幅/标签固定不滚走；不锁页面高度，无溢出问题。
-       top:56px = 吸在导航栏（sticky top:0，高约 56px）下方；背景同页面色防透出 */
+       top:55px = 导航栏实际高度（诊断 navH=55）；背景同页面色防透出 */
     .list-sticky {
-      position: sticky; top: 56px; z-index: 5;
+      position: sticky; top: 55px; z-index: 5;
       background: var(--bg);
     }
     /* hero 顶部无间距（与推荐模式一致，统一取消横幅上边距） */
