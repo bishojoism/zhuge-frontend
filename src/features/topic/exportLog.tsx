@@ -5,7 +5,7 @@ import { Button, SimpleGrid, Stack, Text } from '@mantine/core';
 import { modals } from '@mantine/modals';
 import { notifications } from '@mantine/notifications';
 import { openModalOnce } from '../../lib/modals';
-import { stripBBCode } from '../../lib/bbcode';
+import { stripBBCodeKeepAll } from '../../lib/bbcode';
 import type { Discussion, Gender, Post } from '../../types';
 import { displayName } from '../../lib/utils';
 
@@ -88,7 +88,7 @@ export function exportTextLog(d: Discussion, posts: ExportPost[], inviterId?: nu
     lines.push(
       `【${p.number}楼】${displayName(p)} · ${String(p.created_at || '').slice(0, 16)}${p.reply_to_author ? `（回复 @${p.reply_to_author}）` : ''}`
     );
-    if (p.content) lines.push(stripBBCode(p.content));
+    if (p.content) lines.push(p.content); // 保留原始 BBCode 标记（文字记录 = 源文本，格式标记应可见）
     if (p.image_url) lines.push(`[图片] ${location.origin}${p.image_url}`);
   }
   const blob = new Blob([lines.join('\n')], { type: 'text/plain;charset=utf-8' });
@@ -200,7 +200,7 @@ export async function exportImageLog(d: Discussion, posts: ExportPost[], style: 
     const floor = `${p.number}楼`;
     const time = String(p.created_at || '').slice(0, 16);
     const ref = p.reply_to_author ? `回复 @${p.reply_to_author}` : '';
-    const bodyLines = wrap(ctx, stripBBCode(p.content || ''), bodyFont(17), cardBodyW);
+    const bodyLines = wrap(ctx, stripBBCodeKeepAll(p.content || ''), bodyFont(17), cardBodyW);
     const hasImage = !!p.image_url;
     const bodyH = bodyLines.length * 27;
     const imgH = hasImage ? 20 : 0;
