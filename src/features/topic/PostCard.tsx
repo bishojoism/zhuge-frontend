@@ -30,7 +30,6 @@ export interface PostCardProps {
   didiCharId?: string | null;
   onReport: () => void;
   onAdmin?: () => void;
-  onPoster?: () => void;
   onCopyLink?: () => void;
   /** 查看帖子源码（原始 BBCode 文本） */
   onSource?: () => void;
@@ -145,7 +144,6 @@ export function PostCard({
   didiCharId,
   onReport,
   onAdmin,
-  onPoster,
   onCopyLink,
   onSource,
   onDelete,
@@ -580,11 +578,6 @@ export function PostCard({
           {onCopyLink && (
             <Button size="compact-sm" variant="subtle" onClick={onCopyLink}>
               复制链接
-            </Button>
-          )}
-          {onPoster && (
-            <Button size="compact-sm" variant="subtle" onClick={onPoster}>
-              精美海报
             </Button>
           )}
           {onSource && (

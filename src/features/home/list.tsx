@@ -9,7 +9,6 @@ import { mutate as globalMutate } from 'swr';
 import { requireLogin } from '../auth/authModals';
 import { useAuth } from '../auth/AuthContext';
 import Avatar from '../../components/Avatar';
-import { openShareModal } from '../share/shareModals';
 import { openAuthorDidiStats } from '../private/authorDidiStats';
 import { parseBBCodeExcerpt } from '../../lib/bbcode';
 

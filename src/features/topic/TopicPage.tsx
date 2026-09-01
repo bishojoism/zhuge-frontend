@@ -11,7 +11,6 @@ import { api } from '../../api/client';
 import { fetcher, refreshListsAfterWrite, useDrafts, useUnread } from '../../api/hooks';
 import { useAuth } from '../auth/AuthContext';
 import { requireLogin } from '../auth/authModals';
-import { openShareModal } from '../share/shareModals';
 import { exportTextLog, openImageExportModal } from './exportLog';
 import { openReportModal, type ReportTargetType } from './reportModal';
 import { openPostAdminModal, type AdminTargetType } from './postAdminModal';
@@ -957,19 +956,6 @@ export default function TopicPage() {
             user?.isAdmin
               ? () => handleAdmin('discussion', d.id, d.user_id, displayName(d))
               : undefined
-          }
-          onPoster={() =>
-            openShareModal({
-              id: d.id,
-              title: d.title,
-              content: firstPost.content || '',
-              imageUrl: firstPost.image_url || null,
-              author: {
-                name: firstPost.author || displayName(d),
-                avatarUrl: firstPost.author_avatar || null,
-                gender: firstPost.author_gender || null,
-              },
-            })
           }
           onDelete={
             user && (user.id === firstPost.user_id || user.isAdmin)
