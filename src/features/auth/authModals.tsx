@@ -324,7 +324,6 @@ function RegisterModal({ initialTab = 'pk' }: { initialTab?: AuthTab }) {
   const [view, setView] = useState<'form' | 'waitingDevice' | 'denied' | 'expired'>('form');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [password2, setPassword2] = useState('');
   const [busy, setBusy] = useState(false);
   const alive = useRef(true);
   useEffect(() => {
@@ -339,7 +338,6 @@ function RegisterModal({ initialTab = 'pk' }: { initialTab?: AuthTab }) {
     if (busy) return;
     setTab(t);
     setPassword('');
-    setPassword2('');
     setView('form');
     // iOS：切到密码页签后聚焦用户名输入框（手势内叫醒键盘 + 弹窗内延迟聚焦兜底）
     if (t === 'pw') {
@@ -363,10 +361,6 @@ function RegisterModal({ initialTab = 'pk' }: { initialTab?: AuthTab }) {
     }
     if (password.length < 8) {
       notifications.show({ message: '密码至少 8 位', color: 'red' });
-      return;
-    }
-    if (password !== password2) {
-      notifications.show({ message: '两次输入的密码不一致', color: 'red' });
       return;
     }
     setBusy(true);
@@ -570,17 +564,6 @@ function RegisterModal({ initialTab = 'pk' }: { initialTab?: AuthTab }) {
             autoComplete="new-password"
             value={password}
             onChange={(e) => setPassword(e.currentTarget.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') submitPassword();
-            }}
-          />
-          <TextInput
-            type="password"
-            placeholder="确认密码"
-            maxLength={128}
-            autoComplete="new-password"
-            value={password2}
-            onChange={(e) => setPassword2(e.currentTarget.value)}
             onKeyDown={(e) => {
               if (e.key === 'Enter') submitPassword();
             }}

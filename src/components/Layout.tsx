@@ -406,39 +406,61 @@ export default function Layout({ children }: { children: ReactNode }) {
                       {coinData ? `· ${levelLabel(coinData.level)}` : ''}
                     </Text>
                   </Menu.Label>
-                  {/* 功能宫格：图标 + 短文字（去掉副信息，防菜单过宽过长） */}
-                  <div className="menu-grid">
+                  {/* 功能宫格：按语义分组（我的内容 / 我的账号 / 系统），高频置顶，便于扫视 */}
+                  <div className="menu-groups">
                     {[
-                      { icon: <IconHeartHandshake size={20} />, label: '我的滴滴', onClick: () => navigate('/private') },
-                      { icon: <IconFolder size={20} />, label: '我的主题', onClick: () => navigate('/my') },
-                      { icon: <IconListCheck size={20} />, label: '今日任务', onClick: () => openCoinsModal() },
-                      { icon: <IconStar size={20} />, label: '收藏夹', onClick: () => openFavoritesModal() },
-                      { icon: <IconPhoto size={20} />, label: '上传头像', onClick: () => openAvatarModal() },
-                      { icon: <IconUserCog size={20} />, label: '性别', onClick: () => openGenderModal() },
-                      { icon: <IconMasksTheater size={20} />, label: '角色卡', onClick: () => openCharactersModal() },
-                      { icon: <IconAward size={20} />, label: '我的徽章', onClick: () => openBadgesModal(user.id) },
-                      { icon: <IconUserPlus size={20} />, label: '邀请好友', onClick: () => openInviteModal(user.id, user.username) },
-                      { icon: <IconKey size={20} />, label: '账号安全', onClick: () => openSecurityModal() },
-                      { icon: <IconApi size={20} />, label: '开放 API', onClick: () => openApiTokensModal() },
-                      { icon: <IconRobot size={20} />, label: 'MCP', onClick: () => openMcpModal() },
-                      { icon: <IconDeviceMobile size={20} />, label: '设备授权', onClick: () => openDeviceAuthsModal() },
-                      { icon: <IconBan size={20} />, label: '屏蔽管理', onClick: () => openBlocksModal() },
-                      ...(user.isAdmin
-                        ? [{ icon: <IconShield size={20} />, label: '管理', onClick: () => navigate('/admin') }]
-                        : []),
-                    ].map((it) => (
-                      <button
-                        key={it.label}
-                        type="button"
-                        className="menu-grid-item"
-                        onClick={() => {
-                          setMenuOpen(false);
-                          it.onClick();
-                        }}
-                      >
-                        {it.icon}
-                        <span>{it.label}</span>
-                      </button>
+                      {
+                        title: '我的内容',
+                        items: [
+                          { icon: <IconHeartHandshake size={20} />, label: '我的滴滴', onClick: () => navigate('/private') },
+                          { icon: <IconFolder size={20} />, label: '我的主题', onClick: () => navigate('/my') },
+                          { icon: <IconListCheck size={20} />, label: '今日任务', onClick: () => openCoinsModal() },
+                          { icon: <IconStar size={20} />, label: '收藏夹', onClick: () => openFavoritesModal() },
+                        ],
+                      },
+                      {
+                        title: '我的账号',
+                        items: [
+                          { icon: <IconMasksTheater size={20} />, label: '角色卡', onClick: () => openCharactersModal() },
+                          { icon: <IconAward size={20} />, label: '我的徽章', onClick: () => openBadgesModal(user.id) },
+                          { icon: <IconUserPlus size={20} />, label: '邀请好友', onClick: () => openInviteModal(user.id, user.username) },
+                          { icon: <IconKey size={20} />, label: '账号安全', onClick: () => openSecurityModal() },
+                          { icon: <IconPhoto size={20} />, label: '上传头像', onClick: () => openAvatarModal() },
+                          { icon: <IconUserCog size={20} />, label: '性别', onClick: () => openGenderModal() },
+                        ],
+                      },
+                      {
+                        title: '系统',
+                        items: [
+                          { icon: <IconApi size={20} />, label: '开放 API', onClick: () => openApiTokensModal() },
+                          { icon: <IconRobot size={20} />, label: 'MCP', onClick: () => openMcpModal() },
+                          { icon: <IconDeviceMobile size={20} />, label: '设备授权', onClick: () => openDeviceAuthsModal() },
+                          { icon: <IconBan size={20} />, label: '屏蔽管理', onClick: () => openBlocksModal() },
+                          ...(user.isAdmin
+                            ? [{ icon: <IconShield size={20} />, label: '管理', onClick: () => navigate('/admin') }]
+                            : []),
+                        ],
+                      },
+                    ].map((g) => (
+                      <div key={g.title} className="menu-group">
+                        <div className="menu-group-title">{g.title}</div>
+                        <div className="menu-grid">
+                          {g.items.map((it) => (
+                            <button
+                              key={it.label}
+                              type="button"
+                              className="menu-grid-item"
+                              onClick={() => {
+                                setMenuOpen(false);
+                                it.onClick();
+                              }}
+                            >
+                              {it.icon}
+                              <span>{it.label}</span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
                     ))}
                   </div>
                   <Menu.Divider />

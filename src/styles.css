@@ -212,8 +212,9 @@
     }
     .tagbar-scroll::-webkit-scrollbar { display: none; }
     .tagbar-actions { display: flex; gap: 8px; flex-shrink: 0; align-items: center; }
-    .sort-btn { display: flex; align-items: center; justify-content: center; padding: 6px 10px; font-size: 14px; }
+    .sort-btn { display: flex; align-items: center; justify-content: center; gap: 4px; padding: 6px 10px; font-size: 14px; }
     .sort-icon { font-size: 15px; }
+    .sort-label { font-size: 13px; color: var(--text-soft); }
     /* 鎺掑簭涓嬫媺鑿滃崟 */
     /* 注意：定位完全交给 Mantine Menu（withinPortal + JS transform 计算），
        这里只写视觉样式。曾自定义 position:absolute;right/top 覆盖 Mantine 定位，
@@ -997,12 +998,19 @@ body { margin: 0; }
 }
 
 /* Avatar menu: 功能宫格（图标 + 短文字，4 列网格，替代超长纵向菜单） */
+.menu-groups { min-width: 264px; padding: 4px 6px 6px; }
+.menu-group + .menu-group { border-top: 1px solid var(--border); margin-top: 4px; padding-top: 4px; }
+.menu-group-title {
+  font-size: 11px;
+  color: var(--muted);
+  padding: 4px 6px 2px;
+  letter-spacing: 0.05em;
+}
 .menu-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 2px;
-  padding: 6px;
-  min-width: 264px;
+  padding: 2px;
 }
 .menu-grid-item {
   display: flex;

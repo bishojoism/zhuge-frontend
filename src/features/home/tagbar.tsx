@@ -115,6 +115,7 @@ export default function TagBar({
                 aria-label="排序"
               >
                 <span className="sort-icon">⇅</span>
+                <span className="sort-label">排序</span>
               </button>
             </Menu.Target>
             <Menu.Dropdown className="sort-menu">
