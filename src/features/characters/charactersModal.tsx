@@ -70,7 +70,7 @@ function CharactersModalContent() {
     <Stack gap="sm">
       {chars.length === 0 ? (
         <Text size="sm" c="dimmed">
-          还没有角色卡。创建角色后，发帖/回复时可以选择"以角色身份"演绎。
+          还没有角色卡。创建角色后，开戏/接戏时可以选择"以角色身份"演绎。
         </Text>
       ) : (
         chars.map((ch) => (
@@ -226,7 +226,7 @@ function CharacterForm({ character, onSaved, onCancel }: { character: Character 
           </Button>
         )}
         <Text size="xs" c="dimmed">
-          发帖选择此角色后，帖子里的头像/性别/名字会显示成角色的样子
+          开戏选择此角色后，帖子里的头像/性别/名字会显示成角色的样子
         </Text>
       </Stack>
       <Group justify="flex-end" mt="xs">

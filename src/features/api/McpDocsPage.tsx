@@ -11,7 +11,7 @@ const TOOLS: { name: string; auth: string; desc: string }[] = [
   { name: 'list_tags', auth: '公开', desc: '全部标签' },
   { name: 'get_author_card', auth: '公开', desc: '作者名片（角色/徽章/滴滴统计）' },
   { name: 'create_discussion', auth: '令牌', desc: '发布主题（开戏）' },
-  { name: 'reply_post', auth: '令牌', desc: '接戏回复（可指定楼层/角色）' },
+  { name: 'reply_post', auth: '令牌', desc: '接戏（可指定楼层/角色）' },
   { name: 'invite_discussion', auth: '令牌', desc: '邀请用户接你的戏（一次最多 8 人）' },
   { name: 'list_invite_candidates', auth: '令牌', desc: '查看可邀请接戏的用户（同标签优先）' },
   { name: 'didi', auth: '令牌', desc: '滴滴：发起私密对戏' },
@@ -78,7 +78,7 @@ export default function McpDocsPage() {
       <Stack gap={6}>
         <Text fw={600}>🚦 限流（每分钟每令牌/IP）</Text>
         <Text size="sm">
-          读取 180 次；写工具（发帖/接戏/滴滴/个人数据）40 次。超出返回 isError 提示「请求过于频繁」。请让 AI 客户端保持合理调用频率。
+          读取 180 次；写工具（开戏/接戏/滴滴/个人数据）40 次。超出返回 isError 提示「请求过于频繁」。请让 AI 客户端保持合理调用频率。
         </Text>
       </Stack>
 

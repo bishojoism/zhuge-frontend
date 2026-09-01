@@ -152,12 +152,16 @@ export default function TopicPage() {
 
   // 记录阅读位置：视野上沿附近出现的帖子视为"正在阅读"
   // （必须在骨架屏 return 之前——hooks 数量须一致）
+  // 注意：页面还在顶部（scrollY≈0）时不记录——重开主题时首帧 1 楼必然在视野上沿，
+  // 若立即写入会把 localStorage 里的"上次位置"覆盖成 1（实测复现：22 → 1），
+  // 导致下次进入"回到上次位置"失效。回顶=读开头，本就不需要记忆位置。
   useEffect(() => {
     const postsArr = mergedPosts;
     if (!postsArr.length) return;
     const els = document.querySelectorAll('.post');
     const obs = new IntersectionObserver(
       (entries) => {
+        if (window.scrollY <= 10) return; // 顶部不记录（重开首帧不污染上次位置）
         for (const en of entries) {
           if (en.isIntersecting) {
             const num = Number((en.target as HTMLElement).dataset.num);

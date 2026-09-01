@@ -99,7 +99,7 @@ describe('parseBBCode（安全渲染）', () => {
   it('骰子 [dice]2d6+1[/dice]：未发帖时显示等待掷定', () => {
     wrap(parseBBCode('[dice]2d6+1[/dice]'));
     expect(screen.getByText(/🎲 2d6\+1/)).toBeInTheDocument();
-    expect(screen.getByText(/发帖后掷定/)).toBeInTheDocument();
+    expect(screen.getByText(/开戏\/接戏后掷定/)).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /🎲/ })).toBeNull();
   });
 

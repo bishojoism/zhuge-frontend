@@ -183,9 +183,9 @@ export function ComposerContent({ user, tags, defaultTagId, onPosted }: Composer
           characterId: characterId ? Number(characterId) : undefined,
         },
       });
-      // 每日首次发帖奖励格币
+      // 每日首次开戏奖励格币
       if (res.data?.coinReward) {
-        notifications.show({ message: `🎉 首次发帖 +${res.data.coinReward} 格币`, color: 'green' });
+        notifications.show({ message: `🎉 首次开戏 +${res.data.coinReward} 格币`, color: 'green' });
         void globalMutate('/me/coins');
       }
       cancelPendingSave();

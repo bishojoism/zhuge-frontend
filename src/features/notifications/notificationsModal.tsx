@@ -29,7 +29,8 @@ function notifText(n: NotificationItem): string {
   if (n.type === 'didi') return `${who} 滴滴了你`;
   if (n.type === 'invite') return `${who} 邀请你接戏`;
   if (n.type === 'coin') return `${who} 给你投了币`;
-  if (n.type === 'reply') return `${who} 回复了你`;
+  // 兜底文案与后端一致：公开主题的 reply 通知用「接了你的戏」（UI 动作叫接戏），私密主题用「回复了你」
+  if (n.type === 'reply') return n.discussion_is_private ? `${who} 回复了你` : `${who} 接了你的戏`;
   return '新通知';
 }
 

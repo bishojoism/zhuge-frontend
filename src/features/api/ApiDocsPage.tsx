@@ -19,7 +19,7 @@ const GROUPS: { title: string; items: Endpoint[] }[] = [
       { method: 'GET', path: '/api/discussions/:id', desc: '主题详情（帖子分页：?page=&order=new|old=&aroundPostId=&aroundNumber= 定位目标楼）', auth: false },
       { method: 'GET', path: '/api/discussions/:id/export', desc: '主题记录导出（一次性全量楼层，上限 5000；限流 3 次/分钟）', auth: false },
       { method: 'POST', path: '/api/discussions', desc: '发布主题（至少选一个标签；可选角色/图片）', auth: true, body: '{ title, content, tagIds[], imageUrl?, characterId? }' },
-      { method: 'POST', path: '/api/discussions/:id/posts', desc: '接戏回复（可选回复目标/角色/图片；Ctrl+Enter 同逻辑）', auth: true, body: '{ content, replyTo?, imageUrl?, characterId? }' },
+      { method: 'POST', path: '/api/discussions/:id/posts', desc: '接戏（可选回复目标/角色/图片；Ctrl+Enter 同逻辑）', auth: true, body: '{ content, replyTo?, imageUrl?, characterId? }' },
       { method: 'DELETE', path: '/api/discussions/:id', desc: '删除主题（作者需密码/通行密钥验证；管理员免验证）', auth: true },
       { method: 'DELETE', path: '/api/posts/:id', desc: '删除帖子（首帖=级联删整个主题；作者需密码/通行密钥验证）', auth: true },
       { method: 'POST', path: '/api/discussions/:id/invite', desc: '邀请接戏（仅作者，点名邀请 1-8 人接自己的戏，每主题累计最多 20 人；被邀请者收通知）', auth: true, body: '{ userIds: number[] }' },
@@ -36,7 +36,7 @@ const GROUPS: { title: string; items: Endpoint[] }[] = [
       { method: 'POST', path: '/api/posts/:id/coin', desc: '投币 1 格币（作者实得 0.9；允许给自己投；自投不通知；给他人投每日首次 +3 格币）', auth: true },
       { method: 'POST', path: '/api/posts/:id/tip', desc: '打赏自定义格币（≥1；10% 税；允许打赏自己；自赏不通知；给他人打赏每日首次 +3 格币）', auth: true, body: '{ amount }' },
       { method: 'POST', path: '/api/me/daily-claim', desc: '每日登录领 10 格币（当天已领则 no-op）', auth: true },
-      { method: 'GET', path: '/api/me/coins', desc: '格币余额 + 累计获得 + 等级 + 今日任务进度（任务：每日+10/发帖+5/接戏+3/滴滴+3/点赞+1/收藏+2/投币+3/打赏+3）', auth: true },
+      { method: 'GET', path: '/api/me/coins', desc: '格币余额 + 累计获得 + 等级 + 今日任务进度（任务：每日+10/开戏+5/接戏+3/滴滴+3/点赞+1/收藏+2/投币+3/打赏+3）', auth: true },
       { method: 'GET', path: '/api/me/favorites', desc: '我的收藏夹（含首帖互动计数）', auth: true },
     ],
   },
@@ -167,7 +167,7 @@ export default function ApiDocsPage() {
       <Stack gap={6}>
         <Text fw={600}>🚦 限流（每分钟）</Text>
         <Text size="sm">
-          按 IP 或令牌独立计数：认证类 12 次 / 上传 10 次 / 写操作（发帖·回复·滴滴·举报等）40 次 / 普通读取 180 次。
+          按 IP 或令牌独立计数：认证类 12 次 / 上传 10 次 / 写操作（开戏·接戏·滴滴·举报等）40 次 / 普通读取 180 次。
           超出返回 429「请求过于频繁」。程序请控制频率，避免短时间大量请求。
         </Text>
       </Stack>
@@ -222,7 +222,7 @@ export default function ApiDocsPage() {
 {`# 读主题列表（无需认证）
 curl '${typeof window !== 'undefined' ? window.location.origin : ''}/api/discussions'
 
-# 发帖（带令牌）
+# 开戏（带令牌）
 curl -X POST '${typeof window !== 'undefined' ? window.location.origin : ''}/api/discussions' \\
   -H 'Authorization: Bearer <令牌>' \\
   -H 'Content-Type: application/json' \\

@@ -55,7 +55,7 @@ function TipContent({ postId, onDone }: { postId: number; onDone?: () => void })
     <Stack gap="sm">
       <Text size="sm" c="dimmed">
         你的格币余额：<Text component="span" fw={700} style={{ color: 'var(--primary)' }}>{balance}</Text>
-        （每日打开应用自动获得，发帖/接戏/滴滴也有奖励）
+        （每日打开应用自动获得，开戏/接戏/滴滴也有奖励）
       </Text>
       <Text size="xs" c="dimmed">
         打赏面额的 10% 作为平台维护税，作者实得 {num >= 1 ? Math.round(num * 0.9 * 10) / 10 : '—'} 格币。

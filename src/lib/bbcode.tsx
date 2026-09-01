@@ -154,7 +154,7 @@ function DiceRoll({ expr }: { expr: string }) {
           ) : null}
         </span>
       ) : (
-        <span style={{ fontSize: 12, color: 'var(--muted)' }}>（发帖后掷定）</span>
+        <span style={{ fontSize: 12, color: 'var(--muted)' }}>（开戏/接戏后掷定）</span>
       )}
     </span>
   );
