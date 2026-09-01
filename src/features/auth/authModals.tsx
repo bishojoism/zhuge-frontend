@@ -380,8 +380,6 @@ function RegisterModal({ initialTab = 'pk' }: { initialTab?: AuthTab }) {
       await refreshUser();
       modals.closeAll();
       if (!alive.current) return;
-      // 新手引导：注册即弹三步上手（建角色卡/开戏/滴滴）
-      import('../onboarding/onboardingModal').then((m) => m.openOnboardingModal());
     } catch (e) {
       if (!alive.current) return;
       setBusy(false);
@@ -404,8 +402,6 @@ function RegisterModal({ initialTab = 'pk' }: { initialTab?: AuthTab }) {
     await refreshUser();
     modals.closeAll();
     if (!alive.current) return;
-    // 新手引导：注册即弹三步上手（建角色卡/开戏/滴滴）
-    import('../onboarding/onboardingModal').then((m) => m.openOnboardingModal());
   };
 
   // 等待旧设备授权：每 2 秒轮询状态；approved → 带 authToken 走注册流程
