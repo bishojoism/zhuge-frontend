@@ -599,27 +599,13 @@
       .feed-mode { height: calc(100dvh - 82px); }
     }
     /* 鎺ㄨ崘妯″紡妯箙锛氫笌鍒楄〃妯″紡瀹屽叏涓€鑷达紙澶嶇敤 .hero 缁勪欢鏍峰紡锛岄棿璺濈粺涓€ 22px锛?*/
-    /* 列表模式（最新/热门）：整体 flex column 占满剩余高度——
-       hero/tagbar 自然高度固定，列表区 flex:1 填满剩余并内部滚动，
-       页面整体不出现滚动条（横幅/标签固定不随列表滚走）。
-       高度 = 视口 - 导航栏(~58px)：首页 container padding-top 为 0，
-       hero/tagbar 自然高度由内容决定，list 区 flex:1 自适应剩余，不溢出 */
-    .list-layout {
-      display: flex; flex-direction: column;
-      height: calc(100vh - 58px);
-      overflow: hidden; /* 防止子内容（骨架/空态/列表）溢出产生页面滚动条 */
+    /* 列表模式（最新/热门）：hero/tagbar 吸顶固定（sticky），列表区正常文档流滚动——
+       页面保留滚动条但横幅/标签固定不滚走；不锁页面高度，无溢出问题。
+       top:56px = 吸在导航栏（sticky top:0，高约 56px）下方；背景同页面色防透出 */
+    .list-sticky {
+      position: sticky; top: 56px; z-index: 5;
+      background: var(--bg);
     }
-    @supports (height: 100dvh) {
-      .list-layout { height: calc(100dvh - 58px); }
-    }
-    .list-layout > .hero, .list-layout > .tagbar { flex-shrink: 0; }
-    .list-mode {
-      flex: 1; min-height: 0;
-      overflow-y: auto;
-      -webkit-overflow-scrolling: touch;
-      padding-bottom: 40px; /* 底部留空，避免最后一张卡片贴边/哨兵贴底 */
-    }
-    .feed-mode .hero { flex-shrink: 0; margin-bottom: 8px; }
     .feed-body { position: relative; flex: 1; min-height: 0; }
     .feed-topbar {
       position: absolute; top: 0; left: 0; right: 0; z-index: 6;

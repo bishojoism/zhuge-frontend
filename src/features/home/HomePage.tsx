@@ -380,11 +380,10 @@ export default function HomePage() {
   const listItems = listCacheHit ? result.data : items.length > 0 ? items : result?.data || [];
   const listHasMore = listCacheHit ? result.meta.hasMore : items.length > 0 ? hasMore : result?.meta.hasMore || false;
   return (
-    /* 列表模式整体：flex column 占满剩余高度——hero/tagbar 自然高度固定，
-       列表区 flex:1 填满剩余空间并内部滚动，页面整体不出现滚动条 */
-    <div className="list-layout">
-      {hero}
-      {tagbar}
+    /* 列表模式：hero/tagbar 用 sticky 吸顶（不随列表滚走），列表区正常文档流滚动。
+       不锁页面高度——页面滚动条保留但横幅/标签固定，无需像素估算、无溢出问题 */
+    <>
+      <div className="list-sticky">{hero}{tagbar}</div>
       {listItems.length === 0 ? (
         !result || (!listReady && !listCacheHit) ? (
           <div className="feed-loading-skeleton" aria-hidden>
@@ -401,17 +400,15 @@ export default function HomePage() {
           <div className="empty">还没有主题，来发第一个吧！</div>
         )
       ) : (
-        <div className="list-mode">
-          <ListView
-            items={listItems}
-            tags={tags}
-            hasMore={listHasMore}
-            loadingMore={loadingMore}
-            onLoadMore={loadMore}
-            onOpenTopic={openTopic}
-          />
-        </div>
+        <ListView
+          items={listItems}
+          tags={tags}
+          hasMore={listHasMore}
+          loadingMore={loadingMore}
+          onLoadMore={loadMore}
+          onOpenTopic={openTopic}
+        />
       )}
-    </div>
+    </>
   );
 }
