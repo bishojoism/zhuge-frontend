@@ -9,7 +9,7 @@ import { openModalOnce } from '../../lib/modals';
 import { useNavigate } from 'react-router-dom';
 
 const MCP_TOOLS = [
-  ['list_discussions / get_discussion / search_discussions', '读主题、看戏文、搜索'],
+  ['list_discussions / get_discussion', '读主题、看戏文'],
   ['list_tags / get_author_card', '标签与作者名片'],
   ['create_discussion / reply_post / didi', '开戏、接戏、滴滴私密对戏（需令牌）'],
   ['get_my_notifications / get_my_characters / get_my_badges', '个人数据（需令牌）'],

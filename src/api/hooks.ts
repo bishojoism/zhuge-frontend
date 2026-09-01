@@ -135,7 +135,6 @@ export interface DiscussionParams {
   page: number;
   tag?: number | null;
   seed?: number;
-  q?: string;
 }
 export function useDiscussions(params: DiscussionParams) {
   const qs = new URLSearchParams({
@@ -144,7 +143,6 @@ export function useDiscussions(params: DiscussionParams) {
   });
   if (params.tag) qs.set('tag', String(params.tag));
   if (params.sort === 'recommend' && params.seed) qs.set('seed', String(params.seed));
-  if (params.q) qs.set('q', params.q);
   const key = '/discussions?' + qs.toString();
   const { data, isLoading, mutate } = useSWR<DiscussionListResult>(key, async (p: string) => {
     const r = await api<{ data: Discussion[]; meta: { hasMore: boolean } }>(p);

@@ -89,8 +89,6 @@ export default function TopicPage() {
   });
   // 用户是否手动操作过角色选择（手动选过/清空后，不再自动覆盖为主题角色）
   const replyCharTouchedRef = useRef(false);
-  const [searchOpen, setSearchOpen] = useState(false); // 主题内搜索框开关
-  const [searchQ, setSearchQ] = useState(''); // 主题内搜索关键词
   // 阅读位置记忆：上次读到的楼层 → 再次打开时提示跳转（长戏不迷路）
   const [lastPos, setLastPos] = useState<number | null>(() => {
     try {
@@ -176,7 +174,7 @@ export default function TopicPage() {
     );
     els.forEach((el) => obs.observe(el));
     return () => obs.disconnect();
-  }, [mergedPosts, id, postOrder, searchOpen]);
+  }, [mergedPosts, id, postOrder]);
 
   // 有上次位置且未读到底 → 显示"回到上次位置"（用总楼层判断是否已读到底）
   useEffect(() => {
@@ -644,14 +642,8 @@ export default function TopicPage() {
       ),
     [posts, postOrder]
   );
-  // 主题内搜索：首帖（开场内容）与回复都参与匹配；首帖作为主题上下文始终显示，命中则高亮并计入
-  const kw = searchQ.trim().toLowerCase();
-  const firstMatched = !!firstPost && (!kw || (firstPost.content || '').toLowerCase().includes(kw));
-  const visibleReplies = useMemo(
-    () => (kw ? replies.filter((p) => (p.content || '').toLowerCase().includes(kw)) : replies),
-    [kw, replies]
-  );
-  const totalMatched = kw ? (firstMatched ? 1 : 0) + visibleReplies.length : totalPosts;
+  // 全部回复直接展示（已移除主题内搜索）
+  const visibleReplies = replies;
 
   // 跳楼/定位（普通函数 + focusPost effect：effect 同样必须在条件 return 之前声明）
   const jumpToLast = () => {
@@ -960,7 +952,6 @@ export default function TopicPage() {
           didiCharId={didiCharId}
           isPrivate={isPrivate}
           isFirstPost
-          highlight={kw || undefined}
           onReport={() => handleReport('discussion', d.id)}
           onAdmin={
             user?.isAdmin
@@ -1058,7 +1049,7 @@ export default function TopicPage() {
         );
       })()}
 
-      {/* 主题内搜索 / 邀请搭戏（仅作者）/ 导出记录 */}
+      {/* 邀请搭戏（仅作者）/ 导出记录 */}
       <Group justify="flex-end" mb="sm" gap={6}>
         {!isPrivate && user && d.user_id === user.id && (
           <Button
@@ -1069,16 +1060,6 @@ export default function TopicPage() {
             🎭 邀请接戏
           </Button>
         )}
-        <Button
-          variant="subtle"
-          size="compact-sm"
-          onClick={() => {
-            setSearchOpen((v) => !v);
-            if (searchOpen) setSearchQ('');
-          }}
-        >
-          {searchOpen ? '收起搜索' : '🔍 搜索本主题'}
-        </Button>
         <Menu position="bottom-end" withArrow>
           <Menu.Target>
             <Button variant="subtle" size="compact-sm">
@@ -1103,25 +1084,6 @@ export default function TopicPage() {
           </Menu.Dropdown>
         </Menu>
       </Group>
-      {searchOpen && (
-        <TextInput
-          size="sm"
-          placeholder="搜索本主题帖子内容…"
-          autoComplete="off"
-          value={searchQ}
-          onChange={(e) => setSearchQ(e.currentTarget.value)}
-          mb="sm"
-          autoFocus
-          data-autofocus
-          rightSection={
-            searchQ ? (
-              <Button variant="subtle" size="compact-xs" onClick={() => setSearchQ('')}>
-                清除
-              </Button>
-            ) : undefined
-          }
-        />
-      )}
 
       {/* 回复列表（默认从新到旧：1楼 → 最新回复 → 更早回复；可切换从旧到新） */}
       {replies.length > 1 && (
@@ -1137,14 +1099,6 @@ export default function TopicPage() {
           ]}
         />
       )}
-      {kw && (
-        <Text size="xs" c="dimmed" mb="sm">
-          {totalMatched === 0
-            ? `在已加载的 ${posts.length} 条中没有找到「${searchQ.trim()}」${hasMore ? '（继续向下加载可搜到更多）' : ''}`
-            : `在已加载的 ${posts.length} 条中匹配到 ${totalMatched} 条「${searchQ.trim()}」${hasMore ? '（继续向下加载可搜到更多）' : ''}`}
-        </Text>
-      )}
-      {kw && totalMatched === 0 && <div className="empty">没有匹配的帖子</div>}
       {/* 从新到旧：接戏输入卡片放在排序选择器之后、回复列表之前 */}
       {postOrder === 'new' && composerCard}
       {visibleReplies.map((p) => (
@@ -1165,7 +1119,6 @@ export default function TopicPage() {
           charMap={charMap}
           didiCharId={didiCharId}
           isPrivate={isPrivate}
-          highlight={kw || undefined}
           onReport={() => handleReport('post', p.id)}
           onAdmin={
             user?.isAdmin

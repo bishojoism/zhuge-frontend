@@ -17,7 +17,6 @@ import {
   IconMasksTheater,
   IconMoon,
   IconPhoto,
-  IconSearch,
   IconShield,
   IconSun,
   IconDeviceDesktop,
@@ -42,9 +41,6 @@ import { usePwaInstall } from '../lib/pwa';
 import { usePushNotify } from '../lib/pushNotify';
 import { collapseIosUrlBar } from '../lib/iosUrlBar';
 import { isDebugMode, setDebugMode } from '../lib/vconsole';
-// 搜索弹窗静态引入：modals.open 需在点击手势内同步执行，iOS 才会自动聚焦+弹键盘
-// （动态 import 会延到手势之外，iOS Safari/Firefox 都不弹键盘）
-import { openSearchModal } from '../features/search/searchModal';
 import Avatar from './Avatar';
 
 // iOS：非 feed 页面在每次路由变化时收起地址栏（feed 页面由自身处理滚动锁定）
@@ -358,17 +354,6 @@ export default function Layout({ children }: { children: ReactNode }) {
               ) : (
                 <IconDeviceDesktop size={20} />
               )}
-            </ActionIcon>
-          </Tooltip>
-          <Tooltip label="搜索" withArrow>
-            <ActionIcon
-              variant="subtle"
-              size="lg"
-              onClick={() => openSearchModal()}
-              aria-label="搜索"
-              title="搜索"
-            >
-              <IconSearch size={20} />
             </ActionIcon>
           </Tooltip>
           <Tooltip label="使用帮助" withArrow>

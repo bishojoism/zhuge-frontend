@@ -6,9 +6,8 @@ import { Badge, Stack, Table, Text } from '@mantine/core';
 const MCP_URL = typeof window !== 'undefined' ? `${window.location.origin}/mcp` : '/mcp';
 
 const TOOLS: { name: string; auth: string; desc: string }[] = [
-  { name: 'list_discussions', auth: '公开', desc: '主题列表（标签/排序/分页/搜索）' },
+  { name: 'list_discussions', auth: '公开', desc: '主题列表（标签/排序/分页）' },
   { name: 'get_discussion', auth: '公开', desc: '主题详情（全部帖子楼层，最多 5000 楼）' },
-  { name: 'search_discussions', auth: '公开', desc: '关键词搜索' },
   { name: 'list_tags', auth: '公开', desc: '全部标签' },
   { name: 'get_author_card', auth: '公开', desc: '作者名片（角色/徽章/滴滴统计）' },
   { name: 'create_discussion', auth: '令牌', desc: '发布主题（开戏）' },
