@@ -477,8 +477,11 @@
       overflow: hidden;
       line-height: 1.85;
     }
+    /* 折叠态保留段落间距：空行（<p></p>）依赖 margin-bottom 表达视觉间距，
+       去掉会让连续空行视觉消失、正文挤压（用户排版被破坏）。
+       折叠行数 = max-height ÷ (行高 + margin)，LongContent 的 maxHeight 已按此计算 */
     .post-fold-clamp[data-expanded="0"] p {
-      margin-bottom: 0;
+      margin-bottom: 8px;
     }
     .post-actions { margin-top: 11px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
     /* 主要操作（接戏/滴滴）与次要操作（复制/海报/举报）分组，窄屏次要操作自动换行右对齐 */

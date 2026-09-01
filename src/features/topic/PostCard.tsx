@@ -105,12 +105,14 @@ export const LongContent = memo(function LongContent({
   clampLines?: number;
 }) {
   const [expanded, setExpanded] = useState(false);
+  // 折叠高度 = clampLines 行 ×（行高 1.85em + 段落间距 8px）：
+  // 空行依赖 margin-bottom 表达间距（折叠态也保留，见 .post-fold-clamp p）
   return (
     <>
       <div
         className="post-fold-clamp"
         data-expanded={expanded ? '1' : '0'}
-        style={expanded ? undefined : { maxHeight: `${clampLines * 1.85}em` }}
+        style={expanded ? undefined : { maxHeight: `calc(${clampLines} * (1.85em + 8px))` }}
       >
         {content.split('\n').map((line, i) => (
           <p key={i}>{renderLine(line, highlight)}</p>
