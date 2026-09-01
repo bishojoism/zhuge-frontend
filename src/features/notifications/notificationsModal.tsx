@@ -208,9 +208,10 @@ export function NotificationsModalContent({ onClose }: { onClose: () => void }) 
             })
           );
         } else {
-          // 追加楼层号：TopicPage 定位优先按楼层号命中乐观种子（负 id 帖也带真实楼层号），
-          // 直接滚动零请求，不再等 around 拉目标页
-          if (n.target_number) {
+          // 追加楼层号：仅【接戏类（reply）】通知才按楼层定位——target_number 语义是"被回复的楼层"；
+          // 滴滴通知跳转的是私密主题，target_number 来自被滴滴的【公开原帖】楼层，与私密主题无关，
+          // 追加 replyNumber 会让主题页对私密主题发起错误的楼层定位（实测 url 变成 ?replyNumber=1）
+          if (n.target_number && n.type === 'reply') {
             const u = new URL(n.url, window.location.origin);
             u.searchParams.set('replyNumber', String(n.target_number));
             navigate(u.pathname + u.search);
@@ -223,7 +224,9 @@ export function NotificationsModalContent({ onClose }: { onClose: () => void }) 
       }
     } else if (n.discussion_id) {
       seedTopicFromNotif(n);
-      const isReply = n.type === 'reply' || n.type === 'didi';
+      // 只有接戏（reply）通知用"回复目标"URL（公开主题内定位 + 自动接戏对方）；
+      // 滴滴通知无 url 时直接跳私密主题（不构造 reply=——那是接戏语义，会错误触发自动引用）
+      const isReply = n.type === 'reply';
       if (isReply && n.post_id) {
         // 用 URL query 传回复目标（系统推送同款方式，TopicPage 读 ?reply=&replyAuthor=）：
         // React Router navigate state 在弹窗场景偶发丢失，query 方式可靠
