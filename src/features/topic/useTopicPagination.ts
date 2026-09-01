@@ -198,7 +198,7 @@ export function useTopicPagination(id: string | undefined) {
   const targetFetchingRef = useRef(false);
   // 定位后的"校正窗口"：乐观帖(负 id)随后被真实帖(正 id)替换（React key=id → DOM 重建），
   // 且目标楼上方的楼层陆续插入 → 目标楼位置会漂移。mergedPosts 变化会重跑本 effect，
-  // found 仍命中 → 重新滚动到目标楼校正；3 秒无变化视为数据稳定，清空定位结束校正。
+  // found 仍命中 → 重新滚动到目标楼校正；1.5 秒无变化视为数据稳定，清空定位结束校正。
   const jumpSettleTimerRef = useRef<number | null>(null);
   // 定位看门狗（校正窗口内常驻）：滚动完成后若 scrollY 被浏览器重置/漂移（iOS Safari
   // replaceState 后的滚动恢复归零、lazy 图片加载后的布局偏移等，均为移动端特有，
@@ -219,10 +219,10 @@ export function useTopicPagination(id: string | undefined) {
     });
     if (found) {
       // 数据已到位但 DOM 可能还没渲染（通知点入时 page1 缓存被乐观种子短暂覆盖又强制重验，
-      // 真实楼层可能延后出现）：轮询等目标楼 DOM 出现再滚动，最多 ~2s，超时才放弃。
+      // 真实楼层可能延后出现）：轮询等目标楼 DOM 出现再滚动，最多 ~1s，超时才放弃。
       // 不立即清空 pendingTarget：mergedPosts 后续变化（乐观→真实替换/楼层插入）会
-      // 重跑本 effect 校正滚动位置；3 秒无变化视为稳定，清空结束校正窗口。
-      // timer 在轮询前就设好：即使 2s 内 DOM 一直没出现（轮询耗尽），3s 后也自动清空。
+      // 重跑本 effect 校正滚动位置；1.5 秒无变化视为稳定，清空结束校正窗口。
+      // timer 在轮询前就设好：即使 1s 内 DOM 一直没出现（轮询耗尽），1.5s 后也自动清空。
       if (jumpSettleTimerRef.current) window.clearTimeout(jumpSettleTimerRef.current);
       if (jumpWatchRef.current) window.clearInterval(jumpWatchRef.current);
       jumpSettleTimerRef.current = window.setTimeout(() => {
@@ -232,7 +232,7 @@ export function useTopicPagination(id: string | undefined) {
           jumpWatchRef.current = null;
         }
         setPendingTarget(null);
-      }, 3000);
+      }, 1500);
       const num = found.number;
       // 目标楼能否滚到视口顶部：乐观帧只含少量楼层（缺目标楼之前的楼层），页面高度不足，
       // 此时定位滚不到顶（视口顶部是主题数据），滚了也是白滚，等真实楼层到达页面变高后再定位。
@@ -278,7 +278,7 @@ export function useTopicPagination(id: string | undefined) {
           node.classList.add('post-flash');
           window.setTimeout(() => node.classList.remove('post-flash'), 1600);
           // 校正窗口看门狗：定位后 scrollY 若突变（位移 > 一屏 = 浏览器重置/布局漂移，
-          // 非正常浏览滚动）→ 立即重新定位。100ms 轮询，3s 上限（与 settle timer 同步）。
+          // 非正常浏览滚动）→ 立即重新定位。100ms 轮询，1.5s 上限（与 settle timer 同步）。
           let lastY = window.scrollY;
           let watchCount = 0;
           jumpWatchRef.current = window.setInterval(() => {
@@ -291,7 +291,7 @@ export function useTopicPagination(id: string | undefined) {
               if (el2) doScroll(el2 as HTMLElement);
             }
             watchCount += 1;
-            if (watchCount > 30) {
+            if (watchCount > 15) {
               if (jumpWatchRef.current) {
                 window.clearInterval(jumpWatchRef.current);
                 jumpWatchRef.current = null;
@@ -301,7 +301,7 @@ export function useTopicPagination(id: string | undefined) {
           return;
         }
         tries += 1;
-        if (tries < 20) window.setTimeout(tryScroll, 100);
+        if (tries < 10) window.setTimeout(tryScroll, 100);
       };
       tryScroll();
       return;
