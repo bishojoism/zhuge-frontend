@@ -874,7 +874,12 @@ export default function TopicPage() {
               }
             }}
             placeholder={
-              replyTarget ? `接戏 @${replyTarget.author}……` : '写下你的接戏……'
+              // 私密主题（滴滴/一对一私聊）用"回复"措辞（P4 措辞统一）；公开主题用"接戏"
+              replyTarget
+                ? `接戏 @${replyTarget.author}……`
+                : isPrivate
+                  ? '写下你的回复……'
+                  : '写下你的接戏……'
             }
           />
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
@@ -924,7 +929,7 @@ export default function TopicPage() {
               </span>
             )}
             <Button onClick={submitReply} loading={submitting}>
-              接戏
+              {isPrivate ? '回复' : '接戏'}
             </Button>
           </div>
         </>
