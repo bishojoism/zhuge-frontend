@@ -797,6 +797,9 @@
     @media (max-width: 600px) {
       .nav { padding: 8px 12px; gap: 8px; }
       .container { padding: 16px 12px 32px; }
+      /* 首页（含列表模式）移动端仍去顶部 padding：覆盖上面 .container 的 16px，
+         消除横幅上方空隙 */
+      body.zhuge-home .container { padding-top: 0; }
       .hero { padding: 8px 14px; }
       /* 绉诲姩绔細70px = 瀵艰埅 ~54px + 瀹瑰櫒涓婂唴杈硅窛 16px */
       .feed-mode { height: calc(100vh - 70px); }
