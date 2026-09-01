@@ -118,9 +118,19 @@ const GROUPS: { title: string; items: Endpoint[] }[] = [
   },
 ];
 
+// 方法徽章：用深色 filled 底 + 白字，保证对比度 ≥4.5:1
+// （Mantine light 变体的彩色文字（如 #228be6/#40c057）在浅色底上仅 ~2-3:1，不达标）
+const METHOD_BG: Record<string, string> = {
+  GET: '#15803d', // 白字对比度 ≈5.0:1（#2b8a3e 实测 4.36 不达标）
+  POST: '#1971c2', // ≈5.0:1
+  DELETE: '#c92a2a', // ≈5.4:1
+};
 function MethodBadge({ method }: { method: string }) {
-  const color = method === 'GET' ? 'green' : method === 'POST' ? 'blue' : method === 'DELETE' ? 'red' : 'gray';
-  return <Badge size="xs" color={color} variant="light">{method}</Badge>;
+  return (
+    <Badge size="xs" variant="filled" style={{ background: METHOD_BG[method] || '#495057' }}>
+      {method}
+    </Badge>
+  );
 }
 
 export default function ApiDocsPage() {
@@ -172,7 +182,8 @@ export default function ApiDocsPage() {
       {GROUPS.map((g) => (
         <Stack key={g.title} gap={6}>
           <Text fw={600}>{g.title}</Text>
-          <Table.ScrollContainer minWidth={640}>
+          {/* tabIndex=0：横向可滚动区域需键盘可达（axe scrollable-region-focusable） */}
+          <Table.ScrollContainer minWidth={640} scrollAreaProps={{ viewportProps: { tabIndex: 0 } }}>
             <Table striped highlightOnHover verticalSpacing="xs">
               <Table.Thead>
                 <Table.Tr>

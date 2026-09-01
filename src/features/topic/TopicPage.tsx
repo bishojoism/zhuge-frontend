@@ -51,8 +51,9 @@ export default function TopicPage() {
     injectOptimistic,
     removeOptimistic,
   } = useTopicPagination(id);
-  const { mutate: refreshUnread } = useUnread();
-  const { data: draftsData, mutate: mutateDrafts } = useDrafts();
+  // 游客不拉认证接口（避免 401 噪音）：通知/草稿/角色卡都按登录态门控
+  const { mutate: refreshUnread } = useUnread(!!user);
+  const { data: draftsData, mutate: mutateDrafts } = useDrafts(!!user);
 
   // 挂载时强制刷新云草稿（SSR fallback 是页面加载时的旧快照，revalidateIfStale:false 不自动重拉）
   useEffect(() => {
@@ -74,8 +75,8 @@ export default function TopicPage() {
   const [didiLoading, setDidiLoading] = useState<number | null>(null); // 正在滴滴的帖子 id
   // 滴滴身份：点击滴滴前在按钮旁 Select 选好角色（留空 = 本人）
   const [didiCharId, setDidiCharId] = useState<string | null>(null);
-  // 接戏角色卡：SWR 共享缓存（SSR 内联即时显示）
-  const { data: replyCharsData } = useSWR<{ data: CharacterItem[] }>('/me/characters', fetcher);
+  // 接戏角色卡：SWR 共享缓存（SSR 内联即时显示）；未登录不请求
+  const { data: replyCharsData } = useSWR<{ data: CharacterItem[] }>(user ? '/me/characters' : null, fetcher);
   const replyCharacters = replyCharsData?.data ?? [];
   // 角色 value → 完整信息映射（下拉选项显示外貌/性别用）
   const charMap = new Map(replyCharacters.map((c) => [String(c.id), c]));

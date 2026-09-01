@@ -224,8 +224,9 @@ export function useNextStep() {
   });
 }
 
-export function useDrafts() {
-  return useSWR<Record<string, unknown>>('/me/drafts', async (p: string) => {
+export function useDrafts(enabled: boolean = true) {
+  // enabled=false（未登录）时 key 为 null → 不请求（游客不拉 /me/drafts，避免 401 噪音）
+  return useSWR<Record<string, unknown>>(enabled ? '/me/drafts' : null, async (p: string) => {
     const r = await api<{ data: Record<string, unknown> }>(p);
     return r.data;
   });

@@ -6,7 +6,7 @@
       --primary-deep: #55687d;
       --primary-soft: rgba(124,142,163,.1);
       --accent: #c98a6b;
-      --accent-dark: #b47353;
+      --accent-dark: #a06448; /* 无障碍：按钮白字背景对比度 ≥4.5:1（与深色模式同值） */
       --accent-deep: #96552f; /* 无障碍：白底上对比度 ≥4.5:1 */
       --accent-soft: rgba(201,138,107,.12);
       --bg: #f6f5f2;
@@ -973,6 +973,10 @@ body { margin: 0; }
 .author-link {
   cursor: pointer;
   border-bottom: 1px dashed rgba(124, 142, 163, 0.45);
+  /* 触屏点击目标 ≥24px（WCAG 2.5.8）：行内元素加 2px 上下内边距扩高热区（20→24px 级） */
+  display: inline-block;
+  padding: 2px 0;
+  line-height: 1.45;
 }
 .author-link:hover {
   color: var(--primary, #64788f);
