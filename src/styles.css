@@ -605,7 +605,13 @@
     .list-sticky {
       position: sticky; top: 56px; z-index: 5;
       background: var(--bg);
+      /* 顶部 10px 间距并入 sticky 容器（hero 的 margin-top 在 sticky 定位下会被
+         容器背景盖住 → 滚动后看起来边距消失；用 padding 让吸顶后仍保留上边距） */
+      padding-top: 10px;
+      margin-top: -10px; /* 抵消 padding 对文档流的影响，未滚动时布局与原来一致 */
     }
+    /* hero 顶部间距由 sticky 容器 padding 提供，避免叠加 */
+    .list-sticky .hero { margin-top: 0; }
     .feed-body { position: relative; flex: 1; min-height: 0; }
     .feed-topbar {
       position: absolute; top: 0; left: 0; right: 0; z-index: 6;
