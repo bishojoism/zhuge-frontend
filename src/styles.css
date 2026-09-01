@@ -183,7 +183,7 @@
         radial-gradient(500px 200px at 88% 0%, rgba(255,255,255,.16), transparent 60%),
         linear-gradient(135deg, #8b9cb0, #74879c 60%, #64788f);
       color: #fff; border-radius: var(--radius-lg);
-      padding: 9px 16px; margin-bottom: 8px;
+      padding: 9px 16px; margin: 10px 0 8px;
       position: relative; overflow: hidden;
       display: flex; align-items: center;
       min-height: 34px;
