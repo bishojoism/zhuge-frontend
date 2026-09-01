@@ -353,6 +353,7 @@ function SecurityModal() {
         <NewPasswordForm
           reauthToken={step.reauthToken}
           busy={busy}
+          isGuest={!!user?.isGuest}
           onSave={(cur, next) => void savePassword(step.reauthToken, cur, next)}
           onBack={goMain}
         />
@@ -541,20 +542,22 @@ interface NewPasswordFormProps {
   onBack: () => void;
 }
 
-function NewPasswordForm({ reauthToken, busy, onSave, onBack }: NewPasswordFormProps) {
+function NewPasswordForm({ reauthToken, busy, onSave, onBack, isGuest }: NewPasswordFormProps & { isGuest?: boolean }) {
   const [current, setCurrent] = useState('');
   const [next, setNext] = useState('');
+  // 免当前密码场景（通行密钥重认证 / 游客账号转正）：聚焦新密码输入框
+  const noCurrent = !!reauthToken || !!isGuest;
   // iOS：挂载后延迟聚焦当前密码（或新密码）
   useEffect(() => {
-    focusModalInput(reauthToken ? 'input[autocomplete="new-password"]' : 'input[autocomplete="current-password"]');
-  }, [reauthToken]);
+    focusModalInput(noCurrent ? 'input[autocomplete="new-password"]' : 'input[autocomplete="current-password"]');
+  }, [reauthToken, noCurrent]);
   return (
     <>
       <div className="passkey-icon">🔑</div>
       <Text ta="center" fw={700} size="lg" mb="xs">
-        {reauthToken ? '设置新密码' : '修改密码'}
+        {isGuest ? '设置密码（转正账号）' : reauthToken ? '设置新密码' : '修改密码'}
       </Text>
-      {!reauthToken && (
+      {!noCurrent && (
         <PasswordInput
           label="当前密码"
           placeholder="请输入当前密码"
@@ -569,13 +572,18 @@ function NewPasswordForm({ reauthToken, busy, onSave, onBack }: NewPasswordFormP
       <PasswordInput
         label="新密码（至少 8 位）"
         placeholder="请输入新密码"
-        autoFocus={!!reauthToken}
+        autoFocus={!!noCurrent}
         data-autofocus
         value={next}
         onChange={(e) => setNext(e.currentTarget.value)}
         mb="lg"
         autoComplete="new-password"
       />
+      {isGuest && (
+        <Text c="dimmed" size="xs" mb="sm">
+          游客账号可免当前密码直接设置密码；设置后账号转正，可跨设备登录找回内容。
+        </Text>
+      )}
       <Button fullWidth onClick={() => onSave(current, next)} loading={busy}>
         保存
       </Button>

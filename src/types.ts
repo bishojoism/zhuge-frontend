@@ -8,6 +8,8 @@ export interface User {
   isAdmin: boolean;
   avatar_url: string | null;
   gender: Gender;
+  /** 0 步自动注册的游客账号（随机密码用户不知情）——账号安全里可免当前密码设置密码转正 */
+  isGuest?: boolean;
 }
 
 export interface Tag {
