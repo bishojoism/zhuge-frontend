@@ -622,11 +622,11 @@ export default function Layout({ children }: { children: ReactNode }) {
       </Modal>
       {/* 内容区：key=路径 → 路由切换时强制重建整个内容区（清掉旧页残留的 DOM，
           如主题页的帖子卡片在水合/协调后残留在主页顶部） */}
-      {/* 新用户引导条（仅首页：/ 或 /tag/N 且非 latest/hot） */}
+      {/* 新用户引导条（首页家族：/ 或 /tag/N，推荐/最新/热门所有模式都显示——
+          新用户切到最新/热门同样需要引导；仅主题/文档等详情页不显示） */}
       {(() => {
         const p = location.pathname;
-        const sort = new URLSearchParams(location.search).get('sort');
-        const isHome = (p === '/' || /^\/tag\/\d+$/.test(p)) && !sort;
+        const isHome = p === '/' || /^\/tag\/\d+$/.test(p);
         return isHome ? <NewUserHint /> : null;
       })()}
       <div className="container" key={location.pathname}>{children}</div>
