@@ -399,14 +399,17 @@ export default function HomePage() {
           <div className="empty">还没有主题，来发第一个吧！</div>
         )
       ) : (
-        <ListView
-          items={listItems}
-          tags={tags}
-          hasMore={listHasMore}
-          loadingMore={loadingMore}
-          onLoadMore={loadMore}
-          onOpenTopic={openTopic}
-        />
+        /* 列表模式：固定高度容器 + 内部滚动——横幅/标签固定不随列表滚走 */
+        <div className="list-mode">
+          <ListView
+            items={listItems}
+            tags={tags}
+            hasMore={listHasMore}
+            loadingMore={loadingMore}
+            onLoadMore={loadMore}
+            onOpenTopic={openTopic}
+          />
+        </div>
       )}
     </>
   );

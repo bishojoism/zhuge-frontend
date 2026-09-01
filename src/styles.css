@@ -598,6 +598,20 @@
       .feed-mode { height: calc(100dvh - 82px); }
     }
     /* 鎺ㄨ崘妯″紡妯箙锛氫笌鍒楄〃妯″紡瀹屽叏涓€鑷达紙澶嶇敤 .hero 缁勪欢鏍峰紡锛岄棿璺濈粺涓€ 22px锛?*/
+    /* 列表模式（最新/热门）：固定高度容器 + 内部滚动——横幅/标签固定不随列表滚走。
+       与 feed-mode 同高（视口 - 导航栏 ~82px）；整页不滚，只滚列表区 */
+    .list-mode {
+      height: calc(100vh - 82px);
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      padding-bottom: 40px; /* 底部留空，避免最后一张卡片贴边/哨兵贴底 */
+    }
+    @supports (height: 100dvh) {
+      .list-mode { height: calc(100dvh - 82px); }
+    }
+    @media (max-height: 560px) {
+      .list-mode { height: calc(100vh - 70px); }
+    }
     .feed-mode .hero { flex-shrink: 0; margin-bottom: 8px; }
     .feed-body { position: relative; flex: 1; min-height: 0; }
     .feed-topbar {
