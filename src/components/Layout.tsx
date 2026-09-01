@@ -43,6 +43,38 @@ import { collapseIosUrlBar } from '../lib/iosUrlBar';
 import { isDebugMode, setDebugMode } from '../lib/vconsole';
 import Avatar from './Avatar';
 
+// 新用户一次性引导条（P6，证据：T26 帮助入口无可见文字 + 首页语C黑话密集 + onboarding 曾被移除）：
+// 只在首页（/ 或 /tag/N，非 latest/hot 排序）显示，可关闭、localStorage 记忆、不复现、不打断操作
+function NewUserHint() {
+  const [shown, setShown] = useState(() => {
+    try {
+      return localStorage.getItem('zhuge-seen-hint') !== '1';
+    } catch {
+      return false;
+    }
+  });
+  const dismiss = () => {
+    try {
+      localStorage.setItem('zhuge-seen-hint', '1');
+    } catch {
+      /* 忽略 */
+    }
+    setShown(false);
+  };
+  if (!shown) return null;
+  return (
+    <div className="new-hint" role="note">
+      <span className="new-hint-text">
+        🎭 欢迎来到主格：<b>开戏</b>=创建新主题 · <b>接戏</b>=回复楼层继续演绎 · <b>滴滴</b>=私密对戏。
+        右上角 <b>?</b> 有完整使用帮助。
+      </span>
+      <button type="button" className="new-hint-close" onClick={dismiss} aria-label="关闭欢迎提示">
+        ✕
+      </button>
+    </div>
+  );
+}
+
 // iOS：非 feed 页面在每次路由变化时收起地址栏（feed 页面由自身处理滚动锁定）
 function IosUrlBarCollapser() {
   const location = useLocation();
@@ -590,6 +622,13 @@ export default function Layout({ children }: { children: ReactNode }) {
       </Modal>
       {/* 内容区：key=路径 → 路由切换时强制重建整个内容区（清掉旧页残留的 DOM，
           如主题页的帖子卡片在水合/协调后残留在主页顶部） */}
+      {/* 新用户引导条（仅首页：/ 或 /tag/N 且非 latest/hot） */}
+      {(() => {
+        const p = location.pathname;
+        const sort = new URLSearchParams(location.search).get('sort');
+        const isHome = (p === '/' || /^\/tag\/\d+$/.test(p)) && !sort;
+        return isHome ? <NewUserHint /> : null;
+      })()}
       <div className="container" key={location.pathname}>{children}</div>
     </>
   );

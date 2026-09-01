@@ -192,8 +192,7 @@
     .hero::after {
       content: ''; position: absolute; right: -30px; top: -50px;
       width: 180px; height: 180px; border-radius: 50%;
-      background: rgba(255,255,255,.07);
-    }
+      background: rgba(255,255,255,.07);    }
     .hero p {
       margin: 0; opacity: .92; font-size: 13px; line-height: 1.5;
     }
@@ -1033,5 +1032,33 @@ body { margin: 0; }
 .menu-grid-item svg {
   color: var(--muted, #8b9cb0);
 }
+
+/* 新用户一次性引导条（P6）：浅色卡片 + 关闭按钮；可关闭、localStorage 记忆不复现 */
+.new-hint {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 10px;
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  background: var(--primary-soft);
+  border: 1px solid var(--primary-dark, rgba(124,142,163,.35));
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text);
+}
+.new-hint-text { flex: 1; min-width: 0; }
+.new-hint b { color: var(--primary-deep); }
+.new-hint-close {
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  font-size: 14px;
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+.new-hint-close:hover { background: rgba(127,142,163,.15); }
 
 
