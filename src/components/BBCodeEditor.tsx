@@ -184,6 +184,8 @@ export default function BBCodeEditor({
           autosize={autosize}
           value={value}
           placeholder={placeholder}
+          // 正文上限 5000 字（与 API/MCP 校验一致，输入框直接阻止超长）
+          maxLength={5000}
           onChange={(e) => onChange(e.currentTarget.value)}
           onKeyDown={onKeyDown}
           styles={{ input: { fontFamily: 'inherit' } }}
