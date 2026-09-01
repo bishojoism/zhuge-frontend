@@ -199,6 +199,11 @@ export function useTopicPagination(id: string | undefined) {
   // 且目标楼上方的楼层陆续插入 → 目标楼位置会漂移。mergedPosts 变化会重跑本 effect，
   // found 仍命中 → 重新滚动到目标楼校正；3 秒无变化视为数据稳定，清空定位结束校正。
   const jumpSettleTimerRef = useRef<number | null>(null);
+  // 定位看门狗（校正窗口内常驻）：滚动完成后若 scrollY 被浏览器重置/漂移（iOS Safari
+  // replaceState 后的滚动恢复归零、lazy 图片加载后的布局偏移等，均为移动端特有，
+  // 表现"先闪一帧 1楼/顶部，随后才又回到目标楼"），检测到突变立即重新定位。
+  // 只拦截"突变"（位移 > 一屏），正常浏览滚动不干预。
+  const jumpWatchRef = useRef<number | null>(null);
   useLayoutEffect(() => {
     if (!pendingTarget || !id) return;
     const found = 'id' in pendingTarget
@@ -218,8 +223,13 @@ export function useTopicPagination(id: string | undefined) {
       // 重跑本 effect 校正滚动位置；3 秒无变化视为稳定，清空结束校正窗口。
       // timer 在轮询前就设好：即使 2s 内 DOM 一直没出现（轮询耗尽），3s 后也自动清空。
       if (jumpSettleTimerRef.current) window.clearTimeout(jumpSettleTimerRef.current);
+      if (jumpWatchRef.current) window.clearInterval(jumpWatchRef.current);
       jumpSettleTimerRef.current = window.setTimeout(() => {
         jumpSettleTimerRef.current = null;
+        if (jumpWatchRef.current) {
+          window.clearInterval(jumpWatchRef.current);
+          jumpWatchRef.current = null;
+        }
         setPendingTarget(null);
       }, 3000);
       const num = found.number;
@@ -240,18 +250,53 @@ export function useTopicPagination(id: string | undefined) {
         console.log(`[zhuge-jump] skip scroll (page too short) num=${num} mergedLen=${mergedPosts.length}`);
         return;
       }
+      // 确定性滚动：不用 scrollIntoView——iOS Safari 对刚更新的 DOM 调用 scrollIntoView
+      // 是异步的，可能被延迟/取消/与浏览器滚动恢复冲突（表现为"先闪顶部再跳"）。
+      // 用 getBoundingClientRect 计算目标楼相对文档的绝对 y，window.scrollTo 同步设置
+      // （语义同 scrollIntoView block:'start'：目标楼顶部对齐视口顶部）。
+      const doScroll = (el: HTMLElement) => {
+        const absY = Math.max(0, Math.round(el.getBoundingClientRect().top + window.scrollY));
+        console.log(`[zhuge-jump] scrollTo num=${num} y=${absY} before=${Math.round(window.scrollY)}`);
+        window.scrollTo(0, absY);
+        // 下一帧验证：滚动若被浏览器异步化/取消，实测位置与目标偏差 → 补滚一次
+        requestAnimationFrame(() => {
+          const want = Math.max(0, Math.round(el.getBoundingClientRect().top + window.scrollY));
+          if (Math.abs(window.scrollY - want) > 4) {
+            console.log(`[zhuge-jump] scrollTo verify drift before=${Math.round(window.scrollY)} want=${want} → re-scroll`);
+            window.scrollTo(0, want);
+          }
+        });
+      };
       let tries = 0;
       const tryScroll = () => {
         const el = document.querySelector(`[data-num="${num}"]`);
         console.log(`[zhuge-jump] tryScroll num=${num} tries=${tries} el=${!!el} scrollY=${Math.round(window.scrollY)}`);
         if (el) {
-          // 统一瞬时跳转：useLayoutEffect 在浏览器绘制前同步执行，瞬时滚动发生在 paint 前，
-          // 第一帧绘制出来就是目标楼位置（不闪"页面顶部主题数据"再跳）；数据到达的校正也瞬时
-          (el as HTMLElement).scrollIntoView({ behavior: 'auto', block: 'start' });
-          console.log(`[zhuge-jump] after scrollIntoView num=${num} scrollY=${Math.round(window.scrollY)}`);
           const node = el as HTMLElement;
+          doScroll(node);
           node.classList.add('post-flash');
           window.setTimeout(() => node.classList.remove('post-flash'), 1600);
+          // 校正窗口看门狗：定位后 scrollY 若突变（位移 > 一屏 = 浏览器重置/布局漂移，
+          // 非正常浏览滚动）→ 立即重新定位。100ms 轮询，3s 上限（与 settle timer 同步）。
+          let lastY = window.scrollY;
+          let watchCount = 0;
+          jumpWatchRef.current = window.setInterval(() => {
+            const sy = window.scrollY;
+            const drift = Math.abs(sy - lastY) > window.innerHeight;
+            lastY = sy;
+            if (drift) {
+              const el2 = document.querySelector(`[data-num="${num}"]`);
+              console.log(`[zhuge-jump] watchdog drift scrollY=${Math.round(sy)} → re-locate num=${num} el=${!!el2}`);
+              if (el2) doScroll(el2 as HTMLElement);
+            }
+            watchCount += 1;
+            if (watchCount > 30) {
+              if (jumpWatchRef.current) {
+                window.clearInterval(jumpWatchRef.current);
+                jumpWatchRef.current = null;
+              }
+            }
+          }, 100);
           return;
         }
         tries += 1;
@@ -279,10 +324,11 @@ export function useTopicPagination(id: string | undefined) {
       });
   }, [pendingTarget, id, mergedPosts]);
 
-  // 卸载时清掉定位校正 timer（避免组件卸载后 setState 警告）
+  // 卸载时清掉定位校正 timer/看门狗（避免组件卸载后 setState 警告）
   useEffect(
     () => () => {
       if (jumpSettleTimerRef.current) window.clearTimeout(jumpSettleTimerRef.current);
+      if (jumpWatchRef.current) window.clearInterval(jumpWatchRef.current);
     },
     []
   );
