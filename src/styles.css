@@ -605,9 +605,9 @@
     /* 鎺ㄨ崘妯″紡妯箙锛氫笌鍒楄〃妯″紡瀹屽叏涓€鑷达紙澶嶇敤 .hero 缁勪欢鏍峰紡锛岄棿璺濈粺涓€ 22px锛?*/
     /* 列表模式（最新/热门）：hero/tagbar 吸顶固定（sticky），列表区正常文档流滚动——
        页面保留滚动条但横幅/标签固定不滚走；不锁页面高度，无溢出问题。
-       top:55px = 导航栏实际高度（诊断 navH=55）；背景同页面色防透出 */
+       top = 导航栏高度(55px) + 新用户引导条高度(--new-hint-h，显示引导条时 hero 让位) */
     .list-sticky {
-      position: sticky; top: 55px; z-index: 5;
+      position: sticky; top: calc(55px + var(--new-hint-h, 0px)); z-index: 5;
       background: var(--bg);
     }
     /* hero 顶部无间距（与推荐模式一致，统一取消横幅上边距） */
@@ -1033,8 +1033,13 @@ body { margin: 0; }
   color: var(--muted, #8b9cb0);
 }
 
-/* 新用户一次性引导条（P6）：浅色卡片 + 关闭按钮；可关闭、localStorage 记忆不复现 */
+/* 新用户一次性引导条（P6）：浅色卡片 + 关闭按钮；可关闭、localStorage 记忆不复现。
+   sticky 吸顶在导航下方（列表模式页面可滚动时不滚走）；高度写入 --new-hint-h 供
+   .list-sticky 让位（推荐模式页面滚动锁死，sticky 无实际滚动效果，行为不变） */
 .new-hint {
+  position: sticky;
+  top: 55px;
+  z-index: 90;
   display: flex;
   align-items: center;
   gap: 10px;

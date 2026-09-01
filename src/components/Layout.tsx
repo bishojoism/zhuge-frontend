@@ -44,7 +44,9 @@ import { isDebugMode, setDebugMode } from '../lib/vconsole';
 import Avatar from './Avatar';
 
 // 新用户一次性引导条（P6，证据：T26 帮助入口无可见文字 + 首页语C黑话密集 + onboarding 曾被移除）：
-// 只在首页（/ 或 /tag/N，非 latest/hot 排序）显示，可关闭、localStorage 记忆、不复现、不打断操作
+// 只在首页（/ 或 /tag/N）显示，可关闭、localStorage 记忆、不复现、不打断操作。
+// 列表模式页面可滚动：引导条 sticky 吸顶（nav 下方），并把自己高度写入 --new-hint-h，
+// 让 HomePage 的 .list-sticky（hero+tagbar）让位下移，避免吸顶时被引导条遮挡。
 function NewUserHint() {
   const [shown, setShown] = useState(() => {
     try {
@@ -53,6 +55,16 @@ function NewUserHint() {
       return false;
     }
   });
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!shown) {
+      document.documentElement.style.setProperty('--new-hint-h', '0px');
+      return;
+    }
+    const h = ref.current?.getBoundingClientRect().height ?? 0;
+    document.documentElement.style.setProperty('--new-hint-h', `${Math.ceil(h)}px`);
+    return () => document.documentElement.style.setProperty('--new-hint-h', '0px');
+  }, [shown]);
   const dismiss = () => {
     try {
       localStorage.setItem('zhuge-seen-hint', '1');
@@ -63,7 +75,7 @@ function NewUserHint() {
   };
   if (!shown) return null;
   return (
-    <div className="new-hint" role="note">
+    <div ref={ref} className="new-hint" role="note">
       <span className="new-hint-text">
         🎭 欢迎来到主格：<b>开戏</b>=创建新主题 · <b>接戏</b>=回复楼层继续演绎 · <b>滴滴</b>=私密对戏。
         右上角 <b>?</b> 有完整使用帮助。
