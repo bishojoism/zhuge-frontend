@@ -317,12 +317,20 @@ export default function HomePage() {
   // ===== 推荐模式（feed）=====
   if (sort === 'recommend') {
     const ready = itemsBase === baseKey;
+    // cacheHit：新 key 有缓存（预加载命中）且 items 尚未对齐（itemsBase 未更新）→ 直接用 result。
+    // 注意 result 是当前 key 的 SWR 数据（切换标签后 key 已变），不会混入旧标签数据。
     const cacheHit = !!result && !ready;
-    // 空态兜底：items 为空但 result 已有数据（整页访问详情页后点 logo 回首页时，
-    // initSnap 用详情页残留（无 discussions）初始化 → items=[]，但 SWR result 同步
-    // 就绪有数据）→ 直接用 result.data 渲染，避免停在空态"还没有主题"
-    const displayItems = cacheHit ? result.data : items.length > 0 ? items : result?.data || [];
-    const displayHasMore = cacheHit ? result.meta.hasMore : items.length > 0 ? hasMore : result?.meta.hasMore || false;
+    // 显示数据：
+    // - ready（items 属于当前 baseKey）：用 items；items 为空（整页访问详情页后回首页，
+    //   initSnap 残留无数据）时用当前 key 的 result 兜底，避免空态"还没有主题"
+    // - !ready（切换标签瞬间 items 还是旧标签）：绝不用旧 items（否则"一闪而逝"旧卡片），
+    //   用 result（新 key 预加载缓存）或空（加载中）
+    const displayItems = ready
+      ? items.length > 0 ? items : result?.data || []
+      : cacheHit ? result.data : [];
+    const displayHasMore = ready
+      ? items.length > 0 ? hasMore : result?.meta.hasMore || false
+      : cacheHit ? result.meta.hasMore : false;
     // 【诊断】渲染门控：空态排查
     console.log('[zhuge-home] render gate', {
       ready, cacheHit, itemsLen: items.length, resultLen: result?.data.length, displayLen: displayItems.length,
@@ -376,9 +384,14 @@ export default function HomePage() {
   const listReady = itemsBase === baseKey;
   // 同推荐模式：预加载缓存命中时第一帧直接用 result.data，避免"加载中"闪帧
   const listCacheHit = !!result && !listReady;
-  // 空态兜底：items 空但 result 有数据（整页访问详情页后回首页）→ 用 result.data
-  const listItems = listCacheHit ? result.data : items.length > 0 ? items : result?.data || [];
-  const listHasMore = listCacheHit ? result.meta.hasMore : items.length > 0 ? hasMore : result?.meta.hasMore || false;
+  // 与推荐模式一致：!listReady（切换标签瞬间 items 还是旧标签）绝不用旧 items，
+  // 用 result（新 key 缓存）或空；listReady 时 items 空（整页访问详情页后回首页）用 result 兜底
+  const listItems = listReady
+    ? items.length > 0 ? items : result?.data || []
+    : listCacheHit ? result.data : [];
+  const listHasMore = listReady
+    ? items.length > 0 ? hasMore : result?.meta.hasMore || false
+    : listCacheHit ? result.meta.hasMore : false;
   return (
     /* 列表模式：hero/tagbar 用 sticky 吸顶（不随列表滚走），列表区正常文档流滚动。
        不锁页面高度——页面滚动条保留但横幅/标签固定，无需像素估算、无溢出问题 */
