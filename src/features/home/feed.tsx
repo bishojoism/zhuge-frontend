@@ -1,14 +1,9 @@
 // ===== 推荐模式：抖音式全屏卡片流（完整移植旧前端 renderFeed/setupFeedScroll） =====
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
-import type { CoinInfo, Discussion, Tag } from '../../types';
-import { displayName, imgSrc, tagColorOf, tagTextColorOf, timeAgo } from '../../lib/utils';
+import type { Discussion, Tag } from '../../types';
+import { displayName, imgSrc } from '../../lib/utils';
 import { collapseIosUrlBar, isIosUrlBarCollapsing } from '../../lib/iosUrlBar';
 import { parseBBCodeExcerpt } from '../../lib/bbcode';
-import { api } from '../../api/client';
-import { notifications } from '@mantine/notifications';
-import { mutate as globalMutate } from 'swr';
-import { requireLogin } from '../auth/authModals';
-import { useAuth } from '../auth/AuthContext';
 import Avatar from '../../components/Avatar';
 import { openAuthorDidiStats } from '../private/authorDidiStats';
 
@@ -540,162 +535,9 @@ function FeedCard({
   // 不能 replace(/\s+/g,' ') 压成单行——会把 \n 变空格，长文全挤一行；
   // 连续多个空行也是用户排版，原样保留（pre-line 下显示为段落间距）
   const excerpt = (d.excerpt || '').trim();
-  const tagNames = (d.tags || '')
-    .split(' / ')
-    .map((s) => s.trim())
-    .filter(Boolean);
-  const { user } = useAuth();
-
-  // 一键三连（针对首帖）：点赞/投币/收藏，本地乐观更新计数
-  const postId = d.first_post_id;
-  const [liked, setLiked] = useState(!!d.liked);
-  const [favorited, setFavorited] = useState(!!d.favorited);
-  const [likeCount, setLikeCount] = useState(d.like_count || 0);
-  const [favCount, setFavCount] = useState(d.favorite_count || 0);
-  const [coinCount, setCoinCount] = useState(d.coin_count || 0);
-  const [busy, setBusy] = useState(false);
-
-  const interact = async (kind: 'like' | 'favorite' | 'coin') => {
-    if (!postId) return;
-    if (!user) {
-      requireLogin('互动');
-      return;
-    }
-    setBusy(true);
-    try {
-      if (kind === 'like') {
-        const next = !liked;
-        setLiked(next);
-        setLikeCount((c) => Math.max(0, c + (next ? 1 : -1)));
-        const r = await api<{ active: boolean; coinReward?: number | null }>(`/posts/${postId}/like`, { method: 'POST' });
-        if (r.active !== next) {
-          setLiked(r.active);
-          setLikeCount((c) => Math.max(0, c + (r.active ? 1 : -1)));
-        }
-        if (r.coinReward) {
-          notifications.show({ message: `🎉 首次点赞 +${r.coinReward} 格币`, color: 'green' });
-          void globalMutate<CoinInfo>('/me/coins');
-        }
-      } else if (kind === 'favorite') {
-        const next = !favorited;
-        setFavorited(next);
-        setFavCount((c) => Math.max(0, c + (next ? 1 : -1)));
-        const r = await api<{ active: boolean; coinReward?: number | null }>(`/posts/${postId}/favorite`, { method: 'POST' });
-        if (r.active !== next) {
-          setFavorited(r.active);
-          setFavCount((c) => Math.max(0, c + (r.active ? 1 : -1)));
-        }
-        if (r.coinReward) {
-          notifications.show({ message: `🎉 首次收藏 +${r.coinReward} 格币`, color: 'green' });
-          void globalMutate<CoinInfo>('/me/coins');
-        }
-      } else {
-        setCoinCount((c) => c + 1);
-        try {
-          const r = await api<{ coinReward?: number | null }>(`/posts/${postId}/coin`, { method: 'POST' });
-          notifications.show({ message: '已投币 1 格币' });
-          if (r.coinReward) {
-            notifications.show({ message: `🎉 首次投币 +${r.coinReward} 格币`, color: 'green' });
-          }
-          void globalMutate<CoinInfo>('/me/coins');
-        } catch (e) {
-          setCoinCount((c) => Math.max(0, c - 1));
-          notifications.show({ message: e instanceof Error ? e.message : '投币失败', color: 'red' });
-        }
-      }
-    } catch (e) {
-      // 失败回滚
-      if (kind === 'like') {
-        setLiked((v) => !v);
-        setLikeCount((c) => Math.max(0, c + (liked ? 1 : -1)));
-      } else if (kind === 'favorite') {
-        setFavorited((v) => !v);
-        setFavCount((c) => Math.max(0, c + (favorited ? 1 : -1)));
-      }
-      notifications.show({ message: e instanceof Error ? e.message : '操作失败', color: 'red' });
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  // 一键三连：点赞 + 收藏 + 投币（已做的跳过；投币消耗 1 币；允许给自己）——全乐观：先本地点亮/计数，再后台请求，失败单项回滚
-  const doTriple = async () => {
-    if (!postId) return;
-    if (!user) {
-      requireLogin('互动');
-      return;
-    }
-    setBusy(true);
-    let coinOk = true;
-    const needLike = !liked;
-    const needFav = !favorited;
-    // 乐观：立即点亮状态与计数
-    if (needLike) {
-      setLiked(true);
-      setLikeCount((c) => c + 1);
-    }
-    if (needFav) {
-      setFavorited(true);
-      setFavCount((c) => c + 1);
-    }
-    setCoinCount((c) => c + 1);
-    try {
-      if (needLike) {
-        try {
-          const r = await api<{ active: boolean; coinReward?: number | null }>(`/posts/${postId}/like`, { method: 'POST' });
-          if (!r.active) {
-            setLiked(false);
-            setLikeCount((c) => Math.max(0, c - 1));
-          }
-          if (r.coinReward) {
-            notifications.show({ message: `🎉 首次点赞 +${r.coinReward} 格币`, color: 'green' });
-            void globalMutate<CoinInfo>('/me/coins');
-          }
-        } catch {
-          setLiked(false);
-          setLikeCount((c) => Math.max(0, c - 1));
-        }
-      }
-      if (needFav) {
-        try {
-          const r = await api<{ active: boolean; coinReward?: number | null }>(`/posts/${postId}/favorite`, { method: 'POST' });
-          if (!r.active) {
-            setFavorited(false);
-            setFavCount((c) => Math.max(0, c - 1));
-          }
-          if (r.coinReward) {
-            notifications.show({ message: `🎉 首次收藏 +${r.coinReward} 格币`, color: 'green' });
-            void globalMutate<CoinInfo>('/me/coins');
-          }
-        } catch {
-          setFavorited(false);
-          setFavCount((c) => Math.max(0, c - 1));
-        }
-      }
-      try {
-        const r = await api<{ coinReward?: number | null }>(`/posts/${postId}/coin`, { method: 'POST' });
-        if (r.coinReward) {
-          notifications.show({ message: `🎉 首次投币 +${r.coinReward} 格币`, color: 'green' });
-        }
-        void globalMutate<CoinInfo>('/me/coins');
-      } catch {
-        coinOk = false;
-        setCoinCount((c) => Math.max(0, c - 1));
-      }
-      notifications.show({
-        message: coinOk ? '一键三连完成 🎉' : '已点赞收藏，投币失败（余额不足？）',
-        color: coinOk ? 'green' : 'orange',
-      });
-    } catch (e) {
-      notifications.show({ message: e instanceof Error ? e.message : '三连失败', color: 'red' });
-    } finally {
-      setBusy(false);
-    }
-  };
-
   const handleClick = (e: React.MouseEvent) => {
     const t = e.target as HTMLElement;
-    if (t.closest('.feed-actions, .feed-tags, button')) return;
+    if (t.closest('button')) return;
     onOpenTopic(d.id);
   };
 
@@ -727,7 +569,6 @@ function FeedCard({
             >
               {displayName(d)}
             </div>
-            <div className="feed-card-time">{timeAgo(d.last_posted_at || d.created_at)}</div>
           </div>
         </div>
         <div className="feed-card-title">{d.title}</div>
@@ -749,73 +590,6 @@ function FeedCard({
             loading="lazy"
           />
         ) : null}
-        {tagNames.length ? (
-          <div className="feed-tags">
-            {tagNames.map((n) => {
-              const bg = tagColorOf(tags, n);
-              return (
-                <span key={n} className="mini-tag" style={{ background: bg, color: tagTextColorOf(bg) }}>
-                  {n}
-                </span>
-              );
-            })}
-          </div>
-        ) : null}
-        <div className="feed-actions">
-          <span className="feed-stats">
-            <span className="feed-stat">💬 {Math.max(0, (d.comment_count ?? 0) - 1)} 接戏</span>
-            {d.didi_count > 0 ? <span className="feed-stat">📨 {d.didi_count} 滴滴</span> : null}
-          </span>
-          {/* 一键三连（点赞/投币/收藏，针对首帖） */}
-          {postId ? (
-            <span className="feed-triple">
-              <button
-                type="button"
-                className="feed-act triple-main"
-                disabled={busy}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  void doTriple();
-                }}
-              >
-                🎉 三连
-              </button>
-              <button
-                type="button"
-                className={`feed-act${liked ? ' on' : ''}`}
-                disabled={busy}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  void interact('like');
-                }}
-              >
-                👍{likeCount > 0 ? likeCount : ''}
-              </button>
-              <button
-                type="button"
-                className="feed-act"
-                disabled={busy}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  void interact('coin');
-                }}
-              >
-                🪙{coinCount > 0 ? coinCount : ''}
-              </button>
-              <button
-                type="button"
-                className={`feed-act${favorited ? ' on' : ''}`}
-                disabled={busy}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  void interact('favorite');
-                }}
-              >
-                ⭐{favCount > 0 ? favCount : ''}
-              </button>
-            </span>
-          ) : null}
-        </div>
       </div>
     </div>
   );
