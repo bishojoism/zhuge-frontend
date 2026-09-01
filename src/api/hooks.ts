@@ -217,8 +217,13 @@ export function useCoins(enabled: boolean = true) {
 
 // 下一步引导（首页横幅）：调用 /api/me/next-step——未登录返回"注册《主格》"，
 // 已登录返回首个未完成建议任务 / 全部完成 🎉。与 MCP get_daily_todo 同一 action 逻辑。
+// key 依赖登录态：游客拉"注册引导"；0 步自动注册后 user 出现 → key 变化（?uid=）→ 重新拉登录态引导
+// （否则 SWR 缓存游客的"注册"横幅不刷新，用户已登录却一直看到"下一步：注册"）
 export function useNextStep() {
-  return useSWR<{ next?: string }>('/me/next-step', async (p: string) => {
+  const { user } = useMe();
+  const enabled = user !== undefined; // 等 /me 加载完成（自动注册可能还没发生）再请求
+  const key = enabled ? (user ? `/me/next-step?uid=${user.id}` : '/me/next-step') : null;
+  return useSWR<{ next?: string }>(key, async (p: string) => {
     const r = await api<{ data: { next?: string } }>(p);
     return r.data;
   });

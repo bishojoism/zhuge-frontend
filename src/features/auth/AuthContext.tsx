@@ -52,7 +52,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         try {
           await api('/register', {
             method: 'POST',
-            body: { username: randomUsername(), password: randomPassword() },
+            body: { username: randomUsername(), password: randomPassword(), autoGuest: true },
           });
           await mutate(); // register 已 Set-Cookie 登录态 → refresh 后 user 有值
           break;
