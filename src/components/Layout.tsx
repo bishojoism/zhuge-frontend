@@ -99,13 +99,12 @@ export default function Layout({ children }: { children: ReactNode }) {
   // 全局预热首页列表：在任意页面（详情页/我的/私密等）停留时后台预加载
   // "全部 × recommend/latest/hot" + 主标签列表 → 回首页直接命中 SWR 缓存，
   // 零请求零骨架（其他页面点 logo 回首页不再闪加载）。
-  // 首页自身挂载时也会触发（HomePage 同函数），同 key 重复请求由 SWR dedupe 吸收。
+  // 内部已做"同分钟去重 + 已缓存跳过"，路由变化重复触发是无副作用的 no-op。
   const { tags: layoutTags } = useTags();
-  const homePreloadPath = useLocation().pathname;
   useEffect(() => {
     if (layoutTags.length) preloadAllPrimaryLists(layoutTags);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [layoutTags, homePreloadPath]);
+  }, [layoutTags]);
   // 每日打开应用自动领格币（+10；当天已领则 no-op，领到提示）
   useEffect(() => {
     if (!user) return;

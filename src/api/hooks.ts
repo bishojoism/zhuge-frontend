@@ -24,9 +24,17 @@ export function refreshListsAfterWrite() {
 // 切换标签/排序时 SWR 直接命中缓存，秒切零加载。
 // recommend 用当前分钟 seed（与前端 newSeed 一致）→ 同分钟内切换命中。
 // 注意：只预取公开页数据；分页 page=1（首页数据，滑动加载后续页时才请求）。
+// 防重复：① 本次会话已预加载过的 key 不再请求（模块级 Set，跨路由/页面持久）；
+// ② 同一分钟内的重复调用直接跳过（避免路由变化反复调度整批请求打满限流/429）。
+let preloadedMinute = 0;
+const preloadedKeys = new Set<string>();
 export function preloadAllPrimaryLists(tags: Tag[]) {
   const primary = (tags || []).filter((t) => t.position != null && !t.is_hidden);
   const seed = Math.floor(Date.now() / 60000) + 1;
+  const nowMinute = Math.floor(Date.now() / 60000);
+  // 同一分钟内已预加载过 → 跳过（路由切换/回首页反复触发时不再重复请求）
+  if (preloadedMinute === nowMinute) return;
+  preloadedMinute = nowMinute;
   const keys: string[] = [];
   // "全部"标签（首页默认 tag=null）优先预加载：其他页面（详情页等）停留时预热首页，
   // 回首页直接命中缓存，零请求零骨架
@@ -44,10 +52,12 @@ export function preloadAllPrimaryLists(tags: Tag[]) {
     }
   }
   // 分批预取（每批 3 个，间隔 300ms），避免一次性并发打满限流/连接；
+  // 已预加载过的 key 跳过（模块级 Set 跨调用持久），避免重复请求；
   // 用 globalMutate(key, updater) 填充缓存（与 useDiscussions 同 key 同结构）
-  keys.forEach((k, i) => {
+  const uncached = keys.filter((k) => !preloadedKeys.has(k));
+  uncached.forEach((k, i) => {
+    preloadedKeys.add(k); // 标记已请求（无论成败，避免重复调度）
     window.setTimeout(() => {
-      // globalMutate(key, updater)：updater 收到 currentData（SWR 语义），这里直接用闭包 k 请求
       void globalMutate<DiscussionListResult>(k, async () => {
         const r = await api<{ data: Discussion[]; meta: { hasMore: boolean } }>(k);
         return { data: r.data, meta: r.meta };
