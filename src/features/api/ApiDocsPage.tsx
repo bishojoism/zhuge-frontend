@@ -156,7 +156,7 @@ export default function ApiDocsPage() {
         <Text size="sm">
           公开读取接口（主题/标签/用户等）无需认证。写操作与个人数据需要登录，两种方式任选：
         </Text>
-        <Text size="sm" style={{ fontFamily: 'monospace', background: 'var(--card-soft, rgba(127,142,163,.08))', padding: '8px 12px', borderRadius: 8 }}>
+        <Text size="sm" style={{ fontFamily: 'monospace', overflowWrap: 'anywhere', background: 'var(--card-soft, rgba(127,142,163,.08))', padding: '8px 12px', borderRadius: 8 }}>
           # 方式一：浏览器会话（网页自动携带 cookie）<br />
           # 方式二：个人访问令牌（推荐给程序）<br />
           # 在 头像菜单 → 开放 API 生成令牌后：<br />
@@ -218,7 +218,7 @@ export default function ApiDocsPage() {
 
       <Stack gap={6}>
         <Text fw={600}>🧪 快速上手（curl）</Text>
-        <Text size="sm" style={{ fontFamily: 'monospace', whiteSpace: 'pre-wrap', background: 'var(--card-soft, rgba(127,142,163,.08))', padding: '10px 14px', borderRadius: 8 }}>
+        <Text size="sm" style={{ fontFamily: 'monospace', whiteSpace: 'pre-wrap', overflowWrap: 'anywhere', background: 'var(--card-soft, rgba(127,142,163,.08))', padding: '10px 14px', borderRadius: 8 }}>
 {`# 读主题列表（无需认证）
 curl '${typeof window !== 'undefined' ? window.location.origin : ''}/api/discussions'
 
