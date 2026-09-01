@@ -797,6 +797,15 @@
     ::-webkit-scrollbar-track { background: transparent; }
     @media (max-width: 600px) {
       .nav { padding: 8px 12px; gap: 8px; }
+      /* 移动端禁用导航栏毛玻璃：iOS Safari 的 backdrop-filter 在 DOM 大更新/滚动
+         （乐观帧→数据帧替换、模式切换）时会触发整屏合成闪烁 → 改用高不透明实色背景，
+         视觉几乎无差异（毛玻璃模糊的内容本来就是浅色页面） */
+      .nav {
+        -webkit-backdrop-filter: none;
+        backdrop-filter: none;
+        background: rgba(255,255,255,.94);
+      }
+      :root[data-mantine-color-scheme="dark"] .nav { background: rgba(24,27,33,.96); }
       .container { padding: 16px 12px 32px; }
       /* 首页（含列表模式）移动端仍去顶部 padding：覆盖上面 .container 的 16px，
          消除横幅上方空隙 */

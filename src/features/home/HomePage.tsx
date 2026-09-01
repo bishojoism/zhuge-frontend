@@ -57,6 +57,24 @@ export default function HomePage() {
     if (tags.length) preloadAllPrimaryLists(tags);
   }, [tags]);
 
+  // 分钟级滚动预加载：preloadAllPrimaryLists 内部按分钟 dedupe（preloadedMinute），
+  // 跨分钟后 recommend 的 seed 变化 → 旧分钟 seed 的缓存 key 不再命中 → 列表模式停留
+  // 超过 1 分钟再切回推荐时必然闪骨架（整屏闪）。这里每 10s 检查一次，分钟边界后
+  // 10s 内补拉当前分钟的推荐缓存。开销极小：latest/hot 的 key 不含 seed、跨分钟相同，
+  // 被 preloadedKeys Set 跳过；只补拉新 seed 的 recommend key（全部 + 各主标签）。
+  useEffect(() => {
+    if (!tags.length) return;
+    let lastMinute = Math.floor(Date.now() / 60000);
+    const iv = window.setInterval(() => {
+      const m = Math.floor(Date.now() / 60000);
+      if (m !== lastMinute) {
+        lastMinute = m;
+        preloadAllPrimaryLists(tags);
+      }
+    }, 10000);
+    return () => window.clearInterval(iv);
+  }, [tags]);
+
   // 首页三种模式（推荐/列表/加载中）统一去掉 container 顶部 padding，让 hero 紧贴导航栏
   //（推荐模式由 feed-lock 去掉；列表/加载中无 feed-lock，这里统一处理，消除 hero 上方空隙）
   useEffect(() => {
