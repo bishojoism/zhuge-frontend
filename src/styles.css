@@ -362,7 +362,8 @@
       border-radius: var(--radius-md); padding: 18px 20px; margin-bottom: 12px;
       box-shadow: var(--shadow-sm);
       transition: box-shadow .2s ease;
-      max-height: 380px; overflow-y: auto;
+      /* 不设 max-height/内部滚动：长文折叠由 LongContent（3 行 + 展开按钮）负责，
+         帖子配图完整显示（页面滚动），避免"图片过高 → 卡片内滚动条截断图片" */
       /* 楼层跳转兜底：JS 跳转路径（通知定位/回到上次位置/引用跳转）已动态测量
          导航栏高度扣除（lib/navOffset.ts），此处留给未来新增的 scrollIntoView 路径
          兜底——顶部留出 sticky 导航栏高度，避免帖子被导航栏遮住头部 */

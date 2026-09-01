@@ -462,7 +462,9 @@ export function PostCard({
         <img
           src={imgSrc(post.image_url, 800) || post.image_url}
           alt="配图"
-          style={{ maxWidth: '100%', borderRadius: 10, margin: '8px 0' }}
+          // maxHeight 60vh：超高长图等比缩放完整显示（不裁不变形），
+          // 避免把帖子卡片撑出内部滚动条/页面被无限撑高
+          style={{ maxWidth: '100%', maxHeight: '60vh', borderRadius: 10, margin: '8px 0' }}
           loading="lazy"
         />
       )}
