@@ -61,7 +61,9 @@ function NewUserHint() {
       document.documentElement.style.setProperty('--new-hint-h', '0px');
       return;
     }
-    const h = ref.current?.getBoundingClientRect().height ?? 0;
+    // 高度 + 10px margin-bottom：吸顶让位时把引导条与其下内容的间隙一并计入，
+    // 否则滚动后引导条紧贴 hero（间隙被滚掉）
+    const h = (ref.current?.getBoundingClientRect().height ?? 0) + 10;
     document.documentElement.style.setProperty('--new-hint-h', `${Math.ceil(h)}px`);
     return () => document.documentElement.style.setProperty('--new-hint-h', '0px');
   }, [shown]);
