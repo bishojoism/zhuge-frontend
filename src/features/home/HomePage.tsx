@@ -380,7 +380,9 @@ export default function HomePage() {
   const listItems = listCacheHit ? result.data : items.length > 0 ? items : result?.data || [];
   const listHasMore = listCacheHit ? result.meta.hasMore : items.length > 0 ? hasMore : result?.meta.hasMore || false;
   return (
-    <>
+    /* 列表模式整体：flex column 占满剩余高度——hero/tagbar 自然高度固定，
+       列表区 flex:1 填满剩余空间并内部滚动，页面整体不出现滚动条 */
+    <div className="list-layout">
       {hero}
       {tagbar}
       {listItems.length === 0 ? (
@@ -399,7 +401,6 @@ export default function HomePage() {
           <div className="empty">还没有主题，来发第一个吧！</div>
         )
       ) : (
-        /* 列表模式：固定高度容器 + 内部滚动——横幅/标签固定不随列表滚走 */
         <div className="list-mode">
           <ListView
             items={listItems}
@@ -411,6 +412,6 @@ export default function HomePage() {
           />
         </div>
       )}
-    </>
+    </div>
   );
 }
