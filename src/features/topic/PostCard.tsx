@@ -1,7 +1,7 @@
 // ===== 帖子卡片（首帖/回复共用；首帖可带主题标题/标签） =====
 // 含行渲染（BBCode 解析 + 搜索关键词高亮）、超长内容折叠、一键三连（点赞/投币/收藏）+ 打赏
 import { memo, useEffect, useRef, useState, type ReactNode } from 'react';
-import { Button, Group, Select } from '@mantine/core';
+import { Button, Group, Menu, Select } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { mutate as globalMutate } from 'swr';
 import { hasBBCode, parseBBCode } from '../../lib/bbcode';
@@ -574,30 +574,29 @@ export function PostCard({
             </Button>
           </Group>
         </div>
+        {/* 低频操作收进「更多」菜单（P5 操作密度优化）：主操作行只留高频（接戏/滴滴/三连组）。
+            删除/举报等安全敏感操作用菜单折叠是移动端标准模式，多一步换取主操作清爽 */}
         <div className="post-actions-more">
-          {onCopyLink && (
-            <Button size="compact-sm" variant="subtle" onClick={onCopyLink}>
-              复制链接
-            </Button>
-          )}
-          {onSource && (
-            <Button size="compact-sm" variant="subtle" onClick={onSource}>
-              源码
-            </Button>
-          )}
-          {onDelete && (
-            <Button size="compact-sm" variant="subtle" color="red" onClick={onDelete}>
-              删除
-            </Button>
-          )}
-          <Button size="compact-sm" variant="subtle" color="gray" onClick={onReport}>
-            举报
-          </Button>
-          {onAdmin && (
-            <Button size="compact-sm" variant="subtle" color="gray" title="管理" onClick={onAdmin}>
-              ⚙
-            </Button>
-          )}
+          <Menu position="bottom-end" withArrow withinPortal>
+            <Menu.Target>
+              <Button size="compact-sm" variant="subtle" leftSection={<span>⋯</span>}>
+                更多
+              </Button>
+            </Menu.Target>
+            <Menu.Dropdown>
+              {onCopyLink && <Menu.Item onClick={onCopyLink}>复制链接</Menu.Item>}
+              {onSource && <Menu.Item onClick={onSource}>源码</Menu.Item>}
+              {onDelete && (
+                <Menu.Item color="red" onClick={onDelete}>
+                  删除
+                </Menu.Item>
+              )}
+              <Menu.Item color="gray" onClick={onReport}>
+                举报
+              </Menu.Item>
+              {onAdmin && <Menu.Item onClick={onAdmin}>⚙ 管理</Menu.Item>}
+            </Menu.Dropdown>
+          </Menu>
         </div>
       </div>
     </div>
