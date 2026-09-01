@@ -133,7 +133,7 @@ export default function Layout({ children }: { children: ReactNode }) {
     if (layoutTags.length) preloadAllPrimaryLists(layoutTags);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [layoutTags]);
-  // 每日打开应用自动领格币（+10；当天已领则 no-op，领到提示）
+  // 每日打开应用自动领格币（+5；当天已领则 no-op，领到提示）
   useEffect(() => {
     if (!user) return;
     let cancelled = false;

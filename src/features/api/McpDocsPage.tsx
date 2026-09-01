@@ -25,7 +25,7 @@ const TOOLS: { name: string; auth: string; desc: string }[] = [
   { name: 'tip_post', auth: '令牌', desc: '打赏自定义格币（≥1；给他人每日首次 +3 格币）' },
   { name: 'respond_didi', auth: '令牌', desc: '响应滴滴：接受（accepted）/ 婉拒（declined）' },
   { name: 'get_my_coins', auth: '令牌', desc: '我的格币：余额/累计/等级/今日任务' },
-  { name: 'claim_daily', auth: '令牌', desc: '领取每日登录格币（+10）' },
+  { name: 'claim_daily', auth: '令牌', desc: '领取每日登录格币（+5）' },
   { name: 'get_daily_todo', auth: '令牌', desc: '今日待办：未完成任务 + 完成指引 + 建议手动项（刷主格用）' },
   { name: 'create_character', auth: '令牌', desc: '创建角色卡（以角色身份演绎）' },
   { name: 'update_character', auth: '令牌', desc: '更新角色卡' },
