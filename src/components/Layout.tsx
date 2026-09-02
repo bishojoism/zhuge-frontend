@@ -42,52 +42,6 @@ import { collapseIosUrlBar } from '../lib/iosUrlBar';
 import { isDebugMode, setDebugMode } from '../lib/vconsole';
 import Avatar from './Avatar';
 
-// 新用户一次性引导条（P6，证据：T26 帮助入口无可见文字 + 首页语C黑话密集 + onboarding 曾被移除）：
-// 只在首页（/ 或 /tag/N）显示，可关闭、localStorage 记忆、不复现、不打断操作。
-// 列表模式页面可滚动：引导条 sticky 吸顶（nav 下方），并把自己高度写入 --new-hint-h，
-// 让 HomePage 的 .list-sticky（hero+tagbar）让位下移，避免吸顶时被引导条遮挡。
-function NewUserHint() {
-  const [shown, setShown] = useState(() => {
-    try {
-      return localStorage.getItem('zhuge-seen-hint') !== '1';
-    } catch {
-      return false;
-    }
-  });
-  const ref = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (!shown) {
-      document.documentElement.style.setProperty('--new-hint-h', '0px');
-      return;
-    }
-    // 高度 + 10px margin-bottom：吸顶让位时把引导条与其下内容的间隙一并计入，
-    // 否则滚动后引导条紧贴 hero（间隙被滚掉）
-    const h = (ref.current?.getBoundingClientRect().height ?? 0) + 10;
-    document.documentElement.style.setProperty('--new-hint-h', `${Math.ceil(h)}px`);
-    return () => document.documentElement.style.setProperty('--new-hint-h', '0px');
-  }, [shown]);
-  const dismiss = () => {
-    try {
-      localStorage.setItem('zhuge-seen-hint', '1');
-    } catch {
-      /* 忽略 */
-    }
-    setShown(false);
-  };
-  if (!shown) return null;
-  return (
-    <div ref={ref} className="new-hint" role="note">
-      <span className="new-hint-text">
-        🎭 欢迎来到主格：<b>开戏</b>=创建新主题 · <b>接戏</b>=回复楼层继续演绎 · <b>滴滴</b>=私密对戏。
-        右上角 <b>?</b> 有完整使用帮助。
-      </span>
-      <button type="button" className="new-hint-close" onClick={dismiss} aria-label="关闭欢迎提示">
-        ✕
-      </button>
-    </div>
-  );
-}
-
 // iOS：非 feed 页面在每次路由变化时收起地址栏（feed 页面由自身处理滚动锁定）
 function IosUrlBarCollapser() {
   const location = useLocation();
@@ -642,13 +596,6 @@ export default function Layout({ children }: { children: ReactNode }) {
       </Modal>
       {/* 内容区：key=路径 → 路由切换时强制重建整个内容区（清掉旧页残留的 DOM，
           如主题页的帖子卡片在水合/协调后残留在主页顶部） */}
-      {/* 新用户引导条（首页家族：/ 或 /tag/N，推荐/最新/热门所有模式都显示——
-          新用户切到最新/热门同样需要引导；仅主题/文档等详情页不显示） */}
-      {(() => {
-        const p = location.pathname;
-        const isHome = p === '/' || /^\/tag\/\d+$/.test(p);
-        return isHome ? <NewUserHint /> : null;
-      })()}
       <div className="container" key={location.pathname}>{children}</div>
     </>
   );

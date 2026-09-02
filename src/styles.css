@@ -590,9 +590,9 @@
     /* 鎺ㄨ崘妯″紡妯箙锛氫笌鍒楄〃妯″紡瀹屽叏涓€鑷达紙澶嶇敤 .hero 缁勪欢鏍峰紡锛岄棿璺濈粺涓€ 22px锛?*/
     /* 列表模式（最新/热门）：hero/tagbar 吸顶固定（sticky），列表区正常文档流滚动——
        页面保留滚动条但横幅/标签固定不滚走；不锁页面高度，无溢出问题。
-       top = 导航栏高度(55px) + 新用户引导条高度(--new-hint-h，显示引导条时 hero 让位) */
+       top = 导航栏高度(55px)（欢迎教学条已移除，无需再让位） */
     .list-sticky {
-      position: sticky; top: calc(55px + var(--new-hint-h, 0px)); z-index: 5;
+      position: sticky; top: 55px; z-index: 5;
       background: var(--bg);
     }
     /* hero 顶部无间距（与推荐模式一致，统一取消横幅上边距） */
@@ -1017,39 +1017,6 @@ body { margin: 0; }
 .menu-grid-item svg {
   color: var(--muted, #8b9cb0);
 }
-
-/* 新用户一次性引导条（P6）：浅色卡片 + 关闭按钮；可关闭、localStorage 记忆不复现。
-   sticky 吸顶在导航下方（列表模式页面可滚动时不滚走）；高度写入 --new-hint-h 供
-   .list-sticky 让位（推荐模式页面滚动锁死，sticky 无实际滚动效果，行为不变） */
-.new-hint {
-  position: sticky;
-  top: 55px;
-  z-index: 90;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin: 0 0 10px;
-  padding: 10px 12px;
-  border-radius: var(--radius-md);
-  background: var(--primary-soft);
-  border: 1px solid var(--primary-dark, rgba(124,142,163,.35));
-  font-size: 13px;
-  line-height: 1.5;
-  color: var(--text);
-}
-.new-hint-text { flex: 1; min-width: 0; }
-.new-hint b { color: var(--primary-deep); }
-.new-hint-close {
-  border: none;
-  background: transparent;
-  color: var(--muted);
-  font-size: 14px;
-  cursor: pointer;
-  padding: 4px 6px;
-  border-radius: 8px;
-  flex-shrink: 0;
-}
-.new-hint-close:hover { background: rgba(127,142,163,.15); }
 
 /* ===== 主题嵌入版（/embed/d/:id iframe 极简页）：聊天式布局，一切显示与交互尽可能精简 ===== */
 .zhuge-embed {
