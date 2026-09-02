@@ -163,7 +163,7 @@ export default function TripleActions({ postId, authorId, initial }: TripleProps
   return (
     <div className="topic-actions" onClick={(e) => e.stopPropagation()}>
       <button type="button" className="topic-act triple-main" disabled={busy} onClick={() => void doTriple()}>
-        🎉 三连
+        三连
       </button>
       <button type="button" className={`topic-act${liked ? ' on' : ''}`} disabled={busy} onClick={() => void interact('like')}>
         👍 {likeCount > 0 ? likeCount : ''}

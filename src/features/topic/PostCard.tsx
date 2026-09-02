@@ -1,5 +1,5 @@
 // ===== 帖子卡片（首帖/回复共用；首帖可带主题标题/标签） =====
-// 含行渲染（BBCode 解析 + 搜索关键词高亮）、超长内容折叠、一键三连（点赞/投币/收藏）+ 打赏
+// 含行渲染（BBCode 解析 + 搜索关键词高亮）、超长内容折叠、一键三连（点赞/投币/收藏；打赏在「更多」菜单）
 import { memo, useEffect, useRef, useState, type ReactNode } from 'react';
 import { Button, Group, Menu, Select } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
@@ -174,7 +174,7 @@ export function PostCard({
   // 不能滴滴自己的帖子（未登录时按钮可见，点击弹登录）
   const canDidi = !user || user.id !== post.user_id;
 
-  // ===== 一键三连（点赞/投币/收藏）+ 打赏：本地乐观更新计数，服务端为准 =====
+  // ===== 一键三连（点赞/投币/收藏）本地乐观更新计数，服务端为准；打赏入口在「更多」菜单 =====
   const [liked, setLiked] = useState(!!post.liked);
   const [favorited, setFavorited] = useState(!!post.favorited);
   const [likeCount, setLikeCount] = useState(post.like_count || 0);
@@ -518,7 +518,7 @@ export function PostCard({
               {post.didi_count} 滴滴
             </span>
           )}
-          {/* 接戏 + 一键三连 + 打赏 + 更多：同一右端整组（接戏在组最左）。
+          {/* 接戏 + 一键三连 + 更多：同一右端整组（接戏在组最左；打赏已收进「更多」菜单）。
               接戏是回复楼专属（首帖无）；整组 nowrap —— 窄屏时与三连/更多一同换行，
               不会像之前那样接戏落在上一行左侧、三连组孤行右侧 */}
           <Group gap={2} wrap="nowrap" ml="auto">
@@ -535,7 +535,7 @@ export function PostCard({
               onClick={() => void doTriple()}
               title="一键三连：点赞 + 投币 1 格币 + 收藏"
             >
-              🎉 三连
+              三连
             </Button>
             <Button
               size="compact-xs"
@@ -567,20 +567,11 @@ export function PostCard({
             >
               ⭐ {favCount > 0 ? favCount : ''}
             </Button>
-            <Button
-              size="compact-xs"
-              variant="subtle"
-              color="slate"
-              onClick={doTip}
-              title="打赏（自定义数额，10% 税）"
-            >
-              💎 打赏
-            </Button>
             {/* 更多：与三连同处右端同一不拆组（wrap 时整组换行，不会「更多」孤行）。
-                低频帖级操作（复制/嵌入/举报…）+ 首帖的主题级操作（邀请接戏/导出记录） */}
+                低频帖级操作（打赏/复制/嵌入/举报…）+ 首帖的主题级操作（邀请接戏/导出记录） */}
             <Menu position="bottom-end" withArrow withinPortal>
               <Menu.Target>
-                <Button size="compact-sm" variant="subtle" px={4} leftSection={<span>⋯</span>}>
+                <Button size="compact-sm" variant="subtle" px={4}>
                   更多
                 </Button>
               </Menu.Target>
@@ -605,6 +596,9 @@ export function PostCard({
                     <Menu.Divider />
                   </>
                 )}
+                <Menu.Item onClick={doTip} leftSection={<span>💎</span>} title="打赏（自定义数额，10% 税）">
+                  打赏
+                </Menu.Item>
                 {onCopyLink && <Menu.Item onClick={onCopyLink}>复制链接</Menu.Item>}
                 {onEmbed && <Menu.Item onClick={onEmbed}>内嵌到网页（复制 iframe 代码）</Menu.Item>}
                 {onSource && <Menu.Item onClick={onSource}>源码</Menu.Item>}
