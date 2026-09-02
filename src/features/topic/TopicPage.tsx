@@ -337,21 +337,23 @@ export default function TopicPage() {
       if (didiLoading !== null) return; // 已有滴滴请求进行中
       setDidiLoading(postId);
       try {
-        const res = await api<{ data: { discussionId: number; coinReward?: number | null } }>('/zhuge/didi', {
+        // 后端 /api/zhuge/didi 返回顶层 { ok, didiCount, discussionId, title, coinReward }，
+        // 不是 { data: {...} }（此前误读 res.data → undefined is not an object，且永不跳转）
+        const res = await api<{ discussionId: number; coinReward?: number | null }>('/zhuge/didi', {
           method: 'POST',
           body: characterId ? { postId, characterId: Number(characterId) } : { postId },
         });
         notifications.show({ message: '已滴滴' });
         // 每日首次滴滴奖励格币
-        if (res.data?.coinReward) {
-          notifications.show({ message: `🎉 首次滴滴 +${res.data.coinReward} 格币`, color: 'green' });
+        if (res.coinReward) {
+          notifications.show({ message: `🎉 首次滴滴 +${res.coinReward} 格币`, color: 'green' });
           void globalMutate('/me/coins');
         }
         refreshUnread();
         void mutate(); // 刷新滴滴数
         void refreshListsAfterWrite(); // 私密列表/滴滴统计同步，回列表页无需刷新网页
         // 进入创建的私密主题（返回 = 上一级 = 当前主题）
-        navigate(`/d/${res.data.discussionId}`, {
+        navigate(`/d/${res.discussionId}`, {
           state: { from: routeLocation.pathname + routeLocation.search },
         });
       } catch (e) {
