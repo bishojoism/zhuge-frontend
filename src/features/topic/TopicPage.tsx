@@ -238,7 +238,14 @@ export default function TopicPage() {
       /* 忽略 */
     }
     requestAnimationFrame(() => {
-      composerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      const el = composerRef.current;
+      if (!el) return;
+      // 与跳其他楼层同一套定位：输入卡顶部对齐导航栏下方（docYBelowNav 补偿，
+      // 非 scrollIntoView center——居中会把"正在接戏 @xx"与回复目标挤出视口）
+      window.scrollTo({ top: docYBelowNav(el), behavior: 'smooth' });
+      // 特效：短暂高亮输入卡（对齐跳楼 .post-flash 的视觉提示），表明已就位
+      el.classList.add('composer-flash');
+      window.setTimeout(() => el.classList.remove('composer-flash'), 1600);
     });
   }, []);
 

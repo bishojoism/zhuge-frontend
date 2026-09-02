@@ -1060,3 +1060,14 @@ body { margin: 0; }
   overflow: hidden; white-space: nowrap;
 }
 
+
+/* flash highlight when jumping to reply composer (matches .post-flash affordance) */
+.composer-flash {
+  animation: zhugeComposerFlash 1.5s ease;
+}
+@keyframes zhugeComposerFlash {
+  0% { box-shadow: none; }
+  10%, 55% { box-shadow: 0 0 0 3px var(--primary, #f6821f), 0 0 20px rgba(246,130,31,.4); }
+  100% { box-shadow: none; }
+}
+
