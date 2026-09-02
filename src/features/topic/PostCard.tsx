@@ -469,11 +469,6 @@ export function PostCard({
 
       <div className="post-actions">
         <div className="post-actions-main">
-          {!isPrivate && !isFirstPost && (
-            <Button size="compact-sm" variant="default" onClick={onReply}>
-              接戏
-            </Button>
-          )}
           {!isPrivate && canDidi && onDidi && (
             <>
               {/* 滴滴身份选择：点击滴滴前选好角色（留空 = 以本人身份），同接戏一致。
@@ -522,8 +517,15 @@ export function PostCard({
               {post.didi_count} 滴滴
             </span>
           )}
-          {/* 一键三连 + 打赏（点赞/收藏 toggle，投币固定 1 币，打赏自定义数额） */}
+          {/* 接戏 + 一键三连 + 打赏 + 更多：同一右端整组（接戏在组最左）。
+              接戏是回复楼专属（首帖无）；整组 nowrap —— 窄屏时与三连/更多一同换行，
+              不会像之前那样接戏落在上一行左侧、三连组孤行右侧 */}
           <Group gap={2} wrap="nowrap" ml="auto">
+            {!isPrivate && !isFirstPost && (
+              <Button size="compact-sm" variant="default" mr={4} onClick={onReply}>
+                接戏
+              </Button>
+            )}
             <Button
               size="compact-xs"
               variant="subtle"
