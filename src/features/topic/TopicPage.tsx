@@ -814,8 +814,10 @@ export default function TopicPage() {
           {composerAdvanced && replyCharacters.length > 0 && (
             <Select
               size="xs"
-              label="以角色身份接戏（可选）"
-              placeholder="不指定"
+              // 角色说明移入选择器自身占位（hint）：与滴滴选择器一致，「（可选）以角色」；
+              // 可见 label 移除后补 aria-label 保留无障碍名称
+              placeholder="（可选）以角色"
+              aria-label="接戏角色（可选）"
               data={replyCharacters.map((c: { id: number; name: string }) => ({ value: String(c.id), label: c.name }))}
               value={replyCharacterId}
               onChange={(v) => {
