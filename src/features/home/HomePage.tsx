@@ -158,47 +158,6 @@ export default function HomePage() {
     seed: sort === 'recommend' ? feedSeed : undefined,
   });
 
-  // 【诊断】列表模式空隙排查（所有条件 return 之前，hooks 数量须一致）
-  useEffect(() => {
-    requestAnimationFrame(() => {
-      const nav = document.querySelector('.nav');
-      const sticky = document.querySelector('.list-sticky');
-      const container = document.querySelector('.container');
-      const hero = document.querySelector('.hero');
-      console.log('[zhuge-list-gap]', {
-        bodyZhugeHome: document.body.classList.contains('zhuge-home'),
-        navH: nav ? nav.getBoundingClientRect().height : null,
-        navBottom: nav ? nav.getBoundingClientRect().bottom : null,
-        stickyTop: sticky ? sticky.getBoundingClientRect().top : null,
-        stickyMarginTop: sticky ? getComputedStyle(sticky).marginTop : null,
-        containerPT: container ? getComputedStyle(container).paddingTop : null,
-        heroMarginTop: hero ? getComputedStyle(hero).marginTop : null,
-        innerH: window.innerHeight,
-      });
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sort, tag]);
-
-  // 【诊断】回首页列表为空排查
-  useEffect(() => {
-    console.log('[zhuge-home] mounted', {
-      url: window.location.pathname + window.location.search,
-      initSeed: initSnap.seed,
-      initItems: initSnap.items.length,
-      feedSeed,
-      key,
-      result: result ? { len: result.data.length, hasMore: result.meta.hasMore } : null,
-      initDataSeed: readInitData<InitData>()?.seed,
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  useEffect(() => {
-    if (result) {
-      console.log('[zhuge-home] result arrived', { key, len: result.data.length, hasMore: result.meta.hasMore });
-    }
-  }, [result, key]);
-
   // 切标签/排序/换 seed → 重置分页并清空当前列表。
   // SSR 内联 seed 与前端请求 seed 一致（同 key 同序列），整体替换后内容一致，无跳变
   useEffect(() => {
@@ -373,11 +332,6 @@ export default function HomePage() {
     const displayHasMore = ready
       ? items.length > 0 ? hasMore : result?.meta.hasMore || false
       : cacheHit ? result.meta.hasMore : false;
-    // 【诊断】渲染门控：空态排查
-    console.log('[zhuge-home] render gate', {
-      ready, cacheHit, itemsLen: items.length, resultLen: result?.data.length, displayLen: displayItems.length,
-      itemsBase, baseKey, appliedKey: appliedKeyRef.current,
-    });
     // 有可显示内容（旧 items 或新 result）→ 直接渲染；仅首次加载/切换中（无内容）显示加载中
     if (displayItems.length === 0) {
       // 空态（首次加载 / 切换中 / 无数据）：不挂 feed，保持页面正常滚动。

@@ -20,7 +20,6 @@ import {
   IconShield,
   IconSun,
   IconDeviceDesktop,
-  IconDeviceMobile,
   IconUserCog,
   IconUserCircle,
   IconAward,
@@ -106,7 +105,6 @@ const openSecurityModal = () => import('../features/security/securityModals').th
 // 通知弹窗：Layout 内嵌 <Modal opened> 单例控制（@mantine/modals 全局栈 7.x OPEN 不去重，
 // 重复打开会叠加多个弹窗；本地 state 天然单例），组件静态引入避免重复加载
 import { NotificationsModalContent } from '../features/notifications/notificationsModal';
-const openDeviceAuthsModal = () => import('../features/device/deviceModals').then((m) => m.openDeviceAuthsModal());
 const openAvatarModal = () => import('../features/profile/profileModals').then((m) => m.openAvatarModal());
 const openGenderModal = () => import('../features/profile/profileModals').then((m) => m.openGenderModal());
 const openHelpModal = () => import('../features/help/helpModal').then((m) => m.openHelpModal());
@@ -148,13 +146,22 @@ export default function Layout({ children }: { children: ReactNode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [layoutTags]);
   // 每日打开应用自动领格币（+5；当天已领则 no-op，领到提示）
+  // 领币完成后刷新 next-step 横幅缓存：自动注册瞬间 next-step 请求可能与领币写入
+  // 并发，读先于写会拿到"每日打开应用"（daily 未 done）并缓存住——领币落库后这里
+  // 主动失效该缓存，横幅才会刷新为真实待办（如"首次发帖"）。
   useEffect(() => {
     if (!user) return;
     let cancelled = false;
     void api<{ claimed: boolean; amount: number }>('/me/daily-claim', { method: 'POST' })
       .then((r) => {
-        if (r.claimed && !cancelled) {
-          void mutateCoins();
+        if (cancelled) return;
+        void mutateCoins();
+        void mutate(
+          (k) => typeof k === 'string' && k.startsWith('/me/next-step'),
+          undefined,
+          { revalidate: true }
+        );
+        if (r.claimed) {
           notifications.show({ message: `每日格币 +${r.amount} 🪙`, color: 'green' });
         }
       })
@@ -480,7 +487,6 @@ export default function Layout({ children }: { children: ReactNode }) {
                         items: [
                           { icon: <IconApi size={20} />, label: '开放 API', onClick: () => openApiTokensModal() },
                           { icon: <IconRobot size={20} />, label: 'MCP', onClick: () => openMcpModal() },
-                          { icon: <IconDeviceMobile size={20} />, label: '设备授权', onClick: () => openDeviceAuthsModal() },
                           { icon: <IconBan size={20} />, label: '屏蔽管理', onClick: () => openBlocksModal() },
                           ...(user.isAdmin
                             ? [{ icon: <IconShield size={20} />, label: '管理', onClick: () => navigate('/admin') }]
@@ -612,7 +618,7 @@ export default function Layout({ children }: { children: ReactNode }) {
                     登录
                   </Menu.Item>
                   <Menu.Item leftSection={<IconUserPlus size={16} />} color="clay" onClick={() => openRegisterModal()}>
-                    注册或新设备
+                    注册新账号
                   </Menu.Item>
                   {/* 未登录也能用的公开项：开放 API / MCP 文档（无需登录可看；生成令牌才需登录） */}
                   <Menu.Divider />

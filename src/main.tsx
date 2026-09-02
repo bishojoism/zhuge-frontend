@@ -70,8 +70,15 @@ function buildSwrFallback(): Record<string, unknown> {
   fb['/me/drafts'] = { data: d.drafts || {} };
   // 角色卡（发帖/接戏选角色即时可用）
   if (Array.isArray(d.characters)) fb['/me/characters'] = { data: d.characters };
-  // 未读数（useUnread 读 meta.unread；列表先空，后台重验证填充）
-  fb['/me/notifications'] = { data: [], meta: { unread: d.unread || 0, page: 1, hasMore: false } };
+  // 未读数 + 通知列表（useUnread/useNotifications 共用同一 key）：
+  // SSR 内联首页 20 条（notifications）→ 弹窗打开即显示，不闪"还没有通知/加载中"；
+  // 未登录（user 为 null）时不种 → 弹窗提示登录；未内联时退回空占位（后台重验证填充）
+  if (d.user) {
+    fb['/me/notifications'] = {
+      data: d.notifications || [],
+      meta: { unread: d.unread || 0, page: 1, hasMore: !!d.notifHasMore },
+    };
+  }
 
   // 讨论列表：key 与 useDiscussions 完全一致（排序/标签/种子都取自内联数据）
   if (Array.isArray(d.discussions)) {
@@ -103,7 +110,6 @@ function buildSwrFallback(): Record<string, unknown> {
 }
 
 const swrFallback = buildSwrFallback();
-console.log('[zhuge-ssr] fallback keys:', Object.keys(swrFallback), 'hasTopic:', !!swrFallback['/discussions/85?page=1&order=new']);
 
 // Provider 顺序说明：@mantine/modals 的弹窗内容渲染在 ModalsProvider 之下、
 // 与 children 平级（portal 但上下文继承），因此 SWRConfig / BrowserRouter /

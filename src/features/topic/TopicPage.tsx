@@ -258,7 +258,7 @@ export default function TopicPage() {
       st.replyPostId ??
       (qReply && /^\d+$/.test(qReply) ? Number(qReply) : undefined);
     if (!replyPostId) {
-      // URL 已无 reply（处理完清 query 后的重跑）：重置守卫，下次再点【同一条】通知可重新定位
+      // URL 无 reply（系统推送未带 / 用户已在页内）：重置守卫，下次再点【同一条】通知可重新定位
       autoReplyHandledRef.current = null;
       return;
     }
@@ -267,21 +267,12 @@ export default function TopicPage() {
     const qReplyNumber = sp.get('replyNumber');
     const replyNumber = qReplyNumber && /^\d+$/.test(qReplyNumber) ? Number(qReplyNumber) : undefined;
     const targetPost = mergedPosts.find((p) => p.id === replyPostId);
-    console.log('[zhuge-jump] TopicPage auto-reply layout-effect', {
-      t: Math.round(performance.now()),
-      replyPostId,
-      replyNumber,
-      ref: autoReplyHandledRef.current,
-      targetFound: !!targetPost,
-      targetByNumber: replyNumber ? mergedPosts.some((p) => p.number === replyNumber) : false,
-      search: routeLocation.search,
-      mergedLen: mergedPosts.length,
-      hasData: !!data,
-      numbers: mergedPosts.slice(0, 3).map((p) => p.number),
-    });
-    // 只处理一次：navigate 清 query 与 data 更新（乐观→真实）的竞态会让本 effect 反复重跑
-    // （记录的是 replyPostId 而非布尔：用户已在主题页时再点【另一条】通知（新 reply=）会重新定位；
-    //   同一条通知的重复重跑（清 query 后 effect 再触发）仍被挡住）
+    // 只处理一次（记录的是 replyPostId 而非布尔：用户已在主题页时再点【另一条】通知
+    // （新 reply=）会重新定位；同一条通知的重复重跑仍被挡住）。
+    // 注意：**不再 navigate 清 query**——清 query 的 navigate(replace) 是 history.replaceState，
+    // iOS Safari 会对其触发滚动恢复归零（scrollRestoration='manual' 在 Safari 上不可靠），
+    // 表现为"首帧位置正确、随后跳回顶部"。保留 query 不触发 replaceState，定位零跳变；
+    // 刷新/返回会按链接语义重新定位到通知目标楼（自动接戏 @对方同链接语义）。
     if (autoReplyHandledRef.current === replyPostId) return;
     autoReplyHandledRef.current = replyPostId;
     const replyAuthor = st.replyAuthor || sp.get('replyAuthor') || undefined;
@@ -293,12 +284,10 @@ export default function TopicPage() {
     // 滚动定位统一交给 pendingTarget：目标楼已加载（用户在其他楼层浏览过，缓存里有）也要滚过去，
     // 已加载立即滚动高亮，未加载先拉所在页再滚 —— 不再区分"找到/未找到"，否则在主题页点通知不跳楼。
     // 无条件覆盖（不用 prev ?? ）：上一次定位未完成（pendingTarget 非 null）时，新通知必须替换旧目标。
-    // 优先按楼层号定位（乐观种子命中 → 零请求）；无楼层号时退回按帖子 id
+    // 优先按楼层号定位（SSR 内联目标页命中 → 零请求）；无楼层号时退回按帖子 id
     setPendingTarget(replyNumber ? { number: replyNumber } : { id: replyPostId });
-    // 清除 state + query：仅首次进入时生效，刷新/返回不重复触发
-    navigate(routeLocation.pathname, { replace: true, state: null });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, data, mergedPosts, routeLocation.state, routeLocation.search, navigate]);
+  }, [user, data, mergedPosts, routeLocation.state, routeLocation.search]);
 
   // 通知弹窗点击"相同 URL 的通知"时（React Router navigate 相同 URL 是 no-op，不会重跑上面的 effect）：
   // 通知弹窗发 'zhuge:jump' 自定义事件，这里强制定位到该回复楼
@@ -307,7 +296,6 @@ export default function TopicPage() {
     const onJump = (e: Event) => {
       const d = (e as CustomEvent).detail as { replyPostId?: number; replyNumber?: number; replyAuthor?: string };
       if (!d?.replyPostId) return;
-      console.log('[zhuge-jump] zhuge:jump event', d);
       const targetPost = mergedPosts.find((p) => p.id === d.replyPostId);
       setReplyTarget({
         postId: d.replyPostId,
@@ -517,6 +505,18 @@ export default function TopicPage() {
     });
   }, [id, user]);
 
+  // 内嵌到网页：复制 iframe 源码（/embed/d/:id 极简版，可正常接戏），供他人嵌入自己的网页
+  const handleCopyEmbed = useCallback(async () => {
+    if (!id) return;
+    const title = String(data?.discussion?.title || '').replace(/"/g, '&quot;');
+    const code = `<iframe src="${location.origin}/embed/d/${id}" width="100%" height="600" style="border:0;border-radius:8px" loading="lazy" title="${title}" allowfullscreen></iframe>`;
+    const ok = await copyText(code);
+    notifications.show({
+      message: ok ? 'iframe 嵌入代码已复制，粘贴到你的网页即可' : '复制失败，请手动复制',
+      color: ok ? undefined : 'red',
+    });
+  }, [id, data]);
+
   const handleReport = useCallback(
     (targetType: ReportTargetType, targetId: number) => {
       if (!user) {
@@ -573,14 +573,14 @@ export default function TopicPage() {
   const firstPost = posts.find((p) => p.number === 1) || null;
 
   // 删除自己的帖子/主题（作者本人或管理员；首帖删除 = 删整个主题）
-  // 作者自删：一个弹窗内完成「确认 + 自选密码/通行密钥验证 + 删除」；
+  // 作者自删：一个弹窗内完成「确认 + 密码验证 + 删除」；
   // 管理员删除无需验证（管理操作已有权限体系）。
   const handleDelete = useCallback(
     (post: TopicPost) => {
       const isFirst = post.number === 1;
       const isAdmin = !!user?.isAdmin;
       const discussionTitle = (data?.discussion as TopicDiscussion | undefined)?.title;
-      const doDelete = async (verify?: { password?: string; reauthToken?: string }) => {
+      const doDelete = async (verify?: { password?: string }) => {
         if (isFirst) {
           await api(`/discussions/${Number(id)}`, { method: 'DELETE', body: verify || {} });
           notifications.show({ message: '主题已删除' });
@@ -684,39 +684,34 @@ export default function TopicPage() {
   };
 
   // 定位原帖跳入：?focusPost=<帖id>（私密主题"定位原帖"按钮带此参数），
-  // 数据就绪后跳转到该楼并高亮，然后清除 query（刷新/返回不重复触发）
+  // 数据就绪后跳转到该楼并高亮。**不再 navigate 清 query**（同 auto-reply：
+  // 清 query 的 replaceState 触发 iOS Safari 滚动恢复归零，表现为"先正确、随后跳回顶部"）
   useEffect(() => {
     if (!data) return;
     const sp = new URLSearchParams(routeLocation.search);
     const fp = sp.get('focusPost');
     if (!fp || !/^\d+$/.test(fp)) {
-      // URL 已无 focusPost（处理完清 query 后的重跑）：重置守卫，下次再点【同一条】定位通知可重新定位
+      // URL 无 focusPost：重置守卫，下次再点【同一条】定位通知可重新定位
       focusPostHandledRef.current = null;
       return;
     }
     const targetId = Number(fp);
-    // 目标未加载（分页）：先定位加载其所在页，到位后跳转（不置 handled，等数据到达重跑）
-    if (!mergedPosts.some((p) => p.id === targetId)) {
-      setPendingTarget({ id: targetId });
-      return;
-    }
-    // 只处理一次：navigate 清 query 与 data 更新（乐观→真实）的竞态会让本 effect 反复重跑 → 无限更新循环。
-    // 记录 targetId 而非布尔：已在主题页时再点另一条定位通知（新 focusPost=）会重新跳转
+    // 只处理一次（记录 targetId 而非布尔：已在主题页时再点另一条定位通知（新 focusPost=）会重新跳转）
     if (focusPostHandledRef.current === targetId) return;
     focusPostHandledRef.current = targetId;
-    // 数据 + DOM 渲染完成后跳转（帖子可能未渲染完，稍作延迟）
-    const t = window.setTimeout(() => jumpToPost(targetId), 300);
-    navigate(routeLocation.pathname, { replace: true, state: null });
-    return () => window.clearTimeout(t);
+    // 用 pendingTarget 定位（与通知跳转同一机制）：目标已加载立即滚动高亮，
+    // 未加载由 useTopicPagination 拉所在页再跳。**不用 300ms setTimeout**——
+    // 挂载期间 mergedPosts 变化会让本 effect 重跑，cleanup 会取消未触发的定时器，
+    // 而守卫又挡住重设 → 跳转永久丢失（实测 focusPost 场景不跳）。
+    setPendingTarget({ id: targetId });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [data, mergedPosts, routeLocation.search, navigate]);
+  }, [data, mergedPosts, routeLocation.search]);
 
   // ===== 加载中骨架 =====
   // 条件用 mergedPosts（已合并所有已加载页）而非裸 data：SSR 首帧渲染后底部哨兵可能
   // 立即触发翻页（total > 每页 20），主 data 的 key 切到 page=2（无缓存）→ data 短暂 undefined。
   // 此时 mergedPosts 仍有 page1 内容，不应闪骨架屏；真正空数据（无任何已加载楼层）才骨架。
   if (isLoading && mergedPosts.length === 0 && !data) {
-    console.log('[zhuge-ssr] SKELETON branch hit', { isLoading, mergedLen: mergedPosts.length });
     return (
       <>
         <Skeleton height={36} width={120} radius="md" mb={12} />
@@ -988,6 +983,7 @@ export default function TopicPage() {
           onSource={() => setSourcePost(firstPost)}
           onAuthorStats={openAuthorStats}
           onCopyLink={handleCopyLink}
+          onEmbed={!isPrivate ? handleCopyEmbed : undefined}
         />
       ) : (
         /* 无首帖：至少显示主题信息卡 */

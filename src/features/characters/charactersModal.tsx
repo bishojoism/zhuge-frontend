@@ -232,11 +232,10 @@ function CharacterForm({ character, onSaved, onCancel }: { character: Character 
             </Text>
           </Stack>
         </>
-      ) : (
-        <Button variant="subtle" size="compact-sm" onClick={() => setMore(true)}>
-          更多资料（年龄 / 身份 / 备注 / 外貌）▾
-        </Button>
-      )}
+      ) : null}
+      <Button variant="subtle" size="compact-sm" onClick={() => setMore((v) => !v)}>
+        {more ? '更少资料 ▴' : '更多资料（年龄 / 身份 / 备注 / 外貌）▾'}
+      </Button>
       <Group justify="flex-end" mt="xs">
         <Button variant="subtle" onClick={onCancel}>
           取消

@@ -3,14 +3,13 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button, Group, Loader, Stack, Text } from '@mantine/core';
-import { mutate } from 'swr';
+import { notifications } from '@mantine/notifications';
+import { mutate as globalMutate } from 'swr';
 import { api } from '../../api/client';
-import { useNotifications, useMe, useTags } from '../../api/hooks';
+import { useNotifications, useMe } from '../../api/hooks';
 import { requireLogin } from '../auth/authModals';
-import { seedTopicCacheFromList, type OptimisticExtraPost } from '../home/composer';
-import type { TopicPost } from '../topic/topicTypes';
 import { timeAgo } from '../../lib/utils';
-import type { DiscussionDetail, NotificationItem, NotifListResult, NotifType } from '../../types';
+import type { NotificationItem, NotifListResult, NotifType } from '../../types';
 
 // 通知图标：didi → 📨；invite → 🎭（邀请接戏）；coin → 🪙（投币/打赏）；report/report_result → ⚑；其余（reply）→ 💬
 function notifIcon(type: NotifType): string {
@@ -25,7 +24,8 @@ function notifIcon(type: NotifType): string {
 // 全沉浸：content 已含角色名（后端用角色名生成）；这里兜底用角色名/用户名
 function notifText(n: NotificationItem): string {
   if (n.content) return n.content;
-  const who = n.actor_character_name || n.actor_name || '有人';
+  // 触发者：actor（后端统一字段）优先，兼容旧 actor_name
+  const who = n.actor_character_name || n.actor || n.actor_name || '有人';
   if (n.type === 'didi') return `${who} 滴滴了你`;
   if (n.type === 'invite') return `${who} 邀请你接戏`;
   if (n.type === 'coin') return `${who} 给你投了币`;
@@ -39,7 +39,6 @@ export function NotificationsModalContent({ onClose }: { onClose: () => void }) 
   const { user } = useMe();
   const navigate = useNavigate();
   const { data, isLoading } = useNotifications();
-  const { tags } = useTags();
   // 分页：SWR 只拿第 1 页（20 条），"加载更多"追加本地 state（弹窗每次打开重新 mount，state 自然重置）
   const [extra, setExtra] = useState<NotificationItem[]>([]);
   const [page, setPage] = useState(1);
@@ -88,160 +87,139 @@ export function NotificationsModalContent({ onClose }: { onClose: () => void }) 
     }
   };
 
-  // 点击单条：立即显示"正在打开…"加载反馈（跳转前）→ 标记已读 → 刷新 → 跳转 → 关闭弹窗
-  // 接戏/滴滴通知：带 state 让主题页自动引用对方（回复框自动 @对方）
-  const [navigating, setNavigating] = useState(false);
-
-  // 通知点入乐观渲染：用通知携带的主题上下文种入详情缓存（首帖 + 目标楼所在页楼层 + 回复链，
-  // 负 id 标记），主题页首帧直接显示完整楼层序列（目标楼前后楼层都在 → 页面高度正确，
-  // 定位直接到位，不等真实数据也不跳变），后台 revalidate 拉真实替换。
-  // useTopicPagination 检测到乐观帖会强制重验，与列表点进主题同机制。
-  // targetPagePosts：目标楼所在页的真实楼层（预取），并入乐观帧让页面高度与真实一致。
-  const seedTopicFromNotif = (
-    n: NotificationItem,
-    targetPagePosts?: OptimisticExtraPost[]
-  ) => {
-    if (!n.discussion_id || !n.discussion_title) return;
-    // 乐观帧楼层：目标楼所在页（含目标楼前后楼层）+ 被回复楼 + 触发回复，去重后按楼层号并入
-    const extraPosts: OptimisticExtraPost[] = [];
-    const seen = new Set<number>();
-    const pushPost = (number: number, content: string, author: string, extra?: Partial<OptimisticExtraPost>) => {
-      if (!number || seen.has(number)) return;
-      seen.add(number);
-      extraPosts.push({ number, content, author, ...extra });
+  // 点击单条：标记已读 → 刷新未读 → 跳转 → 关闭弹窗。
+  // 【跳转方式】主题类通知（/d/）跨页面进入时**直接整页走 SSR**：服务端按 URL 里的
+  // ?replyNumber= / ?focusPost= 内联目标楼所在页（topicAround），首帧即含目标楼并定位，
+  // 不再需要"点击时预取三页 + 种乐观帧"的上下文乐观逻辑，也就不再有"正在打开…"等待。
+  // 防重复点击：弹窗关闭前锁住（打开弹窗会重新 mount，ref 自然重置）
+  const navLockRef = useRef(false);
+  // bfcache 防护：iOS Safari 返回上一页时用 bfcache **原样恢复 JS 堆状态**——
+  // 若跳转前点过通知，恢复后 navLockRef 仍是 true、弹窗仍是开的，之后所有通知
+  // 点击都会被锁静默拦截（无遮罩、无跳转），表现为"先点#3 再点#2/#4 没反应"。
+  // pageshow 在 bfcache 恢复（persisted=true）和普通加载都会触发 → 恢复时解锁。
+  useEffect(() => {
+    const onShow = () => {
+      navLockRef.current = false;
+      const overlay = document.getElementById('zhuge-nav-overlay');
+      if (overlay) overlay.remove();
     };
-    if (Array.isArray(targetPagePosts)) {
-      for (const p of targetPagePosts) {
-        // 整个帖子对象透传（created_at/author_badges/author_earned/reply_to_*/配图/三连计数全带），
-        // 不能只拆 number/content/author —— 否则首帧时间/徽章/等级/回复引用缺失，替换时"变一下"
-        if (!seen.has(p.number)) {
-          seen.add(p.number);
-          extraPosts.push({ ...p });
-        }
-      }
-    }
-    if (n.target_reply_to_number && n.target_reply_to_excerpt) {
-      pushPost(n.target_reply_to_number, n.target_reply_to_excerpt, n.target_reply_to_author || '有人');
-    }
-    if (n.target_number && n.target_excerpt) {
-      pushPost(n.target_number, n.target_excerpt, n.target_author || n.actor || n.actor_name || '有人');
-    }
-    seedTopicCacheFromList({
-      id: n.discussion_id,
-      title: n.discussion_title,
-      author: n.discussion_author || undefined,
-      author_avatar: n.discussion_author_avatar ?? undefined,
-      excerpt: n.discussion_excerpt || undefined,
-      image_url: n.discussion_image_url ?? null,
-      is_private: n.discussion_is_private || 0,
-      comment_count: n.discussion_comment_count || 1,
-      tags: n.discussion_tags || undefined,
-    }, tags, extraPosts.length ? extraPosts : undefined);
+    window.addEventListener('pageshow', onShow);
+    return () => window.removeEventListener('pageshow', onShow);
+  }, []);
+  // 跨页整页加载：插入全屏"正在打开…"遮罩（同步插入，不依赖 React 渲染时序）
+  const showNavOverlay = () => {
+    try {
+      const div = document.createElement('div');
+      div.id = 'zhuge-nav-overlay';
+      div.style.cssText =
+        'position:fixed;inset:0;z-index:9999;background:var(--mantine-color-body,#fff);' +
+        'display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;' +
+        'font-family:system-ui,-apple-system,sans-serif;';
+      div.innerHTML =
+        '<style>@keyframes zhuge-spin{to{transform:rotate(360deg)}}</style>' +
+        '<div style="width:28px;height:28px;border:3px solid rgba(127,142,163,.25);border-top-color:#4D698E;' +
+        'border-radius:50%;animation:zhuge-spin .8s linear infinite"></div>' +
+        '<div style="font-size:14px;color:var(--muted,#7a8699)">正在打开…</div>';
+      document.body.appendChild(div);
+    } catch { /* 遮罩失败忽略（页面照常跳转） */ }
+  };
+  // 跨页整页加载：插入全屏"正在打开…"遮罩后【延迟一帧再跳转】。
+  // 为什么延迟：iOS Safari（尤其 PWA 全屏）对"同一同步任务里 DOM 插入 + location.assign"
+  // 会在绘制下一帧之前就冻结旧页面渲染 —— 遮罩 DOM 插入了但【从未被绘制】，
+  // 用户看不到"正在打开…"，只看到旧页面"留在原地"数秒后突然跳走（日志里
+  // overlayInDom:true 但视觉无遮罩，正是这个机制）。双 rAF 让浏览器先绘制
+  // 一帧（遮罩可见）再发起整页导航，遮罩在整个加载期间都显示。
+  const navWithOverlay = (dest: string) => {
+    showNavOverlay();
+    // 双 rAF：第一次回调在绘制前注册第二次，绘制完成后第二次回调才执行 assign
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        window.location.assign(dest);
+      });
+    });
   };
 
-  const markReadAndGo = async (n: NotificationItem) => {
-    if (navigating) return; // 防重复点击
-    setNavigating(true);
-    // 标记已读异步化：不等待网络请求完成再跳转（否则每次点通知都有 0.2-0.5s"正在打开…"等待）。
-    // 跳转不依赖已读结果（失败静默），未读数由后台刷新/下次查询收敛。
-    void api('/me/notifications/read', { method: 'POST', body: { id: n.id } }).catch(() => {});
-    mutate('/me/notifications'); // 列表 + 未读徽标（同一 SWR key）
-    mutate('/me');
+  const markReadAndGo = (n: NotificationItem) => {
+    if (navLockRef.current) return;
+    navLockRef.current = true;
+    // 标记已读：整页跳转会中断普通 fetch（未读状态丢失），用 sendBeacon 可靠发出、
+    // 不阻塞跳转；失败静默（未读数由后台刷新/下次查询收敛）
+    try {
+      navigator.sendBeacon(
+        '/api/me/notifications/read',
+        new Blob([JSON.stringify({ id: n.id })], { type: 'application/json' })
+      );
+    } catch {
+      void api('/me/notifications/read', { method: 'POST', body: { id: n.id } }).catch(() => {});
+    }
+    globalMutate('/me/notifications'); // 列表 + 未读徽标（同一 SWR key）
+    globalMutate('/me');
     if (n.url) {
-      // 主题类通知（接戏/滴滴）→ 先种乐观缓存再跳转；管理类（举报/标签申请）→ 直接跳
+      // 主题类通知（接戏/滴滴）→ 整页 SSR / 同页定位；管理类（举报/标签申请）→ SPA 直接跳
       if (n.url.startsWith('/d/')) {
-        // 已在同一主题页时【跳过种子】：详情缓存里已是真实数据（含已加载楼层），
-        // 种子会把 page1 覆盖成"少量乐观帖"→ 页面闪变、目标楼 DOM 短暂消失，反而定位不到。
-        // 只在跨页面进入（缓存无该主题真实数据）时才种乐观首帧。
         const targetPath = n.url.split('?')[0];
         const alreadyHere = window.location.pathname === targetPath;
-        console.log('[zhuge-jump] markReadAndGo', { url: n.url, targetPath, alreadyHere, cur: window.location.pathname + window.location.search, targetNumber: n.target_number });
-        if (!alreadyHere) {
-          // 预取三页合并成完整乐观帧：
-          // 1) asc page1（1-20 楼，目标楼之前常见范围）
-          // 2) around 目标页（目标楼所在页，含目标楼前后同页楼层）
-          // 3) desc page1（最新 20 楼，目标楼之后的楼层）
-          // 合并去重后乐观帧楼层 = 目标楼前 + 目标页 + 最新页，与真实数据最终形态一致 →
-          // 首帧定位直接到位，且后续楼层（目标楼之后）不再"第一帧缺失、加载后插入"跳变。
-          // 失败静默 → 退回仅种回复链的乐观帧（原行为）。
-          let targetPagePosts: OptimisticExtraPost[] | undefined;
-          if (n.post_id && n.discussion_id) {
-            try {
-              const [page1Res, aroundRes, latestRes] = await Promise.allSettled([
-                api<{ data: DiscussionDetail }>(`/discussions/${n.discussion_id}?page=1&order=old`),
-                api<{ data: DiscussionDetail }>(
-                  `/discussions/${n.discussion_id}?page=1&order=old&aroundPostId=${n.post_id}`
-                ),
-                api<{ data: DiscussionDetail }>(`/discussions/${n.discussion_id}?page=1&order=new`),
-              ]);
-              const merged = new Map<number, OptimisticExtraPost>();
-              for (const r of [page1Res, aroundRes, latestRes]) {
-                if (r.status !== 'fulfilled') continue;
-                for (const p of (r.value.data.posts || []) as TopicPost[]) {
-                  if (!merged.has(p.number)) {
-                    // 整个帖子对象透传（Partial<TopicPost>）：created_at/author_badges/
-                    // author_earned/reply_to_*/配图/三连计数等全带，首帧与真实数据视觉一致
-                    merged.set(p.number, { ...p });
-                  }
-                }
-              }
-              targetPagePosts = [...merged.values()].sort((a, b) => a.number - b.number);
-              console.log('[zhuge-jump] prefetched floors', {
-                postId: n.post_id,
-                posts: targetPagePosts.length,
-                numbers: targetPagePosts.slice(0, 3).map((p) => p.number),
-                last: targetPagePosts[targetPagePosts.length - 1]?.number,
-              });
-            } catch {
-              /* 预取失败：走原乐观帧 */
-            }
+        if (alreadyHere) {
+          // 已在同一主题页：直接发 'zhuge:jump' 事件强制定位（TopicPage 监听，不经 URL）。
+          // **不再 SPA navigate / 不再清 query**——清 query 的 navigate(replace) 是
+          // history.replaceState，iOS Safari 会对其触发滚动恢复归零（scrollRestoration='manual'
+          // 在 Safari 上不可靠），表现为"首帧位置正确、随后跳回顶部"。
+          // zhuge:jump 不经 URL 变化，不触发 replaceState，定位零跳变。
+          // replyNumber 仅接戏类（reply）通知携带：滴滴的 target_number 来自公开原帖楼层，
+          // 与私密主题无关，传给私密主题页会发起错误的楼层定位。
+          if (n.type === 'reply' && n.post_id) {
+            window.dispatchEvent(
+              new CustomEvent('zhuge:jump', {
+                detail: {
+                  replyPostId: n.post_id,
+                  replyNumber: n.type === 'reply' ? n.target_number ?? undefined : undefined,
+                  replyAuthor: n.actor || n.actor_name || undefined,
+                },
+              })
+            );
           }
-          seedTopicFromNotif(n, targetPagePosts);
-        }
-        // 相同 URL 时 React Router navigate 是 no-op（不触发 TopicPage 定位 effect）：
-        // 发自定义事件强制定位（TopicPage 监听 'zhuge:jump'）
-        if (n.url === window.location.pathname + window.location.search) {
-          console.log('[zhuge-jump] same URL → dispatch zhuge:jump', n.post_id);
-          window.dispatchEvent(
-            new CustomEvent('zhuge:jump', {
-              detail: { replyPostId: n.post_id, replyNumber: n.target_number ?? undefined, replyAuthor: n.actor_name || undefined },
-            })
-          );
+          // 非 reply（滴滴/私密定位等）：页面已在目标主题，无需动作
+          // **但不能静默关闭**——滴滴通知点了后弹窗直接消失、无任何反馈，
+          // 用户以为"点了没反应/没有正在打开"。给一条轻提示确认已在该主题。
+          if (n.type !== 'reply') {
+            notifications.show({ message: '已在该主题页', color: 'green', autoClose: 1500 });
+          }
+          onClose();
         } else {
+          // 跨页面进入 → 整页走 SSR（首帧即含目标楼，无乐观帧、无预取等待）。
           // 追加楼层号：仅【接戏类（reply）】通知才按楼层定位——target_number 语义是"被回复的楼层"；
           // 滴滴通知跳转的是私密主题，target_number 来自被滴滴的【公开原帖】楼层，与私密主题无关，
           // 追加 replyNumber 会让主题页对私密主题发起错误的楼层定位（实测 url 变成 ?replyNumber=1）
+          let dest = n.url;
           if (n.target_number && n.type === 'reply') {
             const u = new URL(n.url, window.location.origin);
             u.searchParams.set('replyNumber', String(n.target_number));
-            navigate(u.pathname + u.search);
-          } else {
-            navigate(n.url);
+            dest = u.pathname + u.search;
           }
+          // 点击即反馈：插入"正在打开…"遮罩，等绘制一帧后整页跳转（见 navWithOverlay 注释）
+          navWithOverlay(dest);
         }
       } else {
         navigate(n.url);
+        onClose();
       }
     } else if (n.discussion_id) {
-      seedTopicFromNotif(n);
-      // 只有接戏（reply）通知用"回复目标"URL（公开主题内定位 + 自动接戏对方）；
+      // 无 url 兜底：reply → 构造"回复目标"URL（公开主题内定位 + 自动接戏对方）整页 SSR；
       // 滴滴通知无 url 时直接跳私密主题（不构造 reply=——那是接戏语义，会错误触发自动引用）
       const isReply = n.type === 'reply';
+      let dest = `/d/${n.discussion_id}`;
       if (isReply && n.post_id) {
-        // 用 URL query 传回复目标（系统推送同款方式，TopicPage 读 ?reply=&replyAuthor=）：
-        // React Router navigate state 在弹窗场景偶发丢失，query 方式可靠
         const qs = new URLSearchParams({ reply: String(n.post_id) });
-        if (n.actor_name) qs.set('replyAuthor', n.actor_name);
-        // 楼层号：定位优先按楼层号命中乐观种子（负 id 帖也带真实楼层号），直接滚动零请求
+        if (n.actor || n.actor_name) qs.set('replyAuthor', String(n.actor || n.actor_name));
+        // 楼层号：SSR 按 replyNumber 内联目标楼所在页，首帧定位
         if (n.target_number) qs.set('replyNumber', String(n.target_number));
-        navigate(`/d/${n.discussion_id}?${qs.toString()}`);
-      } else {
-        navigate(`/d/${n.discussion_id}`);
+        dest = `/d/${n.discussion_id}?${qs.toString()}`;
       }
+      navWithOverlay(dest);
+    } else {
+      onClose();
     }
-    onClose();
   };
-
   // 全部已读（乐观更新：先本地标记全部已读 + 未读归零，请求后台进行；失败回滚）
   const [markingAll, setMarkingAll] = useState(false);
   const markAllRead = async () => {
@@ -253,20 +231,20 @@ export function NotificationsModalContent({ onClose }: { onClose: () => void }) 
       meta: { unread: 0 },
     });
     try {
-      await mutate('/me/notifications', optimistic, { revalidate: false, rollbackOnError: true });
+      await globalMutate('/me/notifications', optimistic, { revalidate: false, rollbackOnError: true });
     } catch {
       /* 乐观更新失败忽略 */
     }
     setMarkingAll(false); // 乐观已生效：按钮立即恢复（不等网络请求，避免"已已读还转圈"）
-    void mutate('/me'); // 未读徽标（乐观后重拉确认）
+    void globalMutate('/me'); // 未读徽标（乐观后重拉确认）
     try {
       await api('/me/notifications/read', { method: 'POST', body: { all: true } });
-      void mutate('/me/notifications');
-      void mutate('/me');
+      void globalMutate('/me/notifications');
+      void globalMutate('/me');
     } catch {
       // 失败：回滚 + 重拉
-      void mutate('/me/notifications');
-      void mutate('/me');
+      void globalMutate('/me/notifications');
+      void globalMutate('/me');
     }
   };
 
@@ -349,31 +327,6 @@ export function NotificationsModalContent({ onClose }: { onClose: () => void }) 
           </Stack>
         )}
       </Stack>
-
-      {/* 跳转前加载反馈：点击通知后立即出现，标记已读完成即跳转 */}
-      {navigating && (
-        <div
-          style={{
-            position: 'absolute',
-            inset: 0,
-            background: 'rgba(255,255,255,.72)',
-            borderRadius: 8,
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 8,
-            zIndex: 3,
-            backdropFilter: 'blur(2px)',
-            WebkitBackdropFilter: 'blur(2px)',
-          }}
-        >
-          <Loader size="md" />
-          <Text size="sm" c="dimmed">
-            正在打开…
-          </Text>
-        </div>
-      )}
     </div>
   );
 }

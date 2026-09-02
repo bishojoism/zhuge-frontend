@@ -7,6 +7,7 @@ import Layout from './components/Layout';
 // 首页静态导入：默认路由必达，随入口依赖并行预加载，刷新不再二次请求该 chunk
 import HomePage from './features/home/HomePage';
 const TopicPage = lazy(() => import('./features/topic/TopicPage'));
+const EmbedPage = lazy(() => import('./features/embed/EmbedPage'));
 const PrivatePage = lazy(() => import('./features/private/PrivatePage'));
 const MyTopicsPage = lazy(() => import('./features/my/MyTopicsPage'));
 const AdminPage = lazy(() => import('./features/admin/AdminPage'));
@@ -33,20 +34,30 @@ function PageFallback() {
 
 export default function App() {
   return (
-    <Layout>
-      <Suspense fallback={<PageFallback />}>
-        <Routes>
-          <Route path="/" element={<HomePage />} />
-          <Route path="/tag/:tagId" element={<HomePage />} />
-          <Route path="/d/:id" element={<TopicPage />} />
-          <Route path="/private" element={<PrivatePage />} />
-          <Route path="/my" element={<MyTopicsPage />} />
-          <Route path="/admin" element={<AdminPage />} />
-          <Route path="/docs/api" element={<ApiDocsPage />} />
-          <Route path="/docs/mcp" element={<McpDocsPage />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </Suspense>
-    </Layout>
+    <Suspense fallback={<PageFallback />}>
+      <Routes>
+        {/* 嵌入版（iframe 极简页）：无 Layout（无导航栏），单独路由 */}
+        <Route path="/embed/d/:id" element={<EmbedPage />} />
+        {/* 其余页面包在 Layout（导航栏/通知/WS）里 */}
+        <Route
+          path="*"
+          element={
+            <Layout>
+              <Routes>
+                <Route path="/" element={<HomePage />} />
+                <Route path="/tag/:tagId" element={<HomePage />} />
+                <Route path="/d/:id" element={<TopicPage />} />
+                <Route path="/private" element={<PrivatePage />} />
+                <Route path="/my" element={<MyTopicsPage />} />
+                <Route path="/admin" element={<AdminPage />} />
+                <Route path="/docs/api" element={<ApiDocsPage />} />
+                <Route path="/docs/mcp" element={<McpDocsPage />} />
+                <Route path="*" element={<Navigate to="/" replace />} />
+              </Routes>
+            </Layout>
+          }
+        />
+      </Routes>
+    </Suspense>
   );
 }

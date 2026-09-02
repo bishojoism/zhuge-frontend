@@ -10,7 +10,7 @@
 | UI | Mantine 7（@mantine/core / modals / notifications / form）+ @tabler/icons-react |
 | 数据 | SWR（缓存/重验证/失效） |
 | 路由 | react-router-dom 6 |
-| 认证 | @simplewebauthn/browser（Passkey）+ 密码（PBKDF2 服务端） |
+| 认证 | 密码登录/注册（PBKDF2 服务端） |
 
 ## 本地运行
 
@@ -43,20 +43,18 @@ src/
 │   └── hooks.ts           # SWR hooks（按领域组织）
 ├── lib/
 │   ├── utils.ts           # timeAgo / 性别标记 / 图片上传等
-│   ├── webauthn.ts        # Passkey 封装（@simplewebauthn/browser）
 │   ├── ws.ts              # 通知 WebSocket（指数退避重连 + 可见性处理）
 │   └── drafts.ts          # 云草稿保存/清除
 ├── features/              # 功能模块（每模块自包含）
-│   ├── auth/              # 认证弹窗（密码/通行密钥二选一、重认证、requireLogin）
+│   ├── auth/              # 认证弹窗（密码登录/注册、requireLogin）
 │   ├── home/              # 首页（推荐 feed + 列表 + 标签条 + 发帖 + 草稿）
 │   ├── topic/             # 主题详情（回复/滴滴/举报/管理/分享）
 │   ├── notifications/     # 通知弹窗
 │   ├── private/           # 我的滴滴（私密列表）
-│   ├── security/          # 账号安全（密码/通行密钥互操作）
+│   ├── security/          # 账号安全（改/设密码、游客转正）
 │   ├── admin/             # 管理后台
 │   ├── share/             # 生成精美海报（12 模板 canvas）
 │   ├── profile/           # 头像上传 / 性别设置
-│   └── device/            # 设备授权
 └── components/
     └── Layout.tsx         # 导航 + 用户菜单 + 通知铃铛 + WS 接线
 ```

@@ -18,7 +18,6 @@
     "@mantine/hooks": "^7.17.2",
     "@mantine/modals": "^7.17.2",
     "@mantine/notifications": "^7.17.2",
-    "@simplewebauthn/browser": "^13.0.0",
     "@tabler/icons-react": "^3.26.0",
     "dayjs": "^1.11.13",
     "punycode": "^2.3.1",

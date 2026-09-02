@@ -181,17 +181,8 @@ export interface NotifListResult {
   meta: { unread: number; page?: number; hasMore?: boolean };
 }
 
-export interface PasskeyInfo {
-  id: string;
-  device_name: string;
-  created_at: string;
-  last_used_at: string | null;
-}
-
 export interface SecurityInfo {
   hasPassword: boolean;
-  passkeyCount: number;
-  passkeys: PasskeyInfo[];
 }
 
 export interface DiscussionListResult {
@@ -250,13 +241,6 @@ export interface MyTopicItem {
   author_earned?: number | null;
 }
 
-export interface DeviceAuthRequest {
-  id: string;
-  requester_label: string;
-  status: 'pending' | 'approved' | 'denied' | 'expired';
-  created_at: string;
-}
-
 export interface CharacterItem {
   id: number;
   name: string;
@@ -292,7 +276,9 @@ export interface InitData {
   discussions: Discussion[];
   hasMore: boolean;
   unread: number;
-  deviceAuthPending: number;
+  // SSR 内联通知列表首页（20 条）：弹窗打开即显示，不闪"还没有通知/加载中"
+  notifications?: NotificationItem[];
+  notifHasMore?: boolean;
   // SSR 补充：实际使用的排序/标签/种子（前端据此构造 SWR key 命中内联数据）
   sort?: 'recommend' | 'latest' | 'hot';
   tag?: number | null;
@@ -307,6 +293,8 @@ export interface InitData {
   // 前端并入已加载楼层，首帧即有目标楼，useLayoutEffect 直接定位（不走兜底跳转）
   topicAround?: DiscussionDetail | null;
   topicError?: string;
+  // 嵌入版（/embed/d/:id，iframe 极简页）：前端据此渲染无导航栏的最小主题页
+  embed?: boolean;
   privateList?: PrivateItem[];
   myDiscussions?: MyTopicItem[];
   adminData?: unknown;

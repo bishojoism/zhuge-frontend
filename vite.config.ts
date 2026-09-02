@@ -14,13 +14,6 @@ export default defineConfig({
         target: API_TARGET,
         changeOrigin: true,
         ws: true, // /api/ws WebSocket 升级
-        configure: (proxy) => {
-          // 本地开发标记：后端据此生成 rp.id=localhost 并放宽 origin，
-          // 浏览器才能弹通行密钥（线上请求不会有此头，行为不变）
-          proxy.on('proxyReq', (proxyReq) => {
-            proxyReq.setHeader('x-zhuge-local', '1');
-          });
-        },
       },
       // 图片（头像/帖子配图）：R2 存储，路径形如 /img/...，代理到线上 Worker
       '/img': {
@@ -41,7 +34,6 @@ export default defineConfig({
           'mantine-core': ['@mantine/core', '@mantine/hooks'],
           'mantine-extras': ['@mantine/modals', '@mantine/notifications', '@mantine/form'],
           swr: ['swr'],
-          webauthn: ['@simplewebauthn/browser'],
           icons: ['@tabler/icons-react'],
         },
       },

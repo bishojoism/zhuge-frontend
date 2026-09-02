@@ -77,7 +77,6 @@ import type {
   AdminStats,
   AdminUser,
   CoinInfo,
-  DeviceAuthRequest,
   Discussion,
   DiscussionDetail,
   DiscussionListResult,
@@ -106,9 +105,8 @@ export function useInitData(): { data: InitData | null | undefined; isLoading: b
       tags: Tag[];
       drafts: Record<string, unknown>;
       unread: number;
-      deviceAuthPending: number;
     }>('/init');
-    return { user: r.user, tags: r.tags, drafts: r.drafts, discussions: [], hasMore: true, unread: r.unread, deviceAuthPending: r.deviceAuthPending };
+    return { user: r.user, tags: r.tags, drafts: r.drafts, discussions: [], hasMore: true, unread: r.unread };
   });
   return { data, isLoading };
 }
@@ -121,11 +119,28 @@ export function useMe(): { user: User | null | undefined; isLoading: boolean; mu
   return { user: data, isLoading, mutate: () => mutate() };
 }
 
+// SSR 只内联主标签（4 个，position 非空），全量 IP 标签（614 个）按需拉取以减小首屏 HTML。
+// 这里区分两种情况：
+//  - 数据只有主标签（SSR fallback 命中，revalidateIfStale:false 不会自动补拉）→ 挂载后
+//    后台补拉一次全量（保证 /my、/private、种子缓存等场景能匹配到 IP 标签颜色/名字）；
+//    补拉只做一次（标志位），避免 Layout/HomePage/各页面多实例重复请求。
+//  - 已经全量（或弹窗 mutate 后）→ 不重复拉。
+let tagsFullRequested = false;
 export function useTags(): { tags: Tag[]; isLoading: boolean } {
-  const { data, isLoading } = useSWR<Tag[]>('/tags', async (p: string) => {
+  const { data, isLoading, mutate } = useSWR<Tag[]>('/tags', async (p: string) => {
     const r = await api<{ data: Tag[] }>(p);
     return r.data;
   });
+  // 主标签数量 < 全部有 position 之外的标签 → 判断当前是"只有主标签"的 SSR 快照：
+  // 若存在任意 position == null 的标签则为全量；否则判定为瘦身快照，后台补拉全量一次。
+  useEffect(() => {
+    if (!data || data.length === 0) return;
+    const hasSecondary = data.some((t) => t.position == null);
+    if (!hasSecondary && !tagsFullRequested) {
+      tagsFullRequested = true;
+      void mutate(undefined, { revalidate: true }).catch(() => {});
+    }
+  }, [data, mutate]);
   return { tags: data || [], isLoading };
 }
 
@@ -256,14 +271,6 @@ export function useAdminUsers() {
 export function useIpLogs() {
   return useSWR<IpLogRow[]>('/admin/ip-logs', async (p: string) => {
     const r = await api<{ data: IpLogRow[] }>(p);
-    return r.data;
-  });
-}
-
-// 设备授权请求
-export function useDeviceAuthRequests() {
-  return useSWR<DeviceAuthRequest[]>('/device/auth-requests/mine', async (p: string) => {
-    const r = await api<{ data: DeviceAuthRequest[] }>(p);
     return r.data;
   });
 }

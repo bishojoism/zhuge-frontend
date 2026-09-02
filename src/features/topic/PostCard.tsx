@@ -31,6 +31,8 @@ export interface PostCardProps {
   onReport: () => void;
   onAdmin?: () => void;
   onCopyLink?: () => void;
+  /** 复制 iframe 嵌入代码（内嵌到网页；仅公开主题首帖提供） */
+  onEmbed?: () => void;
   /** 查看帖子源码（原始 BBCode 文本） */
   onSource?: () => void;
   /** 删除自己的帖子/主题（作者本人或管理员可见；首帖删除 = 删主题） */
@@ -145,6 +147,7 @@ export function PostCard({
   onReport,
   onAdmin,
   onCopyLink,
+  onEmbed,
   onSource,
   onDelete,
   onJumpToReply,
@@ -170,25 +173,8 @@ export function PostCard({
   // 帖子 id 变化（乐观帖负 id → 真实帖正 id，key=楼层号组件复用）时同步一键三连数据：
   // key 用楼层号后组件不会重建，state 保持乐观帖初值，这里在真实数据到达时刷新计数/状态
   const prevPostIdRef = useRef(post.id);
-  // 【诊断】组件是否被重建（mount 只应一次；同一楼层多次 mount = key 未生效/列表结构变化）
-  const mountCountRef = useRef(0);
-  useEffect(() => {
-    mountCountRef.current += 1;
-    console.log(`[zhuge-rebuild] PostCard mount #${mountCountRef.current}`, {
-      floor: post.number,
-      postId: post.id,
-      author: post.author,
-      contentLen: (post.content || '').length,
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
   useEffect(() => {
     if (prevPostIdRef.current !== post.id) {
-      console.log(`[zhuge-rebuild] PostCard id change floor=${post.number}`, {
-        from: prevPostIdRef.current,
-        to: post.id,
-        contentLen: (post.content || '').length,
-      });
       prevPostIdRef.current = post.id;
       setLiked(!!post.liked);
       setFavorited(!!post.favorited);
@@ -587,6 +573,7 @@ export function PostCard({
             </Menu.Target>
             <Menu.Dropdown>
               {onCopyLink && <Menu.Item onClick={onCopyLink}>复制链接</Menu.Item>}
+              {onEmbed && <Menu.Item onClick={onEmbed}>内嵌到网页（复制 iframe 代码）</Menu.Item>}
               {onSource && <Menu.Item onClick={onSource}>源码</Menu.Item>}
               {onDelete && (
                 <Menu.Item color="red" onClick={onDelete}>

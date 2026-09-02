@@ -2,7 +2,7 @@
 // 0 步注册：打开网站（未登录）即自动生成随机用户名+密码注册并登录（register 返回 Set-Cookie），
 // 用户无感进入；除非手动退出登录。失败静默（限流/网络异常保持游客态，requireLogin 兜底）。
 // 副作用（已与用户确认接受）：每个访客产生一个一次性账号；退出后再次打开会注册新账号，
-// 旧账号内容（发帖/角色卡）无法跨设备找回——如需找回请用户在账号安全中设置密码/绑定通行密钥。
+// 旧账号内容（发帖/角色卡）无法跨设备找回——如需找回请用户在账号安全中设置密码转正。
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, type ReactNode } from 'react';
 import { api } from '../../api/client';
 import { useMe } from '../../api/hooks';
@@ -41,10 +41,14 @@ function randomPassword(): string {
 export function AuthProvider({ children }: { children: ReactNode }) {
   const { user, isLoading, mutate } = useMe();
   const registeringRef = useRef(false);
+  // 手动登出标志：登出后本次页面会话内不再自动注册游客（否则"刚登出又变游客"）。
+  // 只存内存（模块级 ref）不持久化：刷新页面 = 全新访问 → 恢复 0 步自动注册（平台设计）。
+  const loggedOutRef = useRef(false);
 
-  // 0 步注册：useMe 确定未登录（非加载中）时自动建档
+  // 0 步注册：useMe 确定未登录（非加载中）时自动建档；手动登出后不自动注册
   useEffect(() => {
     if (isLoading || user !== null) return;
+    if (loggedOutRef.current) return; // 用户刚手动登出：保持登出态，不自动注册
     if (registeringRef.current) return;
     registeringRef.current = true;
     (async () => {
@@ -68,7 +72,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const refresh = useCallback(() => mutate(), [mutate]);
   const logout = useCallback(async () => {
     await api('/logout', { method: 'POST' });
-    await mutate(); // user → null（下次打开会再自动注册新账号）
+    loggedOutRef.current = true; // 手动登出：本次会话不再自动注册（刷新后重置）
+    await mutate(); // user → null（不再触发自动注册，见上方 loggedOutRef 判断）
   }, [mutate]);
 
   const value = useMemo(
