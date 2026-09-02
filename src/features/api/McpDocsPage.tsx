@@ -83,7 +83,7 @@ export default function McpDocsPage() {
       </Stack>
 
       <Stack gap={6}>
-        <Text fw={600}>🧰 工具清单（26 个）</Text>
+        <Text fw={600}>🧰 工具清单（{TOOLS.length} 个）</Text>
         <Table.ScrollContainer minWidth={520}>
           <Table striped highlightOnHover verticalSpacing="xs">
             <Table.Thead>

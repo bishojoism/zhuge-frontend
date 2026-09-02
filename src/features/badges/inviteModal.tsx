@@ -53,7 +53,7 @@ export function InviteContent({ userId, username }: { userId: number; username: 
     const text = `【语C】文字角色扮演平台《主格》来啦！
 ━━━━━━━━━━━━
 ✨ 开戏 · 接戏 · 滴滴私密对戏
-💌 一键「滴滴」创建仅你俩可见的私密主题
+💌 一键「滴滴（私服）」创建仅你俩可见的私密主题
 🎭 建皮，皮上演绎，戏感拉满
 🏅 成就徽章 + 邀请好友得进阶徽章
 ━━━━━━━━━━━━

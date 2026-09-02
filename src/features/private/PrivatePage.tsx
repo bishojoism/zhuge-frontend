@@ -88,7 +88,7 @@ export default function PrivatePage() {
           </Text>
         </Stack>
       ) : list.length === 0 ? (
-        <div className="empty">还没有私密主题。去帖子下点「滴滴」创建吧！</div>
+        <div className="empty">还没有私密主题。去帖子下点「滴滴（私服）」创建吧！</div>
       ) : (
         list.map((t) => {
           const badge = didiStatusBadge(t.didi_status);
