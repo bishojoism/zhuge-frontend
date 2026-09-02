@@ -36,6 +36,7 @@ const GROUPS: { title: string; items: Endpoint[] }[] = [
       { method: 'POST', path: '/api/posts/:id/coin', desc: '投币 1 格币（作者实得 0.9；允许给自己投；自投不通知；给他人投每日首次 +3 格币）', auth: true },
       { method: 'POST', path: '/api/posts/:id/tip', desc: '打赏自定义格币（≥1；10% 税；允许打赏自己；自赏不通知；给他人打赏每日首次 +3 格币）', auth: true, body: '{ amount }' },
       { method: 'POST', path: '/api/me/daily-claim', desc: '每日登录领 5 格币（当天已领则 no-op）', auth: true },
+      { method: 'GET', path: '/api/me/next-step', desc: '首页「下一步」引导：未登录→注册《主格》，登录→首个未完成任务/🎉（与 MCP get_daily_todo 同逻辑）', auth: true },
       { method: 'GET', path: '/api/me/coins', desc: '格币余额 + 累计获得 + 等级 + 今日任务进度（任务：每日+5/开戏+5/接戏+3/滴滴+3/点赞+1/收藏+2/投币+3/打赏+3）', auth: true },
       { method: 'GET', path: '/api/me/favorites', desc: '我的收藏夹（含首帖互动计数）', auth: true },
     ],
@@ -104,6 +105,7 @@ const GROUPS: { title: string; items: Endpoint[] }[] = [
       { method: 'POST', path: '/api/reports', desc: '举报内容', auth: true, body: '{ targetType, targetId, reason }' },
       { method: 'POST', path: '/api/upload', desc: '上传图片（返回站内 /img/ URL）', auth: true },
       { method: 'GET', path: '/api/init', desc: '首屏初始化数据（用户/标签/草稿/未读数）', auth: false },
+      { method: 'GET', path: '/api', desc: '站点信息（type=forums 元数据：标题/描述/标签数）', auth: false },
     ],
   },
 ];
