@@ -605,8 +605,10 @@ export function seedTopicCacheFromList(
       number: 1,
       created_at: d.created_at || now,
       user_id: d.user_id || 0,
-      // 列表只有摘要没有全文：用摘要填充（足够首帧展示，后台替换为全文）
-      content: excerpt || d.title,
+      // 列表只有摘要没有全文：用摘要填充（足够首帧展示，后台替换为全文）。
+      // 注意：摘要为空时**不能**回退成标题当正文——空正文主题（只发标题/游客测试主题）
+      // 真实首帖 content 为空，乐观帧若把标题塞进正文，真实数据到达后正文消失 → 闪变。
+      content: excerpt,
       edited_at: null,
       is_private: 0,
       reply_to_post_id: null,
