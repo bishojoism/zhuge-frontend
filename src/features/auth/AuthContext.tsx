@@ -2,7 +2,7 @@
 // 0 步注册：打开网站（未登录）即自动生成随机用户名+密码注册并登录（register 返回 Set-Cookie），
 // 用户无感进入；除非手动退出登录。失败静默（限流/网络异常保持游客态，requireLogin 兜底）。
 // 副作用（已与用户确认接受）：每个访客产生一个一次性账号；退出后再次打开会注册新账号，
-// 旧账号内容（发帖/角色卡）无法跨设备找回——如需找回请用户在账号安全中设置密码转正。
+// 旧账号内容（发帖/皮）无法跨设备找回——如需找回请用户在账号安全中设置密码转正。
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, type ReactNode } from 'react';
 import { api } from '../../api/client';
 import { useMe } from '../../api/hooks';

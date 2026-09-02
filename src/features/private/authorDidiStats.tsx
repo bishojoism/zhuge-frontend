@@ -1,4 +1,4 @@
-// ===== 作者名片弹窗（点击作者名）：角色信息 → 作者（皮下）信息 → 滴滴统计 → 屏蔽 =====
+// ===== 作者名片弹窗（点击作者名）：皮信息 → 作者（皮下）信息 → 滴滴统计 → 屏蔽 =====
 import { useEffect, useState } from 'react';
 import { Button, Divider, Group, Loader, Stack, Text } from '@mantine/core';
 import { modals } from '@mantine/modals';
@@ -98,7 +98,7 @@ function AuthorCardContent({ userId, characterId }: { userId: number; characterI
   const s = data.didiStats;
   return (
     <Stack gap="sm" py="xs">
-      {/* 1) 角色信息（该帖以角色身份发布时） */}
+      {/* 1) 皮信息（该帖皮上发布时） */}
       {data.character && (
         <>
           <Group gap="sm" wrap="nowrap" align="flex-start">
@@ -131,7 +131,7 @@ function AuthorCardContent({ userId, characterId }: { userId: number; characterI
               <Text fw={700} size="md">
                 {data.character.name}
                 <Text component="span" size="xs" c="dimmed" ml={6}>
-                  角色
+                  皮
                 </Text>
               </Text>
               <Text size="xs" c="dimmed">

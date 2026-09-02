@@ -51,7 +51,7 @@ export default function TopicPage() {
     injectOptimistic,
     removeOptimistic,
   } = useTopicPagination(id);
-  // 游客不拉认证接口（避免 401 噪音）：通知/草稿/角色卡都按登录态门控
+  // 游客不拉认证接口（避免 401 噪音）：通知/草稿/皮都按登录态门控
   const { mutate: refreshUnread } = useUnread(!!user);
   const { data: draftsData, mutate: mutateDrafts } = useDrafts(!!user);
 
@@ -61,26 +61,26 @@ export default function TopicPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, user]);
 
-  // 点击作者名 → 查看作者名片（角色/皮下/滴滴统计；动态导入）
+  // 点击作者名 → 查看作者名片（皮/皮下/滴滴统计；动态导入）
   const openAuthorStats = (userId: number, name: string, characterId?: number | null) =>
     import('../private/authorDidiStats').then((m) => m.openAuthorDidiStats(userId, name, characterId));
 
   const [content, setContent] = useState('');
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [replyTarget, setReplyTarget] = useState<{ postId: number; author: string } | null>(null);
-  // 接戏表单折叠（表单简化）：默认只显示输入框 + 提交 + 高级按钮；角色/插图/格式工具栏收进高级
+  // 接戏表单折叠（表单简化）：默认只显示输入框 + 提交 + 高级按钮；皮/插图/格式工具栏收进高级
   const [composerAdvanced, setComposerAdvanced] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [draftStatus, setDraftStatus] = useState('');
   const [exporting, setExporting] = useState<'image' | 'text' | null>(null); // 导出全量楼层中（限流严格）
   const [didiLoading, setDidiLoading] = useState<number | null>(null); // 正在滴滴的帖子 id
-  // 滴滴身份：点击滴滴前在按钮旁 Select 选好角色（留空 = 本人）
+  // 滴滴身份：点击滴滴前在按钮旁 Select 选好皮（留空 = 本人）
   const [didiCharId, setDidiCharId] = useState<string | null>(null);
-  // 接戏角色卡：SWR 共享缓存（SSR 内联即时显示）；未登录不请求
+  // 接戏皮：SWR 共享缓存（SSR 内联即时显示）；未登录不请求
   const { data: replyCharsData } = useSWR<{ data: CharacterItem[] }>(user ? '/me/characters' : null, fetcher);
   const replyCharacters = replyCharsData?.data ?? [];
-  // 角色 value → 完整信息映射（下拉选项显示外貌/性别用）
+  // 皮 value → 完整信息映射（下拉选项显示外貌/性别用）
   const charMap = new Map(replyCharacters.map((c) => [String(c.id), c]));
   const didiCharOptions = replyCharacters.map((c) => ({ value: String(c.id), label: c.name }));
   const [replyCharacterId, setReplyCharacterId] = useState<string | null>(() => {
@@ -90,7 +90,7 @@ export default function TopicPage() {
       return null;
     }
   });
-  // 用户是否手动操作过角色选择（手动选过/清空后，不再自动覆盖为主题角色）
+  // 用户是否手动操作过皮选择（手动选过/清空后，不再自动覆盖为主题皮）
   const replyCharTouchedRef = useRef(false);
   // 阅读位置记忆：上次读到的楼层 → 再次打开时提示跳转（长戏不迷路）
   const [lastPos, setLastPos] = useState<number | null>(() => {
@@ -126,8 +126,8 @@ export default function TopicPage() {
     []
   );
 
-  // 题主默认角色 = 主题首帖用的角色（"主题角色"）：
-  // 仅当本主题无记忆且用户未手动操作时，自动选中主题角色并记入 localStorage
+  // 题主默认皮 = 主题首帖用的皮（"主题皮"）：
+  // 仅当本主题无记忆且用户未手动操作时，自动选中主题皮并记入 localStorage
   useEffect(() => {
     if (!user || !data || !firstPost) return;
     if (d.user_id !== user.id) return;
@@ -331,7 +331,7 @@ export default function TopicPage() {
 
   const cancelReply = useCallback(() => setReplyTarget(null), []);
 
-  // 滴滴发送：带可选角色（characterId=null 时以本人身份）
+  // 滴滴发送：带可选皮（characterId=null 时以本人身份）
   const sendDidi = useCallback(
     async (postId: number, characterId: string | null) => {
       if (didiLoading !== null) return; // 已有滴滴请求进行中
@@ -366,7 +366,7 @@ export default function TopicPage() {
     [didiLoading, refreshUnread, mutate, navigate, routeLocation.pathname, routeLocation.search]
   );
 
-  // 滴滴入口：点击即发送（角色已在按钮旁 Select 选好，留空 = 本人）
+  // 滴滴入口：点击即发送（皮已在按钮旁 Select 选好，留空 = 本人）
   const handleDidi = useCallback(
     (postId: number) => {
       if (!user) {
@@ -821,10 +821,10 @@ export default function TopicPage() {
           {composerAdvanced && replyCharacters.length > 0 && (
             <Select
               size="xs"
-              // 角色说明移入选择器自身占位（hint）：与滴滴选择器一致，「（可选）以角色」；
+              // 皮说明移入选择器自身占位（hint）：与滴滴选择器一致，「（可选）皮上」；
               // 可见 label 移除后补 aria-label 保留无障碍名称
-              placeholder="（可选）以角色"
-              aria-label="接戏角色（可选）"
+              placeholder="（可选）皮上"
+              aria-label="接戏皮（可选）"
               data={replyCharacters.map((c: { id: number; name: string }) => ({ value: String(c.id), label: c.name }))}
               value={replyCharacterId}
               onChange={(v) => {
@@ -839,7 +839,7 @@ export default function TopicPage() {
               }}
               clearable
               searchable
-              nothingFoundMessage="无匹配角色"
+              nothingFoundMessage="无匹配皮"
               renderOption={({ option }) => {
                 const c = charMap.get(option.value);
                 return (

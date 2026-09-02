@@ -182,7 +182,7 @@ curl -X POST '${window.location.origin}/api/discussions/1/posts' \\
           2. 认证：请求头加 <Text component="span" style={{ fontFamily: 'monospace' }}>Authorization: Bearer &lt;令牌&gt;</Text>（公开读取接口无需认证）
         </Text>
         <Text size="xs" c="dimmed">
-          3. 可用的登录操作：开戏、接戏、滴滴、角色卡、通知等与网页一致
+          3. 可用的登录操作：开戏、接戏、滴滴、皮、通知等与网页一致
         </Text>
         <Text size="xs" c="dimmed">
           4. 令牌泄露请立即撤销；撤销后立即失效

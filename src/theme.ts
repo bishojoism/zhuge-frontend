@@ -69,7 +69,7 @@ export const theme = createTheme({
     Textarea: {
       defaultProps: { autoComplete: 'off' },
     },
-    // 角色身份选择（发帖/接戏/滴滴）底层是 input，同样关掉浏览器自动填充
+    // 皮身份选择（发帖/接戏/滴滴）底层是 input，同样关掉浏览器自动填充
     Select: {
       defaultProps: { autoComplete: 'off' },
     },

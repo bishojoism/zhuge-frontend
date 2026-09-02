@@ -1,4 +1,4 @@
-// ===== 角色卡（人设表）管理弹窗：头像菜单「角色」入口 =====
+// ===== 皮（人设表）管理弹窗：头像菜单「皮」入口 =====
 import { useEffect, useState } from 'react';
 import { ActionIcon, Button, Group, Loader, Select, Stack, Text, TextInput, Textarea, Tooltip } from '@mantine/core';
 import { modals } from '@mantine/modals';
@@ -34,7 +34,7 @@ const GENDER_LABEL: Record<string, string> = { male: '男', female: '女', other
 export function openCharactersModal(): void {
   openModalOnce('characters', (m) => {
     m.open({
-      title: '角色卡',
+      title: '皮',
       size: 520,
       children: <CharactersModalContent />,
     });
@@ -42,7 +42,7 @@ export function openCharactersModal(): void {
 }
 
 function CharactersModalContent() {
-  // SWR 共享缓存 /me/characters：与开戏/接戏角色选择共用，增删改后 mutate 刷新
+  // SWR 共享缓存 /me/characters：与开戏/接戏皮选择共用，增删改后 mutate 刷新
   const { data: charsData, mutate } = useSWR<{ data: Character[] }>('/me/characters', fetcher);
   const chars = charsData ? charsData.data : null;
   const [editing, setEditing] = useState<Character | null | 'new'>(null);
@@ -70,7 +70,7 @@ function CharactersModalContent() {
     <Stack gap="sm">
       {chars.length === 0 ? (
         <Text size="sm" c="dimmed">
-          还没有角色卡。创建角色后，开戏/接戏时可以选择"以角色身份"演绎。
+          还没有皮。创建皮后，开戏/接戏时可以选择"皮上"演绎。
         </Text>
       ) : (
         chars.map((ch) => (
@@ -101,7 +101,7 @@ function CharactersModalContent() {
             </Stack>
             <Group gap={4}>
               <Tooltip label="编辑">
-                <ActionIcon variant="subtle" size="sm" onClick={() => setEditing(ch)} aria-label="编辑角色">
+                <ActionIcon variant="subtle" size="sm" onClick={() => setEditing(ch)} aria-label="编辑皮">
                   <IconEdit size={16} />
                 </ActionIcon>
               </Tooltip>
@@ -110,12 +110,12 @@ function CharactersModalContent() {
                   variant="subtle"
                   color="red"
                   size="sm"
-                  aria-label="删除角色"
+                  aria-label="删除皮"
                   onClick={() => {
                     openModalOnce('confirm-del-char', (m) => {
                       m.openConfirmModal({
-                        title: '删除角色',
-                        children: <Text size="sm">确定删除角色「{ch.name}」？历史帖子的角色标识会保留文字。</Text>,
+                        title: '删除皮',
+                        children: <Text size="sm">确定删除皮「{ch.name}」？历史帖子的皮标识会保留文字。</Text>,
                         labels: { confirm: '删除', cancel: '取消' },
                         confirmProps: { color: 'red' },
                         onConfirm: async () => {
@@ -134,7 +134,7 @@ function CharactersModalContent() {
         ))
       )}
       <Button leftSection={<IconPlus size={16} />} variant="light" onClick={() => setEditing('new')}>
-        新建角色
+        新建皮
       </Button>
     </Stack>
   );
@@ -228,7 +228,7 @@ function CharacterForm({ character, onSaved, onCancel }: { character: Character 
               </Button>
             )}
             <Text size="xs" c="dimmed">
-              开戏选择此角色后，帖子里的头像/性别/名字会显示成角色的样子
+              开戏选择此皮后，帖子里的头像/性别/名字会显示成皮的样子
             </Text>
           </Stack>
         </>

@@ -6,7 +6,7 @@ import type { Discussion, Post } from '../../types';
 // 前端滚动触底自动加载下一页（预取缓存命中几乎零等待）
 export const PAGE_SIZE = 20;
 
-// 性别徽标（角色下拉选项用）
+// 性别徽标（皮下拉选项用）
 export const GENDER_LABEL: Record<string, string> = { male: '男', female: '女', other: '其他', secret: '保密' };
 
 // 详情接口的帖子带额外联表字段（后端返回，类型上补全）

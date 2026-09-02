@@ -43,7 +43,7 @@ export interface Discussion {
   hot_score: number;
   // 滴滴响应状态（私密主题）：'accepted' | 'declined' | null
   didi_status?: 'accepted' | 'declined' | null;
-  // 首帖所用角色 id（列表卡片点击作者名时定位角色）
+  // 首帖所用皮 id（列表卡片点击作者名时定位皮）
   first_character_id?: number | null;
   // 联表字段（列表接口返回）
   author?: string;
@@ -95,7 +95,7 @@ export interface Post {
   author?: string;
   author_gender?: Gender;
   author_avatar?: string | null;
-  // 角色卡（发帖可选"以角色身份"）
+  // 皮（发帖可选"皮上"）
   character_id?: number | null;
   character_name?: string | null;
   /** 作者已获徽章（"icon:tier" 逗号分隔，tier=1 为进阶徽章带特效），帖子作者名旁展示 */
@@ -150,7 +150,7 @@ export interface NotificationItem {
   /** 触发者用户名（后端返回字段；前端旧字段名 actor_name 兼容保留） */
   actor?: string | null;
   actor_name?: string;
-  /** 全沉浸：触发者所用角色（若有）——通知显示角色身份而非皮下 */
+  /** 全沉浸：触发者所用皮（若有）——通知显示皮身份而非皮下 */
   actor_character_name?: string | null;
   actor_character_appearance?: string | null;
   actor_character_gender?: string | null;

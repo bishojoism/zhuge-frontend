@@ -6,7 +6,7 @@ import { api, readInitData } from './client';
 // 写操作（发帖/回复/编辑/删除/滴滴等）后的全局缓存同步：
 // SSR fallback 是页面加载快照，revalidateIfStale:false 不会自动重拉，
 // 因此所有影响"列表/计数"的写操作后都要调用本函数，否则切回列表页看到的还是旧数据（需手动刷新网页）。
-// 刷新范围：公开讨论列表（/discussions?...）、我的主题、私密主题、标签、角色卡、通知。
+// 刷新范围：公开讨论列表（/discussions?...）、我的主题、私密主题、标签、皮、通知。
 export function refreshListsAfterWrite() {
   const matches = (k: unknown) =>
     typeof k === 'string' &&

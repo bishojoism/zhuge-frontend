@@ -68,7 +68,7 @@ function buildSwrFallback(): Record<string, unknown> {
   if (Array.isArray(d.tags)) fb['/tags'] = d.tags;
   // 草稿（useDrafts 解析 r.data → drafts）
   fb['/me/drafts'] = { data: d.drafts || {} };
-  // 角色卡（发帖/接戏选角色即时可用）
+  // 皮（发帖/接戏选皮即时可用）
   if (Array.isArray(d.characters)) fb['/me/characters'] = { data: d.characters };
   // 未读数 + 通知列表（useUnread/useNotifications 共用同一 key）：
   // SSR 内联首页 20 条（notifications）→ 弹窗打开即显示，不闪"还没有通知/加载中"；

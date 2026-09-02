@@ -142,7 +142,7 @@ export default function Layout({ children }: { children: ReactNode }) {
   // 通知弹窗（本地 state 单例）
   const [notifOpen, setNotifOpen] = useState(false);
   // 头像下拉菜单（受控）：宫格按钮是自定义 button 而非 Menu.Item，Mantine 不会自动关闭，
-  // 打开徽章/角色卡等弹窗前先关菜单，避免弹窗与下拉叠在一起
+  // 打开徽章/皮等弹窗前先关菜单，避免弹窗与下拉叠在一起
   const [menuOpen, setMenuOpen] = useState(false);
   // 调试模式（vConsole 虚拟控制台）：localStorage 记忆，dev 模式视为已开启
   const [debugOn, setDebugOn] = useState(() => isDebugMode() || import.meta.env.DEV);
@@ -467,7 +467,7 @@ export default function Layout({ children }: { children: ReactNode }) {
                       {
                         title: '我的账号',
                         items: [
-                          { icon: <IconMasksTheater size={20} />, label: '角色卡', onClick: () => openCharactersModal() },
+                          { icon: <IconMasksTheater size={20} />, label: '皮', onClick: () => openCharactersModal() },
                           { icon: <IconAward size={20} />, label: '我的徽章', onClick: () => openBadgesModal(user.id) },
                           { icon: <IconUserPlus size={20} />, label: '邀请好友', onClick: () => openInviteModal(user.id, user.username) },
                           { icon: <IconKey size={20} />, label: '账号安全', onClick: () => openSecurityModal() },

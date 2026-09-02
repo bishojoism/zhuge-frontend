@@ -30,7 +30,7 @@ function PosterContent({ userId, username }: { userId: number; username: string 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [imgSrc, setImgSrc] = useState<string | null>(null);
   const [err, setErr] = useState(false);
-  // 第一个角色（有外貌图时画到海报上，更亲切）
+  // 第一个皮（有外貌图时画到海报上，更亲切）
   const { data: charsData } = useSWR<{ data: CharacterItem[] }>('/me/characters', fetcher);
   const char = (charsData?.data || []).find((c) => c.appearance) || (charsData?.data || [])[0];
   // 皮下用户性别（画在用户名旁，与站内一致：♂蓝 / ♀粉 / ⚧紫，保密不显示）
@@ -58,7 +58,7 @@ function PosterContent({ userId, username }: { userId: number; username: string 
         ctx.fillStyle = 'rgba(255,255,255,.05)';
         ctx.beginPath(); ctx.arc(W - 60, 80, 150, 0, Math.PI * 2); ctx.fill();
         ctx.beginPath(); ctx.arc(40, H - 120, 120, 0, Math.PI * 2); ctx.fill();
-        // 角色头像（圆形）
+        // 皮头像（圆形）
         if (char?.appearance) {
           const img = new Image();
           img.crossOrigin = 'anonymous';

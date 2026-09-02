@@ -22,10 +22,10 @@ export interface PostCardProps {
   onReply: () => void;
   onDidi?: () => void;
   didiLoading?: boolean;
-  /** 滴滴身份选择（点击滴滴前选好角色；留空 = 本人） */
+  /** 滴滴身份选择（点击滴滴前选好皮；留空 = 本人） */
   onDidiChars?: (v: string | null) => void;
   didiCharOptions?: { value: string; label: string }[];
-  /** 角色 value → 完整信息（下拉选项显示外貌/性别） */
+  /** 皮 value → 完整信息（下拉选项显示外貌/性别） */
   charMap?: Map<string, CharacterItem>;
   didiCharId?: string | null;
   onReport: () => void;
@@ -47,7 +47,7 @@ export interface PostCardProps {
   onDelete?: () => void;
   /** 点击回复引用 → 跳转到被回复的帖子 */
   onJumpToReply?: (targetPostId: number) => void;
-  /** 点击作者名 → 查看该用户名片（角色/皮下/滴滴统计） */
+  /** 点击作者名 → 查看该用户名片（皮/皮下/滴滴统计） */
   onAuthorStats: (userId: number, name: string, characterId?: number | null) => void;
   title?: string;
   topicTags?: Tag[];
@@ -471,18 +471,18 @@ export function PostCard({
         <div className="post-actions-main">
           {!isPrivate && canDidi && onDidi && (
             <>
-              {/* 滴滴身份选择：点击滴滴前选好角色（留空 = 以本人身份），同接戏一致。
+              {/* 滴滴身份选择：点击滴滴前选好皮（留空 = 以本人身份），同接戏一致。
                   占位文案缩短 + 选择器收窄（w=150），与「滴滴（私服）」按钮同行不换行 */}
               {onDidiChars && didiCharOptions.length > 0 && (
                 <Select
                   size="xs"
-                  placeholder="（可选）以角色"
+                  placeholder="（可选）皮上"
                   w={150}
                   data={didiCharOptions}
                   value={didiCharId}
                   onChange={onDidiChars}
                   clearable
-                  nothingFoundMessage="无角色"
+                  nothingFoundMessage="无皮"
                   renderOption={({ option }) => {
                     const c = charMap.get(option.value);
                     return (

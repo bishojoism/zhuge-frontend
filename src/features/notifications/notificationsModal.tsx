@@ -21,7 +21,7 @@ function notifIcon(type: NotifType): string {
 }
 
 // 文案：优先 content；didi/reply/invite/coin 无 content 时按类型拼接
-// 全沉浸：content 已含角色名（后端用角色名生成）；这里兜底用角色名/用户名
+// 全沉浸：content 已含皮名（后端用皮名生成）；这里兜底用皮名/用户名
 function notifText(n: NotificationItem): string {
   if (n.content) return n.content;
   // 触发者：actor（后端统一字段）优先，兼容旧 actor_name
@@ -275,7 +275,7 @@ export function NotificationsModalContent({ onClose }: { onClose: () => void }) 
                 onClick={() => markReadAndGo(n)}
               >
                 {n.actor_character_appearance ? (
-                  // 全沉浸：以角色触发 → 显示角色头像
+                  // 全沉浸：皮上触发 → 显示皮头像
                   <img
                     src={n.actor_character_appearance}
                     alt=""

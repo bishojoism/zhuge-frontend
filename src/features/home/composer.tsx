@@ -13,7 +13,7 @@ import BBCodeEditor from '../../components/BBCodeEditor';
 import type { CharacterItem, Discussion, DiscussionDetail, Gender, Tag, User } from '../../types';
 import type { TopicPost } from '../topic/topicTypes';
 
-// 角色性别显示
+// 皮性别显示
 const GENDER_LABEL: Record<string, string> = { male: '男', female: '女', other: '其他', secret: '保密' };
 
 interface ComposerDraft {
@@ -59,7 +59,7 @@ export function ComposerContent({ user, tags, defaultTagId, onPosted }: Composer
   const [content, setContent] = useState('');
   // 初始标签：当前标签页上下文（defaultTagId）优先；"全部"页无上下文
   const [tagIds, setTagIds] = useState<number[]>(() => (defaultTagId != null ? [defaultTagId] : []));
-  // 折叠模式（表单简化）：默认只显示标题 + 提交 + 高级按钮；内容/标签/角色/插图收进"高级设置"
+  // 折叠模式（表单简化）：默认只显示标题 + 提交 + 高级按钮；内容/标签/皮/插图收进"高级设置"
   const [advanced, setAdvanced] = useState(false);
   // 用户是否手动操作过标签：手动操作后不再自动预选（避免清空标签被重选）
   const tagTouchedRef = useRef(false);
@@ -83,10 +83,10 @@ export function ComposerContent({ user, tags, defaultTagId, onPosted }: Composer
   const [uploading, setUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [tagSearch, setTagSearch] = useState('');
-  // 角色卡：发帖可选"以角色身份演绎"（SWR 共享缓存，SSR 内联即时显示，无等待）
+  // 皮：发帖可选"皮上演绎"（SWR 共享缓存，SSR 内联即时显示，无等待）
   const { data: charsData } = useSWR<{ data: CharacterItem[] }>('/me/characters', fetcher);
   const characters = charsData?.data ?? [];
-  // 角色 value → 完整信息映射（下拉选项显示外貌/性别用）
+  // 皮 value → 完整信息映射（下拉选项显示外貌/性别用）
   const charMap = useMemo(() => new Map(characters.map((c) => [String(c.id), c])), [characters]);
   const [characterId, setCharacterId] = useState<string | null>(null);
   const saveTimerRef = useRef<number | null>(null);
@@ -213,7 +213,7 @@ export function ComposerContent({ user, tags, defaultTagId, onPosted }: Composer
         /* 忽略清理失败 */
       }
       // 乐观种入新主题详情数据：跳转后详情页首帧直接渲染（不闪骨架屏），
-      // 后台 revalidate 用真实数据（真实 id/楼层/骰子结果/角色名）替换
+      // 后台 revalidate 用真实数据（真实 id/楼层/骰子结果/皮名）替换
       seedTopicCache(user, res.data.id, t, content.trim(), imageUrl, characterId, tagIds, tags, charMap);
       modals.closeAll();
       onPosted(res.data.id);
@@ -324,14 +324,14 @@ export function ComposerContent({ user, tags, defaultTagId, onPosted }: Composer
       </Group>
       {characters.length > 0 && (
         <Select
-          label="以角色身份演绎（可选）"
+          label="皮上演绎（可选）"
           placeholder="不指定"
           data={characters.map((c) => ({ value: String(c.id), label: c.name }))}
           value={characterId}
           onChange={setCharacterId}
           clearable
           searchable
-          nothingFoundMessage="无匹配角色"
+          nothingFoundMessage="无匹配皮"
           renderOption={({ option }) => {
             const c = charMap.get(option.value);
             return (

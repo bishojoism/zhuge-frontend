@@ -54,10 +54,10 @@ export function InviteContent({ userId, username }: { userId: number; username: 
 ━━━━━━━━━━━━
 ✨ 开戏 · 接戏 · 滴滴私密对戏
 💌 一键「滴滴」创建仅你俩可见的私密主题
-🎭 建角色卡，以角色身份演绎，戏感拉满
+🎭 建皮，皮上演绎，戏感拉满
 🏅 成就徽章 + 邀请好友得进阶徽章
 ━━━━━━━━━━━━
-三步上手：① 创建角色卡 ② 开戏/接戏 ③ 滴滴私密对戏
+三步上手：① 创建皮 ② 开戏/接戏 ③ 滴滴私密对戏
 点链接免费注册：${inviteLink}
 我在《主格》等你来对戏～`;
     navigator.clipboard
