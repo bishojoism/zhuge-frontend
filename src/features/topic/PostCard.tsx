@@ -512,7 +512,7 @@ export function PostCard({
                 />
               )}
               <Button size="compact-sm" color="clay" onClick={onDidi} loading={didiLoading}>
-                滴滴
+                滴滴（私服）
               </Button>
             </>
           )}
