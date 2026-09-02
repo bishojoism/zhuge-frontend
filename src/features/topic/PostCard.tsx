@@ -477,6 +477,7 @@ export function PostCard({
                 <Select
                   size="xs"
                   placeholder="（可选）皮上"
+                  autoComplete="off"
                   w={150}
                   data={didiCharOptions}
                   value={didiCharId}

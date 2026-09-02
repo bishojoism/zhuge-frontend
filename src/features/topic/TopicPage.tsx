@@ -828,6 +828,7 @@ export default function TopicPage() {
               // 可见 label 移除后补 aria-label 保留无障碍名称
               placeholder="（可选）皮上"
               aria-label="接戏皮（可选）"
+              autoComplete="off"
               data={replyCharacters.map((c: { id: number; name: string }) => ({ value: String(c.id), label: c.name }))}
               value={replyCharacterId}
               onChange={(v) => {
