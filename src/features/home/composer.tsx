@@ -556,10 +556,13 @@ export function seedTopicCacheFromList(
 ): void {
   const now = new Date().toISOString().replace('T', ' ').slice(0, 19);
   const excerpt = (d.excerpt || '').trim();
-  // 详情标签数组：列表条目只带标签字符串（"标签A / 标签B"），转成 Tag[] 占位（id 负值标记占位），
+  // 详情标签数组：列表条目只带标签字符串（后端 GROUP_CONCAT(t.name, ' / ') 拼成 "标签A / 标签B"），
+  // 转成 Tag[] 占位（id 负值标记占位）。分隔符是带空格的 " / "，**不能按 '/' 裸切**：
+  // 标签名本身可能含 '/'（如「初音未来（初音/Miku）」），裸切会把一个标签劈成两半
+  // （乐观帧颜色也因匹配不到真实标签而丢失）。按 " / " 切后 trim 即可。
   // 优先用全局标签匹配真实颜色，首帧即显示正确的标签颜色；真实数据到达后由 revalidate 替换
   const tagArray: Tag[] = (d.tags || '')
-    .split('/')
+    .split(' / ')
     .map((s) => s.trim())
     .filter(Boolean)
     .map((name, i) => {
