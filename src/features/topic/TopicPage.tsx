@@ -17,6 +17,7 @@ import { openPostAdminModal, type AdminTargetType } from './postAdminModal';
 import { openDeleteConfirmModal } from './deleteVerifyModal';
 import { copyText, displayName, pickImageFile, tagTextColorOf, timeAgo, uploadImageFile } from '../../lib/utils';
 import { docYBelowNav } from '../../lib/navOffset';
+import { dbg } from '../../lib/debugLog';
 import Avatar from '../../components/Avatar';
 import BBCodeEditor from '../../components/BBCodeEditor';
 import { clearDraft, saveDraft } from '../../lib/drafts';
@@ -334,6 +335,7 @@ export default function TopicPage() {
   // 滴滴发送：带可选皮（characterId=null 时以本人身份）
   const sendDidi = useCallback(
     async (postId: number, characterId: string | null) => {
+      dbg('didi:enter', postId, 'char=', characterId, 'loading=', didiLoading);
       if (didiLoading !== null) return; // 已有滴滴请求进行中
       setDidiLoading(postId);
       try {
@@ -343,25 +345,33 @@ export default function TopicPage() {
           method: 'POST',
           body: characterId ? { postId, characterId: Number(characterId) } : { postId },
         });
+        dbg('didi:api-ok', 'keys=', Object.keys(res || {}).join(','), 'discussionId=', res && res.discussionId);
         notifications.show({ message: '已滴滴' });
+        dbg('didi:step', 'toast-ok');
         // 每日首次滴滴奖励格币
         if (res.coinReward) {
           notifications.show({ message: `🎉 首次滴滴 +${res.coinReward} 格币`, color: 'green' });
           void globalMutate('/me/coins');
         }
-        refreshUnread();
-        void mutate(); // 刷新滴滴数
-        void refreshListsAfterWrite(); // 私密列表/滴滴统计同步，回列表页无需刷新网页
-        // 进入创建的私密主题（返回 = 上一级 = 当前主题）
+        // 先跳转再刷后置数据：refreshUnread() 的 Promise 可能永不 settle（曾卡住导航），
+        // 因此三个后置刷新一律 fire-and-forget + 各自 .catch 记日志，绝不等它们
+        dbg('didi:nav', 'target=', '/d/' + res.discussionId);
         navigate(`/d/${res.discussionId}`, {
           state: { from: routeLocation.pathname + routeLocation.search },
         });
+        dbg('didi:nav-called');
+        Promise.resolve(refreshUnread()).catch((e) => dbg('didi:helper-err', 'refreshUnread', e instanceof Error ? e.message : String(e)));
+        Promise.resolve(mutate()).catch((e) => dbg('didi:helper-err', 'mutate', e instanceof Error ? e.message : String(e)));
+        Promise.resolve(refreshListsAfterWrite()).catch((e) => dbg('didi:helper-err', 'refreshListsAfterWrite', e instanceof Error ? e.message : String(e)));
+        dbg('didi:bg-refresh-queued');
       } catch (e) {
+        dbg('didi:catch', e instanceof Error ? e.message : String(e), e instanceof Error ? (e.stack || '').split('\n')[1] : '');
         notifications.show({
           message: e instanceof Error ? e.message : '滴滴失败',
           color: 'red',
         });
       } finally {
+        dbg('didi:done');
         setDidiLoading(null);
       }
     },
@@ -371,6 +381,7 @@ export default function TopicPage() {
   // 滴滴入口：点击即发送（皮已在按钮旁 Select 选好，留空 = 本人）
   const handleDidi = useCallback(
     (postId: number) => {
+      dbg('didi:click', 'postId=', postId, 'user=', !!user, 'char=', didiCharId);
       if (!user) {
         requireLogin('滴滴');
         return;
@@ -379,6 +390,20 @@ export default function TopicPage() {
     },
     [user, didiCharId, sendDidi]
   );
+
+  // 临时排查：路由 id vs 数据 id / 帖子数 —— 检测私密主题是否夹带原主题数据或旧 id 缓存
+  useEffect(() => {
+    const m = /\/d\/(\d+)/.exec(routeLocation.pathname);
+    dbg(
+      'topic-view',
+      'routeId=', m ? Number(m[1]) : null,
+      'discId=', data?.discussion?.id ?? null,
+      'posts=', (data?.posts || []).length,
+      'total=', data?.totalPosts ?? null,
+      'isPrivate=', data?.discussion?.is_private ?? null
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [routeLocation.pathname, data]);
 
   const handlePickImage = useCallback(async () => {
     if (uploading) return;

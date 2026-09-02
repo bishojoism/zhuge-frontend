@@ -77,6 +77,19 @@ export function useTopicPagination(id: string | undefined) {
     setOptimisticPosts((prev) => prev.filter((p) => p.id !== postId));
   }, []);
 
+  // id 变化（/d/196 → /d/<滴滴私密主题> 等路由切换，同一组件实例复用）：
+  // 必须重置本主题专属状态——否则旧主题的 loadedPages/乐观帖残留在合并池，
+  // 新主题页会把上一个主题的楼层一起渲染出来（滴滴私密主题夹带原主题帖子的 bug）。
+  // 用 render-phase setState（React 官方派生态模式）：id 一变，下次渲染即清空，
+  // 不会先闪一帧旧内容。
+  const [prevTopicId, setPrevTopicId] = useState(id);
+  if (prevTopicId !== id) {
+    setPrevTopicId(id);
+    setPage(1);
+    setLoadedPages({});
+    setOptimisticPosts([]);
+  }
+
   const changeOrder = (v: 'new' | 'old') => {
     setPostOrder(v);
     setPage(1);
