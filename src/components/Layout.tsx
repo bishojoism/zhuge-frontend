@@ -74,6 +74,19 @@ const openFavoritesModal = () => import('../features/coins/favoritesModal').then
 // （动态 import 会延到手势之外，弹窗可能不出现）
 import { openIosInstallHint } from '../features/pwa/installHint';
 
+// 无障碍：每个页面一个主地标（<main>）+ 一个 h1（axe landmark-one-main /
+// page-has-heading-one）。h1 视觉隐藏（.vh），文案按路由给页面主题；
+// 各页可见大标题仍是 div（视觉不变），读屏先听到 h1 再听正文。
+function routeH1(pathname: string): string {
+  if (/^\/d\/\d+/.test(pathname)) return '主题详情 - 主格';
+  if (/^\/tag\/\d+/.test(pathname)) return '讨论区 - 主格';
+  if (pathname.startsWith('/private')) return '我的滴滴 - 主格';
+  if (pathname.startsWith('/my')) return '我的主题 - 主格';
+  if (pathname.startsWith('/admin')) return '管理后台 - 主格';
+  if (pathname.startsWith('/docs/')) return '文档 - 主格';
+  return '主格';
+}
+
 export default function Layout({ children }: { children: ReactNode }) {
   // 深色/浅色/跟随系统 三态循环切换（图标显示当前状态）
   const { colorScheme, setColorScheme } = useMantineColorScheme();
@@ -185,13 +198,37 @@ export default function Layout({ children }: { children: ReactNode }) {
     return () => window.clearInterval(iv);
   }, [guardLocation.pathname, guardLocation.search]);
 
-  // 无障碍变通：Mantine Menu 内部装饰元素（autofocus 定位 div、Menu.Label、Menu.Divider、Menu.arrow）
-  // 在 role=menu 里会被 axe 判为缺少合法子项（aria-required-children，且 axe 不认 presentation/none）。
-  // 菜单打开后给这些非菜单项元素补 aria-hidden，从可访问性树隐藏（不影响 Mantine 的聚焦行为）。
+  // 无障碍变通：Mantine Menu 内部装饰元素（autofocus 定位 div、Menu.Divider、Menu.arrow）
+  // 在 role=menu 里会被 axe 判为缺少合法子项（aria-required-children）。
+  // 只给"无 role 且不含可聚焦控件"的纯装饰节点补 aria-hidden；功能性宫格/开关组
+  // （.menu-groups 内含 role=menuitem 的按钮、开关）绝不能 hidden——aria-hidden 容器
+  // 里有可聚焦元素 = aria-hidden-focus（serious）。
   useEffect(() => {
+    const FOCUSABLE =
+      'a[href],button:not([disabled]),input:not([disabled]),select,textarea,[tabindex]:not([tabindex="-1"])';
     const fix = () => {
+      // Mantine Portal 容器（body 直属 div[data-portal]，承载 Menu/Modal/Tooltip）本身无
+      // 语义、又在 <main> 之外 → axe region 误报。补 role=presentation：去掉容器自身语义，
+      // 内容（role=dialog/menu/tooltip）保持暴露；dialog/menu 内容不受 region 规则约束。
+      document.querySelectorAll('body > div[data-portal="true"]').forEach((el) => {
+        if (!el.getAttribute('role')) el.setAttribute('role', 'presentation');
+      });
       document.querySelectorAll('[role="menu"] > *').forEach((el) => {
-        if (el.getAttribute('role') === 'menuitem') return; // 菜单项保留
+        const role = el.getAttribute('role');
+        if (
+          role === 'menuitem' ||
+          role === 'menuitemcheckbox' ||
+          role === 'menuitemradio' ||
+          role === 'presentation' ||
+          role === 'none'
+        ) {
+          el.removeAttribute('aria-hidden');
+          return;
+        }
+        if (el.matches(FOCUSABLE) || el.querySelector(FOCUSABLE)) {
+          el.removeAttribute('aria-hidden');
+          return;
+        }
         if (!el.getAttribute('aria-hidden')) el.setAttribute('aria-hidden', 'true');
       });
     };
@@ -413,8 +450,10 @@ export default function Layout({ children }: { children: ReactNode }) {
                       {coinData ? `· ${levelLabel(coinData.level)}` : ''}
                     </Text>
                   </Menu.Label>
-                  {/* 功能宫格：按语义分组（我的内容 / 我的账号 / 系统），高频置顶，便于扫视 */}
-                  <div className="menu-groups">
+                  {/* 功能宫格：按语义分组（我的内容 / 我的账号 / 系统），高频置顶，便于扫视。
+                      分组容器 role=presentation 仅去掉自身语义（不隐藏），其内按钮带
+                      role=menuitem 作为合法菜单项进入可访问性树 */}
+                  <div className="menu-groups" role="presentation">
                     {[
                       {
                         title: '我的内容',
@@ -448,13 +487,14 @@ export default function Layout({ children }: { children: ReactNode }) {
                         ],
                       },
                     ].map((g) => (
-                      <div key={g.title} className="menu-group">
+                      <div key={g.title} className="menu-group" role="presentation">
                         <div className="menu-group-title">{g.title}</div>
-                        <div className="menu-grid">
+                        <div className="menu-grid" role="presentation">
                           {g.items.map((it) => (
                             <button
                               key={it.label}
                               type="button"
+                              role="menuitem"
                               className="menu-grid-item"
                               onClick={() => {
                                 setMenuOpen(false);
@@ -595,8 +635,12 @@ export default function Layout({ children }: { children: ReactNode }) {
         <NotificationsModalContent onClose={() => setNotifOpen(false)} />
       </Modal>
       {/* 内容区：key=路径 → 路由切换时强制重建整个内容区（清掉旧页残留的 DOM，
-          如主题页的帖子卡片在水合/协调后残留在主页顶部） */}
-      <div className="container" key={location.pathname}>{children}</div>
+          如主题页的帖子卡片在水合/协调后残留在主页顶部）。
+          用 <main> 作为页面主地标，并带路由级视觉隐藏 h1（axe 地标/标题规则） */}
+      <main className="container" key={location.pathname}>
+        <h1 className="vh">{routeH1(location.pathname)}</h1>
+        {children}
+      </main>
     </>
   );
 }

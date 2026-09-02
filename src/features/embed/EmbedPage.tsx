@@ -146,14 +146,26 @@ export default function EmbedPage() {
     ) : null;
 
   if (isLoading && posts.length === 0 && !data) {
-    return <div className="zhuge-embed"><div className="embed-hint">加载中…</div></div>;
+    return (
+      <main className="zhuge-embed">
+        <h1 className="vh">主题加载中 - 主格</h1>
+        <div className="embed-hint">加载中…</div>
+      </main>
+    );
   }
   if (!d) {
-    return <div className="zhuge-embed"><div className="embed-hint">主题不存在或私密主题不支持内嵌</div></div>;
+    return (
+      <main className="zhuge-embed">
+        <h1 className="vh">主题 - 主格</h1>
+        <div className="embed-hint">主题不存在或私密主题不支持内嵌</div>
+      </main>
+    );
   }
 
   return (
-    <div className="zhuge-embed">
+    <main className="zhuge-embed">
+      {/* 无障碍：嵌入页独立于主站 Layout，自带主地标 + 主题标题 h1 */}
+      <h1 className="vh">{d.title} - 主格</h1>
       {/* 固定顶部：主题信息 + 首帖合并（同正常版首帖卡：标题 + 标签 + 作者/时间 + 正文 + 配图） */}
       <div className="embed-top">
         <div className="embed-title">{d.title}</div>
@@ -239,6 +251,6 @@ export default function EmbedPage() {
           </div>
         )}
       </div>
-    </div>
+    </main>
   );
 }

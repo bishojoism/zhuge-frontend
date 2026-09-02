@@ -476,12 +476,13 @@ export function PostCard({
           )}
           {!isPrivate && canDidi && onDidi && (
             <>
-              {/* 滴滴身份选择：点击滴滴前选好角色（留空 = 以本人身份），同接戏一致 */}
+              {/* 滴滴身份选择：点击滴滴前选好角色（留空 = 以本人身份），同接戏一致。
+                  占位文案缩短 + 选择器收窄（w=150），与「滴滴（私服）」按钮同行不换行 */}
               {onDidiChars && didiCharOptions.length > 0 && (
                 <Select
                   size="xs"
-                  placeholder="（可选）以角色身份滴滴"
-                  w={225}
+                  placeholder="（可选）以角色"
+                  w={150}
                   data={didiCharOptions}
                   value={didiCharId}
                   onChange={onDidiChars}
@@ -609,7 +610,7 @@ export function PostCard({
                     删除
                   </Menu.Item>
                 )}
-                <Menu.Item color="gray" onClick={onReport}>
+                <Menu.Item onClick={onReport}>
                   举报
                 </Menu.Item>
                 {onAdmin && <Menu.Item onClick={onAdmin}>⚙ 管理</Menu.Item>}

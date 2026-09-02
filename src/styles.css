@@ -1050,3 +1050,13 @@ body { margin: 0; }
 .zhuge-embed .embed-composer-row { display: flex; align-items: flex-end; gap: 6px; }
 .zhuge-embed .embed-composer-row .mantine-Textarea-root { flex: 1; }
 .zhuge-embed .embed-login-hint { color: var(--muted); display: flex; align-items: center; gap: 8px; justify-content: center; padding: 10px 0; }
+
+/* 视觉隐藏但保留给读屏/axe（语义标题等用） */
+.vh {
+  position: absolute !important;
+  width: 1px; height: 1px;
+  margin: -1px; padding: 0; border: 0;
+  clip: rect(0 0 0 0); clip-path: inset(50%);
+  overflow: hidden; white-space: nowrap;
+}
+
