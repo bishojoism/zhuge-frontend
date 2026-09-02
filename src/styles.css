@@ -1,4 +1,4 @@
-﻿
+
     :root {
       /* 鑾叞杩綆楗卞拰鑹叉澘 */
       --primary: #7c8ea3;
@@ -485,9 +485,8 @@
       margin-bottom: 8px;
     }
     .post-actions { margin-top: 11px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
-    /* 主要操作（接戏/滴滴）与次要操作（复制/海报/举报）分组，窄屏次要操作自动换行右对齐 */
+    /* 主要操作（接戏/滴滴）与右端固定组（一键三连+打赏+更多），窄屏整组换行不拆散 */
     .post-actions-main { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
-    .post-actions-more { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-left: auto; }
     /* 鍥炲鐨勫洖澶嶏細寮曠敤鎻愮ず */
     .post-reply-ref {
       font-size: 12px; color: var(--muted); margin-bottom: 9px;

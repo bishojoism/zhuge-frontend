@@ -33,6 +33,14 @@ export interface PostCardProps {
   onCopyLink?: () => void;
   /** 复制 iframe 嵌入代码（内嵌到网页；仅公开主题首帖提供） */
   onEmbed?: () => void;
+  /** 首帖：邀请接戏（仅作者；主题级操作，收进「更多」菜单） */
+  onInvite?: () => void;
+  /** 首帖：导出图片记录（主题级操作，收进「更多」菜单） */
+  onExportImage?: () => void;
+  /** 首帖：导出文字记录 */
+  onExportText?: () => void;
+  /** 导出请求进行中（禁用导出菜单项并显示加载态） */
+  exportBusy?: boolean;
   /** 查看帖子源码（原始 BBCode 文本） */
   onSource?: () => void;
   /** 删除自己的帖子/主题（作者本人或管理员可见；首帖删除 = 删主题） */
@@ -150,6 +158,10 @@ export function PostCard({
   onEmbed,
   onSource,
   onDelete,
+  onInvite,
+  onExportImage,
+  onExportText,
+  exportBusy,
   onJumpToReply,
   onAuthorStats,
   title,
@@ -560,32 +572,50 @@ export function PostCard({
             >
               💎 打赏
             </Button>
-          </Group>
-        </div>
-        {/* 低频操作收进「更多」菜单（P5 操作密度优化）：主操作行只留高频（接戏/滴滴/三连组）。
-            删除/举报等安全敏感操作用菜单折叠是移动端标准模式，多一步换取主操作清爽 */}
-        <div className="post-actions-more">
-          <Menu position="bottom-end" withArrow withinPortal>
-            <Menu.Target>
-              <Button size="compact-sm" variant="subtle" leftSection={<span>⋯</span>}>
-                更多
-              </Button>
-            </Menu.Target>
-            <Menu.Dropdown>
-              {onCopyLink && <Menu.Item onClick={onCopyLink}>复制链接</Menu.Item>}
-              {onEmbed && <Menu.Item onClick={onEmbed}>内嵌到网页（复制 iframe 代码）</Menu.Item>}
-              {onSource && <Menu.Item onClick={onSource}>源码</Menu.Item>}
-              {onDelete && (
-                <Menu.Item color="red" onClick={onDelete}>
-                  删除
+            {/* 更多：与三连同处右端同一不拆组（wrap 时整组换行，不会「更多」孤行）。
+                低频帖级操作（复制/嵌入/举报…）+ 首帖的主题级操作（邀请接戏/导出记录） */}
+            <Menu position="bottom-end" withArrow withinPortal>
+              <Menu.Target>
+                <Button size="compact-sm" variant="subtle" px={4} leftSection={<span>⋯</span>}>
+                  更多
+                </Button>
+              </Menu.Target>
+              <Menu.Dropdown>
+                {isFirstPost && (onInvite || onExportImage || onExportText) && (
+                  <>
+                    {onInvite && (
+                      <Menu.Item onClick={onInvite} leftSection={<span>🎭</span>}>
+                        邀请接戏
+                      </Menu.Item>
+                    )}
+                    {onExportImage && (
+                      <Menu.Item onClick={onExportImage} disabled={exportBusy} leftSection={<span>🖼</span>}>
+                        导出图片记录{exportBusy ? '（加载中…）' : ''}
+                      </Menu.Item>
+                    )}
+                    {onExportText && (
+                      <Menu.Item onClick={onExportText} disabled={exportBusy} leftSection={<span>📄</span>}>
+                        导出文字记录{exportBusy ? '（加载中…）' : ''}
+                      </Menu.Item>
+                    )}
+                    <Menu.Divider />
+                  </>
+                )}
+                {onCopyLink && <Menu.Item onClick={onCopyLink}>复制链接</Menu.Item>}
+                {onEmbed && <Menu.Item onClick={onEmbed}>内嵌到网页（复制 iframe 代码）</Menu.Item>}
+                {onSource && <Menu.Item onClick={onSource}>源码</Menu.Item>}
+                {onDelete && (
+                  <Menu.Item color="red" onClick={onDelete}>
+                    删除
+                  </Menu.Item>
+                )}
+                <Menu.Item color="gray" onClick={onReport}>
+                  举报
                 </Menu.Item>
-              )}
-              <Menu.Item color="gray" onClick={onReport}>
-                举报
-              </Menu.Item>
-              {onAdmin && <Menu.Item onClick={onAdmin}>⚙ 管理</Menu.Item>}
-            </Menu.Dropdown>
-          </Menu>
+                {onAdmin && <Menu.Item onClick={onAdmin}>⚙ 管理</Menu.Item>}
+              </Menu.Dropdown>
+            </Menu>
+          </Group>
         </div>
       </div>
     </div>

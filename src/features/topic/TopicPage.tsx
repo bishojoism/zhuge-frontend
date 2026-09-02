@@ -984,6 +984,14 @@ export default function TopicPage() {
           onAuthorStats={openAuthorStats}
           onCopyLink={handleCopyLink}
           onEmbed={!isPrivate ? handleCopyEmbed : undefined}
+          onInvite={
+            !isPrivate && user && d.user_id === user.id
+              ? () => openInviteModal(Number(id), d.title)
+              : undefined
+          }
+          onExportImage={() => void exportImage()}
+          onExportText={() => void exportText()}
+          exportBusy={!!exporting}
         />
       ) : (
         /* 无首帖：至少显示主题信息卡 */
@@ -1054,41 +1062,8 @@ export default function TopicPage() {
         );
       })()}
 
-      {/* 邀请搭戏（仅作者）/ 导出记录 */}
-      <Group justify="flex-end" mb="sm" gap={6}>
-        {!isPrivate && user && d.user_id === user.id && (
-          <Button
-            variant="subtle"
-            size="compact-sm"
-            onClick={() => openInviteModal(Number(id), d.title)}
-          >
-            🎭 邀请接戏
-          </Button>
-        )}
-        <Menu position="bottom-end" withArrow>
-          <Menu.Target>
-            <Button variant="subtle" size="compact-sm">
-              ⬇ 导出
-            </Button>
-          </Menu.Target>
-          <Menu.Dropdown>
-            <Menu.Item
-              leftSection={<span>🖼</span>}
-              onClick={() => void exportImage()}
-              disabled={!!exporting}
-            >
-              导出图片记录{exporting === 'image' ? '（加载中…）' : ''}
-            </Menu.Item>
-            <Menu.Item
-              leftSection={<span>📄</span>}
-              onClick={() => void exportText()}
-              disabled={!!exporting}
-            >
-              导出文字记录{exporting === 'text' ? '（加载中…）' : ''}
-            </Menu.Item>
-          </Menu.Dropdown>
-        </Menu>
-      </Group>
+      {/* 主题级操作（邀请接戏/导出记录）已收进首楼卡片的「⋯ 更多」菜单，
+          不再在卡片下方单独占一行（与帖级操作行分开导致视觉碎行） */}
 
       {/* 回复列表（默认从新到旧：1楼 → 最新回复 → 更早回复；可切换从旧到新） */}
       {replies.length > 1 && (
