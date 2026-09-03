@@ -326,7 +326,8 @@ export function ComposerContent({ user, tags, defaultTagId, onPosted }: Composer
         <Select
           label="皮上演绎（可选）"
           placeholder="不指定"
-          autoComplete="off"
+          // iOS Safari 无视 autoComplete="off"；new-password 可压制"自动填充"菜单
+          autoComplete="new-password"
           data={characters.map((c) => ({ value: String(c.id), label: c.name }))}
           value={characterId}
           onChange={setCharacterId}
