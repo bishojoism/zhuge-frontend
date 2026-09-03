@@ -1,6 +1,6 @@
 // ===== 发帖弹窗（openComposer 等价物）：标题/内容/标签/配图 + 云草稿自动保存 =====
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ActionIcon, Button, Group, Stack, Text, TextInput } from '@mantine/core';
+import { ActionIcon, Button, Group, Stack, Switch, Text, TextInput } from '@mantine/core';
 import { CharacterPicker } from '../topic/CharacterPicker';
 import { modals } from '@mantine/modals';
 import { notifications } from '@mantine/notifications';
@@ -80,6 +80,7 @@ export function ComposerContent({ user, tags, defaultTagId, onPosted }: Composer
     setTagIds([want]);
   }, [tags, tagIds, defaultTag]);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [aiAuto, setAiAuto] = useState(true); // AI 自动接戏（高级设置内可关，默认开）
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
   const [uploading, setUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -200,6 +201,7 @@ export function ComposerContent({ user, tags, defaultTagId, onPosted }: Composer
           tagIds,
           imageUrl: imageUrl || undefined,
           characterId: characterId ? Number(characterId) : undefined,
+          aiAuto,
         },
       });
       // 每日首次开戏奖励格币
@@ -347,6 +349,19 @@ export function ComposerContent({ user, tags, defaultTagId, onPosted }: Composer
           />
         </div>
       )}
+      {/* AI 自动接戏：高级设置内可关（默认开）。发帖后 AI 异步接戏一段，消耗 1 格币；
+          私密主题 / 余额不足 / 当日免费额度用尽时不生效（服务端判定） */}
+      <Group gap="xs" wrap="nowrap" align="center" mb={8}>
+        <Switch
+          size="xs"
+          checked={aiAuto}
+          onChange={(e) => setAiAuto(e.currentTarget.checked)}
+          label="AI 自动接戏（1 币/次）"
+        />
+        <Text size="xs" c="dimmed">
+          发帖后 AI 自动接戏一段（后台异步，不卡发帖）
+        </Text>
+      </Group>
       <Group justify="space-between" wrap="nowrap" align="center">
         <Text size="sm">
           标签{' '}

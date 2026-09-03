@@ -2,7 +2,7 @@
 // 页面编排 + 交互逻辑；帖子卡片/弹窗/分页/小部件已拆分到本目录独立文件
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
-import { Button, Group, Menu, SegmentedControl, Skeleton, Text, TextInput } from '@mantine/core';
+import { Button, Group, Menu, SegmentedControl, Skeleton, Switch, Text, TextInput } from '@mantine/core';
 import { CharacterPicker } from './CharacterPicker';
 import { modals } from '@mantine/modals';
 import { notifications } from '@mantine/notifications';
@@ -72,6 +72,7 @@ export default function TopicPage() {
   const [replyTarget, setReplyTarget] = useState<{ postId: number; author: string } | null>(null);
   // 接戏表单折叠（表单简化）：默认只显示输入框 + 提交 + 高级按钮；皮/插图/格式工具栏收进高级
   const [composerAdvanced, setComposerAdvanced] = useState(false);
+  const [replyAiAuto, setReplyAiAuto] = useState(true); // AI 自动接戏（高级设置内可关，默认开）
   const [submitting, setSubmitting] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [draftStatus, setDraftStatus] = useState('');
@@ -454,6 +455,7 @@ export default function TopicPage() {
           ...(imageUrl ? { imageUrl } : {}),
           ...(replyTarget ? { replyTo: replyTarget.postId } : {}),
           ...(replyCharacterId ? { characterId: Number(replyCharacterId) } : {}),
+          ...(replyAiAuto ? { aiAuto: true } : {}),
         },
       });
       // 每日首次接戏奖励格币
@@ -914,6 +916,21 @@ export default function TopicPage() {
                   ✕
                 </button>
               </span>
+            )}
+            {/* AI 自动接戏（高级设置内可关，默认开）：公开主题接戏后 AI 异步接一段，耗 1 币；
+                私密主题不提供该选项（服务端也不开启） */}
+            {!isPrivate && (
+              <Group gap="xs" wrap="nowrap" align="center" style={{ marginTop: 4, width: '100%' }}>
+                <Switch
+                  size="xs"
+                  checked={replyAiAuto}
+                  onChange={(e) => setReplyAiAuto(e.currentTarget.checked)}
+                  label="AI 自动接戏（1 币/次）"
+                />
+                <Text size="xs" c="dimmed">
+                  发布后 AI 自动接戏一段
+                </Text>
+              </Group>
             )}
               </>
             )}
