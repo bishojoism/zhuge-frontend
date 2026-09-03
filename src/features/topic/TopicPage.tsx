@@ -915,7 +915,6 @@ export default function TopicPage() {
                 </button>
               </span>
             )}
-            <span style={{ fontSize: 12, color: 'var(--muted)' }}>每帖最多一张</span>
               </>
             )}
             <span style={{ flex: 1 }} />

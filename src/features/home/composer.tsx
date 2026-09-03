@@ -332,9 +332,6 @@ export function ComposerContent({ user, tags, defaultTagId, onPosted }: Composer
                 ✕
               </ActionIcon>
             </span>
-            <Text size="xs" c="dimmed">
-              已添加 1 张图片（每帖最多一张）
-            </Text>
           </>
         ) : null}
       </Group>
