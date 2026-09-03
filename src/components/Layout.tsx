@@ -427,17 +427,6 @@ export default function Layout({ children }: { children: ReactNode }) {
               )}
             </ActionIcon>
           </Tooltip>
-          <Tooltip label="使用帮助" withArrow>
-            <ActionIcon
-              variant="subtle"
-              size="lg"
-              onClick={() => openHelpModal()}
-              aria-label="使用帮助"
-              title="使用帮助"
-            >
-              <IconHelpCircle size={20} />
-            </ActionIcon>
-          </Tooltip>
           <Tooltip label="刷新页面" withArrow>
             <ActionIcon
               variant="subtle"
@@ -517,6 +506,7 @@ export default function Layout({ children }: { children: ReactNode }) {
                       {
                         title: '系统',
                         items: [
+                          { icon: <IconHelpCircle size={20} />, label: '使用帮助', onClick: () => openHelpModal() },
                           { icon: <IconApi size={20} />, label: '开放 API', onClick: () => openApiTokensModal() },
                           { icon: <IconRobot size={20} />, label: 'MCP', onClick: () => openMcpModal() },
                           { icon: <IconBan size={20} />, label: '屏蔽管理', onClick: () => openBlocksModal() },
@@ -674,8 +664,11 @@ export default function Layout({ children }: { children: ReactNode }) {
                   <Menu.Item leftSection={<IconUserPlus size={16} />} color="clay" onClick={() => openRegisterModal()}>
                     注册新账号
                   </Menu.Item>
-                  {/* 未登录也能用的公开项：开放 API / MCP 文档（无需登录可看；生成令牌才需登录） */}
+                  {/* 未登录也能用的公开项：帮助 / 开放 API / MCP 文档（无需登录可看；生成令牌才需登录） */}
                   <Menu.Divider />
+                  <Menu.Item leftSection={<IconHelpCircle size={16} />} onClick={() => openHelpModal()}>
+                    使用帮助
+                  </Menu.Item>
                   <Menu.Item leftSection={<IconApi size={16} />} onClick={() => navigate('/docs/api')}>
                     开放 API
                   </Menu.Item>
