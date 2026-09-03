@@ -227,11 +227,17 @@ export function NotificationsModalContent({ onClose }: { onClose: () => void }) 
   const markAllRead = async () => {
     if (markingAll) return;
     setMarkingAll(true);
-    // 乐观：本地立即标记已读
-    const optimistic = (current?: NotifListResult): NotifListResult => ({
-      data: (current?.data || []).map((n) => ({ ...n, is_read: 1 })),
-      meta: { unread: 0 },
-    });
+    // 乐观：本地立即标记已读。base 兜底用弹窗当前 data——若点击瞬间 SWR 缓存刚好被
+    // 某次刷新置空（current 无 data），(current?.data || []) 会变成空列表 → 短暂闪
+    // "还没有通知"；用有内容的 base 保证乐观帧不空、等 revalidate 收敛。
+    const optimistic = (current?: NotifListResult): NotifListResult => {
+      const base =
+        current && Array.isArray(current.data) && current.data.length > 0 ? current : data;
+      return {
+        data: (base?.data || []).map((n) => ({ ...n, is_read: 1 })),
+        meta: { ...(base?.meta || {}), unread: 0 },
+      };
+    };
     try {
       await globalMutate('/me/notifications', optimistic, { revalidate: false, rollbackOnError: true });
     } catch {
