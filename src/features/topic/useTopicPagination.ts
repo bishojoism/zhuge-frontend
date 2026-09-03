@@ -60,8 +60,9 @@ export function useTopicPagination(id: string | undefined) {
     // 定位页。若用户从该主题 SPA 导航到另一主题（回主页再点别的主题，无整页刷新），
     // __INITIAL_DATA__ 仍是旧主题的 → 不按 id 过滤会把旧主题楼层并进新主题页
     // （实测：通知整页打开 X 后 SPA 打开"手操角色论战"，残留 X 的楼层）。
+    // 注意：该"不匹配并丢弃"在正常流程也会触发（通知整页打开 → SPA 打开另一主题），
+    // 属预期行为，不再打 warn（避免每次正常导航都刷一条噪音日志）
     if (around && around.discussion && around.discussion.id !== Number(id)) {
-      console.warn('[topic] topicAround 主题不匹配，丢弃：around.discussion.id=', around.discussion.id, 'route id=', id);
       return {};
     }
     if (!around) return {};
