@@ -78,6 +78,14 @@ export interface CoinInfo {
   earnedTotal: number;
   level: number;
   tasks?: DailyTask[];
+  /** 连续签到信息（北京时间）：days=当前连签，best=历史最高，claimedToday/canMakeup/makeupCost */
+  streak?: {
+    days: number;
+    best: number;
+    claimedToday: boolean;
+    canMakeup: boolean;
+    makeupCost: number;
+  };
 }
 
 export interface Post {
