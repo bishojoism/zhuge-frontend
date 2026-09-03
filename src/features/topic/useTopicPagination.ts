@@ -27,6 +27,9 @@ export function useTopicPagination(id: string | undefined) {
   dataRef.current = data;
   const headDataRef = useRef(headData);
   headDataRef.current = headData;
+  // 最新主题 id（定位请求回调/异步写入的主题守卫用：SPA 切主题后旧请求不得写新主题状态）
+  const latestTopicIdRef = useRef(id);
+  latestTopicIdRef.current = id;
 
   // 乐观种子强制重验：从列表点进主题时（seedTopicCacheFromList / seedTopicCache）会往 SWR
   // 缓存写入"只有 1 条首帖（id 为负值）"的乐观数据，而全局 revalidateIfStale:false 会抑制
@@ -53,6 +56,14 @@ export function useTopicPagination(id: string | undefined) {
   const [loadedPages, setLoadedPages] = useState<Record<string, DiscussionDetail>>(() => {
     const init = readInitData<InitData>();
     const around = init?.topicAround ?? null;
+    // topicAround 必须属于【当前路由的主题】：SSR 内联的是最后一次整页加载的那个主题的
+    // 定位页。若用户从该主题 SPA 导航到另一主题（回主页再点别的主题，无整页刷新），
+    // __INITIAL_DATA__ 仍是旧主题的 → 不按 id 过滤会把旧主题楼层并进新主题页
+    // （实测：通知整页打开 X 后 SPA 打开"手操角色论战"，残留 X 的楼层）。
+    if (around && around.discussion && around.discussion.id !== Number(id)) {
+      console.warn('[topic] topicAround 主题不匹配，丢弃：around.discussion.id=', around.discussion.id, 'route id=', id);
+      return {};
+    }
     if (!around) return {};
     const pages: Record<string, DiscussionDetail> = {};
     pages.around = around;
@@ -417,11 +428,18 @@ export function useTopicPagination(id: string | undefined) {
     }
     if (targetFetchingRef.current) return; // 定位请求进行中，等结果
     targetFetchingRef.current = true;
+    const compareId = id; // 本次定位请求对应的主题（回调里与最新主题比对）
     const qs = 'id' in pendingTarget
       ? `aroundPostId=${pendingTarget.id}`
       : `aroundNumber=${pendingTarget.number}`;
     api<{ data: DiscussionDetail }>(`/discussions/${id}?page=1&order=old&${qs}`)
       .then((r) => {
+        // 主题守卫：请求发出后用户可能已 SPA 切到另一主题（旧主题的定位页不能写进新主题
+        // 的 loadedPages，否则残留旧主题楼层）；compareId 为该请求发起时的主题
+        if (latestTopicIdRef.current !== compareId) {
+          setPendingTarget(null);
+          return;
+        }
         // key 用 'old:' 前缀：定位请求是 order=old 的页，不能占用当前 order 的 page key（否则覆盖最新页）
         setLoadedPages((prev) => ({ ...prev, [`old:${r.data.page ?? 99}`]: r.data }));
       })
