@@ -288,16 +288,54 @@ export function NotificationsModalContent({ onClose }: { onClose: () => void }) 
                 className={`notif-item${n.is_read ? '' : ' unread'}`}
                 onClick={() => markReadAndGo(n)}
               >
-                {n.actor_character_appearance ? (
-                  // 全沉浸：皮上触发 → 显示皮头像
-                  <img
-                    src={n.actor_character_appearance}
-                    alt=""
-                    style={{ width: 34, height: 34, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }}
-                  />
-                ) : (
-                  <span className="notif-icon">{notifIcon(n.type)}</span>
-                )}
+                {/* 左侧图标列：图标 + 其下方「再弹一次」小按钮（不占正文行宽） */}
+                <div
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: 3,
+                    flexShrink: 0,
+                    minWidth: 34,
+                  }}
+                >
+                  {n.actor_character_appearance ? (
+                    // 全沉浸：皮上触发 → 显示皮头像
+                    <img
+                      src={n.actor_character_appearance}
+                      alt=""
+                      style={{ width: 34, height: 34, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }}
+                    />
+                  ) : (
+                    <span className="notif-icon">{notifIcon(n.type)}</span>
+                  )}
+                  {/* 再弹一次：真实服务器重放（插一条新通知并推送）。带边框+底色一眼可点；
+                      点击反馈 = 短暂变绿实心 ✓ */}
+                  <ActionIcon
+                    variant="default"
+                    aria-label={replayFb === n.id ? '已再弹一次' : '再弹一次'}
+                    title="再弹一次"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      replayOnce(n);
+                    }}
+                    style={{
+                      width: 26,
+                      height: 24,
+                      borderRadius: 7,
+                      minWidth: 0,
+                      ...(replayFb === n.id
+                        ? {
+                            background: '#2f9e44',
+                            borderColor: '#2f9e44',
+                            color: '#fff',
+                          }
+                        : {}),
+                    }}
+                  >
+                    {replayFb === n.id ? '✓' : '↻'}
+                  </ActionIcon>
+                </div>
                 <div className="notif-body">
                   <div className="notif-text">{notifText(n)}</div>
                   {/* 被回复/被滴滴帖子的内容摘要（"回复了什么"）：通知更完整，点入前先看到上下文 */}
@@ -322,34 +360,6 @@ export function NotificationsModalContent({ onClose }: { onClose: () => void }) 
                     {timeAgo(n.created_at)}
                   </div>
                 </div>
-                {/* 再弹一次：真实服务器重放（插一条新通知并推送）。实心按钮样式：带边框+底色，
-                    一眼可点；点击反馈 = 短暂变绿实心 ✓ */}
-                <ActionIcon
-                  variant="default"
-                  aria-label={replayFb === n.id ? '已再弹一次' : '再弹一次'}
-                  title="再弹一次"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    replayOnce(n);
-                  }}
-                  style={{
-                    flexShrink: 0,
-                    marginLeft: 4,
-                    alignSelf: 'center',
-                    width: 30,
-                    height: 30,
-                    borderRadius: 8,
-                    ...(replayFb === n.id
-                      ? {
-                          background: '#2f9e44',
-                          borderColor: '#2f9e44',
-                          color: '#fff',
-                        }
-                      : {}),
-                  }}
-                >
-                  {replayFb === n.id ? '✓' : '↻'}
-                </ActionIcon>
                 {!n.is_read && <span className="notif-dot" />}
               </div>
             ))}
