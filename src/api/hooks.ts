@@ -285,17 +285,21 @@ export function useMyBadges() {
   });
 }
 
-// 我的邀请明细（谁通过我的链接注册）
+// 我的邀请明细（谁通过我的链接注册）+ 统计
 export interface InvitedUser {
   id: number;
   username: string;
   created_at: string;
 }
+export interface MyInvitesResult {
+  data: InvitedUser[];
+  meta: { total: number; active: number };
+}
 
 export function useMyInvites() {
-  return useSWR<InvitedUser[]>('/me/invites', async (p: string) => {
-    const r = await api<{ data: InvitedUser[] }>(p);
-    return r.data;
+  return useSWR<MyInvitesResult>('/me/invites', async (p: string) => {
+    const r = await api<MyInvitesResult>(p);
+    return r;
   });
 }
 

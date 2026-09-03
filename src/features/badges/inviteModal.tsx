@@ -5,8 +5,7 @@ import { Button, Divider, Group, Loader, Stack, Text } from '@mantine/core';
 import { modals } from '@mantine/modals';
 import { notifications } from '@mantine/notifications';
 import { openModalOnce } from '../../lib/modals';
-import { useMyBadges, useMyInvites } from '../../api/hooks';
-import type { MyBadgesResult } from '../../types';
+import { useMyInvites } from '../../api/hooks';
 
 interface InvitedUser {
   id: number;
@@ -28,9 +27,10 @@ export function openInviteModal(userId: number, username: string): void {
 
 export function InviteContent({ userId, username }: { userId: number; username: string }) {
   // SWR 缓存：徽章/邀请数据跨弹窗复用，不重复请求
-  const { data: badgesData } = useMyBadges();
-  const { data: invited } = useMyInvites();
-  const inviteCount = badgesData?.inviteCount ?? 0;
+  const { data: invites } = useMyInvites();
+  const invited = invites?.data;
+  const invitedTotal = invites?.meta?.total ?? 0;
+  const invitedActive = invites?.meta?.active ?? 0;
 
   const inviteLink = `${window.location.origin}/?invite=${userId}`;
 
@@ -76,14 +76,19 @@ export function InviteContent({ userId, username }: { userId: number; username: 
           <Text size="sm" fw={600}>
             🤝 我的邀请链接
           </Text>
-          {badgesData === undefined ? (
+          {invites === undefined ? (
             <Loader size={14} />
           ) : (
             <Text size="xs" c="dimmed">
-              已邀请 {inviteCount} 位
+              已邀请 {invitedTotal} 位
             </Text>
           )}
         </Group>
+        {invites !== undefined && invitedTotal > 0 && invitedActive !== invitedTotal && (
+          <Text size="xs" c="dimmed">
+            其中 {invitedActive} 位已发布过内容（发帖/接戏后才计入邀请成就）
+          </Text>
+        )}
         <Group gap={8} wrap="nowrap">
           <Text
             size="xs"
