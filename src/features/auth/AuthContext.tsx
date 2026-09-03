@@ -79,6 +79,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
   }, [isLoading, user, mutate]);
 
+  // 邀请关系补记（历史修复）：修复前自动注册的游客没写 invited_by，但浏览器还留着
+  // zhuge-invite key。登录（含老游客回归）后若本地仍有 key → 调补记接口挂上邀请关系，
+  // 成功后消费；服务端幂等（已归属/自邀/邀请人不存在都不会重复写入）。
+  useEffect(() => {
+    if (isLoading || user === null) return;
+    const pending = readInvitedBy();
+    if (!pending) return;
+    (async () => {
+      try {
+        await api('/me/attach-invite', { method: 'POST', body: { invitedBy: pending } });
+      } catch {
+        /* 失败保留 key，下次再试 */
+        return;
+      }
+      consumeInvite();
+    })();
+  }, [isLoading, user]);
+
   const refresh = useCallback(() => mutate(), [mutate]);
   const logout = useCallback(async () => {
     await api('/logout', { method: 'POST' });
