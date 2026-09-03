@@ -1,4 +1,5 @@
-// ===== 我的主题：我发布的公开主题列表（/my） =====
+// ===== 我的主题：我发布的公开主题列表（/my）——复用主页主题列表卡片（TopicCard） =====
+import { Fragment } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button, Group, Loader, Stack, Text } from '@mantine/core';
 import { useAuth } from '../auth/AuthContext';
@@ -6,6 +7,7 @@ import { useMyDiscussions, useTags } from '../../api/hooks';
 import { seedTopicCacheFromList } from '../home/composer';
 import { openLoginModal, openRegisterModal } from '../auth/authModals';
 import { timeAgo } from '../../lib/utils';
+import { TopicCard } from '../home/list';
 import TripleActions from '../../components/TripleActions';
 import type { MyTopicItem } from '../../types';
 
@@ -69,32 +71,20 @@ export default function MyTopicsPage() {
         <div className="empty">还没有发布主题。点导航「＋」开戏，开始你的第一帖吧！</div>
       ) : (
         list.map((t) => (
-          <div
+          <TopicCard
             key={t.id}
-            className="topic topic-clickable"
-            role="link"
-            tabIndex={0}
-            onClick={() => openTopic(t)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') openTopic(t);
-            }}
-          >
-            <div className="topic-title">{t.title}</div>
-            {t.image_url ? (
-              <img
-                src={t.image_url}
-                alt="配图"
-                style={{ maxWidth: '100%', maxHeight: 180, borderRadius: 8, margin: '8px 0', objectFit: 'cover', display: 'block' }}
-                loading="lazy"
-              />
-            ) : null}
-            <div className="topic-meta">
-              <span>{timeAgo(t.last_posted_at || t.created_at)}</span>
-              <span>{Math.max(0, (t.comment_count ?? 0) - 1)} 接戏</span>
-              {t.didi_count > 0 && <span>{t.didi_count} 滴滴</span>}
-            </div>
-            <TripleActions postId={t.first_post_id} authorId={t.user_id} initial={t} />
-          </div>
+            d={t}
+            tags={tags}
+            onOpenTopic={() => openTopic(t)}
+            metaExtras={
+              <Fragment>
+                <span>{timeAgo(t.last_posted_at || t.created_at)}</span>
+                <span>{Math.max(0, (t.comment_count ?? 0) - 1)} 接戏</span>
+                {t.didi_count > 0 && <span>{t.didi_count} 滴滴</span>}
+              </Fragment>
+            }
+            footer={<TripleActions postId={t.first_post_id} authorId={t.user_id} initial={t} />}
+          />
         ))
       )}
     </>

@@ -1,4 +1,5 @@
-// ===== 我的滴滴：私密主题列表页（/private）+ 响应率 + 滴滴状态 =====
+// ===== 我的滴滴：私密主题列表页（/private）+ 响应率 + 滴滴状态——复用主页主题列表卡片（TopicCard） =====
+import { Fragment } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button, Group, Loader, Stack, Text } from '@mantine/core';
 import { useAuth } from '../auth/AuthContext';
@@ -6,10 +7,9 @@ import { usePrivateList, useTags } from '../../api/hooks';
 import { seedTopicCacheFromList } from '../home/composer';
 import { openLoginModal, openRegisterModal } from '../auth/authModals';
 import { timeAgo } from '../../lib/utils';
+import { TopicCard } from '../home/list';
 import { levelLabel, levelOf } from '../../lib/coins';
-import Avatar from '../../components/Avatar';
 import TripleActions from '../../components/TripleActions';
-import { openAuthorDidiStats } from './authorDidiStats';
 import type { DidiStats, PrivateItem } from '../../types';
 
 // 滴滴状态徽标
@@ -106,48 +106,15 @@ export default function PrivatePage() {
         list.map((t) => {
           const badge = didiStatusBadge(t.didi_status);
           return (
-            <div
+            <TopicCard
               key={t.id}
-              className="topic topic-clickable"
-              role="link"
-              tabIndex={0}
-              onClick={() => openTopic(t)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') openTopic(t);
-              }}
-            >
-              <div className="topic-title">
-                {t.title}
-                {badge && <span className={`didi-badge ${badge.cls}`}>{badge.label}</span>}
-              </div>
-              {t.image_url ? (
-                <img
-                  src={t.image_url}
-                  alt="配图"
-                  style={{ maxWidth: '100%', maxHeight: 180, borderRadius: 8, margin: '8px 0', objectFit: 'cover', display: 'block' }}
-                  loading="lazy"
-                />
-              ) : null}
-              <div className="topic-meta">
-                <Avatar user={t} size="sm" showGender />
-                <span
-                  className="author-link"
-                  role="button"
-                  tabIndex={0}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    openAuthorDidiStats(t.user_id, t.author || '?');
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.stopPropagation();
-                      openAuthorDidiStats(t.user_id, t.author || '?');
-                    }
-                  }}
-                  style={{ fontWeight: 600, color: 'var(--text)' }}
-                >
-                  {t.author || '?'}
-                  {/* 等级徽章（对方累计获得格币档位，Lv.2 起显示） */}
+              d={t}
+              tags={tags}
+              onOpenTopic={() => openTopic(t)}
+              titleRight={badge ? <span className={`didi-badge ${badge.cls}`}>{badge.label}</span> : undefined}
+              metaExtras={
+                <Fragment>
+                  {/* 作者等级（对方累计获得格币档位，Lv.2 起显示） */}
                   {levelOf(t.author_earned) > 1 && (
                     <span
                       style={{
@@ -164,14 +131,13 @@ export default function PrivatePage() {
                       {levelLabel(levelOf(t.author_earned))}
                     </span>
                   )}
-                </span>
-                <span>{timeAgo(t.last_posted_at || t.created_at)}</span>
-                <span>{Math.max(0, (t.comment_count ?? 0) - 1)} 接戏</span>
-                <span className="private-badge">私密</span>
-              </div>
-              {/* 私密主题的三连（点赞/收藏/投币针对首帖；私密内也可互动） */}
-              <TripleActions postId={t.first_post_id} authorId={t.user_id} initial={t} />
-            </div>
+                  <span>{timeAgo(t.last_posted_at || t.created_at)}</span>
+                  <span>{Math.max(0, (t.comment_count ?? 0) - 1)} 接戏</span>
+                  <span className="private-badge">私密</span>
+                </Fragment>
+              }
+              footer={<TripleActions postId={t.first_post_id} authorId={t.user_id} initial={t} />}
+            />
           );
         })
       )}

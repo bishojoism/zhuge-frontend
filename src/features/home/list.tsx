@@ -1,6 +1,6 @@
 // ===== 列表模式（最新/热门）：.topic 卡片 + 底部无限滚动哨兵 =====
-import { useEffect, useRef, useState } from 'react';
-import type { CoinInfo, Discussion, Tag } from '../../types';
+import { type ReactNode, useEffect, useRef, useState } from 'react';
+import type { CoinInfo, Discussion, Gender, Tag } from '../../types';
 import { displayName, imgSrc, tagColorOf, tagTextColorOf, timeAgo } from '../../lib/utils';
 import { collapseIosUrlBar, isIosUrlBarCollapsing } from '../../lib/iosUrlBar';
 import { api } from '../../api/client';
@@ -51,7 +51,7 @@ export default function ListView({
   return (
     <>
       {items.map((d) => (
-        <TopicCard key={d.id} d={d} tags={tags} onOpenTopic={onOpenTopic} />
+        <TopicCard key={d.id} d={d} tags={tags} onOpenTopic={(card) => onOpenTopic(card.id)} />
       ))}
       <div ref={sentinelRef} className="load-more">
         {loadingMore ? '加载中…' : hasMore ? '继续上滑加载更多' : '没有更多了'}
@@ -60,15 +60,42 @@ export default function ListView({
   );
 }
 
-// ===== 列表卡片（全局搜索弹窗等复用） =====
+/** 主题列表卡片所需的最小数据字段（主页/搜索/我的主题/我的私密共用；各列表接口均返回） */
+export interface TopicCardData {
+  id: number;
+  title: string;
+  user_id: number;
+  excerpt?: string;
+  image_url?: string | null;
+  author?: string;
+  author_avatar?: string | null;
+  author_gender?: Gender | null;
+  first_character_id?: number | null;
+  /** 作者累计获得格币（等级徽章依据） */
+  author_earned?: number | null;
+  author_badges?: string | null;
+}
+
+// ===== 列表卡片（全局共用：主页列表模式 / 搜索弹窗 / 我的主题 / 我的私密） =====
+// 各入口的差异（时间/接戏数/滴滴/私密徽标/三连等）通过插槽注入，不再各自复制卡片结构——
+// 保证作者信息（头像 + 名字）在任何列表都一致。
 export function TopicCard({
   d,
   tags,
   onOpenTopic,
+  titleRight,
+  metaExtras,
+  footer,
 }: {
-  d: Discussion;
+  d: TopicCardData;
   tags: Tag[];
-  onOpenTopic: (id: number) => void;
+  onOpenTopic: (d: TopicCardData) => void;
+  /** 标题右侧附加（私密滴滴状态徽标等） */
+  titleRight?: ReactNode;
+  /** 作者行之后附加（时间 / 接戏数 / 私密徽标等） */
+  metaExtras?: ReactNode;
+  /** 卡片尾部（一键三连等；其自身须拦截点击避免误触开帖） */
+  footer?: ReactNode;
 }) {
   // 摘要原样保留（.topic-excerpt 用 pre-line + max-height 按行截断）：
   // 不能 replace(/\s+/g,' ') 压成单行——会把 \n 变空格，长文全挤一行；
@@ -80,12 +107,19 @@ export function TopicCard({
       className="topic topic-clickable"
       role="link"
       tabIndex={0}
-      onClick={() => onOpenTopic(d.id)}
+      onClick={(e) => {
+        // 内部按钮（作者/三连/分享等）不触发开帖
+        if ((e.target as HTMLElement).closest('button')) return;
+        onOpenTopic(d);
+      }}
       onKeyDown={(e) => {
-        if (e.key === 'Enter') onOpenTopic(d.id);
+        if (e.key === 'Enter') onOpenTopic(d);
       }}
     >
-      <div className="topic-title">{d.title}</div>
+      <div className="topic-title">
+        {d.title}
+        {titleRight}
+      </div>
       {d.image_url ? (
         <img
           src={imgSrc(d.image_url, 480) || d.image_url}
@@ -126,7 +160,9 @@ export function TopicCard({
         >
           {displayName(d)}
         </span>
+        {metaExtras}
       </div>
+      {footer}
     </div>
   );
 }
