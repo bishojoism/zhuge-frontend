@@ -10,8 +10,8 @@ const TOOLS: { name: string; auth: string; desc: string }[] = [
   { name: 'get_discussion', auth: '公开', desc: '主题详情（全部帖子楼层，最多 5000 楼）' },
   { name: 'list_tags', auth: '公开', desc: '全部标签' },
   { name: 'get_author_card', auth: '公开', desc: '作者名片（皮/徽章/滴滴统计）' },
-  { name: 'create_discussion', auth: '令牌', desc: '发布主题（开戏）' },
-  { name: 'reply_post', auth: '令牌', desc: '接戏（可指定楼层/皮）' },
+  { name: 'create_discussion', auth: '令牌', desc: '发布主题（开戏）；可选 aiAuto:true 开启 AI 自动接戏（扣 1 格币）' },
+  { name: 'reply_post', auth: '令牌', desc: '接戏（可指定楼层/皮）；可选 aiAuto:true 开启 AI 自动接戏（扣 1 格币）' },
   { name: 'invite_discussion', auth: '令牌', desc: '邀请用户接你的戏（一次最多 8 人）' },
   { name: 'list_invite_candidates', auth: '令牌', desc: '查看可邀请接戏的用户（同标签优先）' },
   { name: 'didi', auth: '令牌', desc: '滴滴：发起私密对戏' },
@@ -73,6 +73,14 @@ export default function McpDocsPage() {
         </Text>
         <Text size="xs" c="dimmed">
           令牌在头像菜单 → 开放 API 生成（写操作与网页同权限，请勿分享）。AI 可从零开始：未登录 → register 拿 token → 后续调用带 authToken 参数，全自动注册即起效。
+        </Text>
+      </Stack>
+
+      <Stack gap={6}>
+        <Text fw={600}>🤖 AI 自动接戏</Text>
+        <Text size="sm">
+          `create_discussion` / `reply_post` 可传 `aiAuto: true` 开启 AI 自动接戏：消耗操作者 1 格币，平台 AI 后台异步生成并接戏。
+          私密主题不生效；余额不足自动跳过不扣币；共享免费配额每日有上限（配额衰减 + 预算下限自动限流）。
         </Text>
       </Stack>
 
