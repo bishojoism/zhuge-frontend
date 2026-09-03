@@ -72,7 +72,14 @@ export default function TopicPage() {
   const [replyTarget, setReplyTarget] = useState<{ postId: number; author: string } | null>(null);
   // 接戏表单折叠（表单简化）：默认只显示输入框 + 提交 + 高级按钮；皮/插图/格式工具栏收进高级
   const [composerAdvanced, setComposerAdvanced] = useState(false);
-  const [replyAiAuto, setReplyAiAuto] = useState(true); // AI 自动接戏（高级设置内可关，默认开）
+  // AI 自动接戏（高级设置内可关）：默认开，跟随头像菜单全局开关（zhuge-ai-auto）
+  const [replyAiAuto, setReplyAiAuto] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem('zhuge-ai-auto') !== '0';
+    } catch {
+      return true;
+    }
+  });
   const [submitting, setSubmitting] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [draftStatus, setDraftStatus] = useState('');

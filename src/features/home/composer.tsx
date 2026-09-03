@@ -80,7 +80,14 @@ export function ComposerContent({ user, tags, defaultTagId, onPosted }: Composer
     setTagIds([want]);
   }, [tags, tagIds, defaultTag]);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
-  const [aiAuto, setAiAuto] = useState(true); // AI 自动接戏（高级设置内可关，默认开）
+  // AI 自动接戏（高级设置内可关）：默认开，跟随头像菜单全局开关（zhuge-ai-auto）
+  const [aiAuto, setAiAuto] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem('zhuge-ai-auto') !== '0';
+    } catch {
+      return true;
+    }
+  });
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
   const [uploading, setUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);

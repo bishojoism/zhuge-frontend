@@ -146,6 +146,24 @@ export default function Layout({ children }: { children: ReactNode }) {
   const [menuOpen, setMenuOpen] = useState(false);
   // 调试模式（vConsole 虚拟控制台）：localStorage 记忆，dev 模式视为已开启
   const [debugOn, setDebugOn] = useState(() => isDebugMode() || import.meta.env.DEV);
+  // AI 自动接戏全局开关：localStorage 记忆（'1' 默认开；'0' 关）。关掉后开戏/接戏弹窗
+  // 默认不再勾选，弹窗内高级设置仍可单独开启
+  const [aiAutoOn, setAiAutoOn] = useState(() => {
+    try {
+      return localStorage.getItem('zhuge-ai-auto') !== '0';
+    } catch {
+      return true;
+    }
+  });
+  const handleAiAutoToggle = () => {
+    const next = !aiAutoOn;
+    setAiAutoOn(next);
+    try {
+      localStorage.setItem('zhuge-ai-auto', next ? '1' : '0');
+    } catch {
+      /* 忽略 */
+    }
+  };
   // 路由变化守卫：离开主题页（/d/:id，返回主页等）时归零页面滚动。
   // 常驻定时器方案：浏览器可能在返回导航后任意时刻异步恢复滚动位置（即使
   // scrollRestoration=manual），一次性补刀不够；用常驻 interval 在"离开主题页后的
@@ -581,6 +599,27 @@ export default function Layout({ children }: { children: ReactNode }) {
                           aria-label="系统通知"
                         />
                         {push.busy && <Loader size={14} style={{ position: 'absolute', inset: 0, margin: 'auto' }} />}
+                      </Box>
+                    </Group>
+                  </div>
+                  {/* AI 自动接戏全局开关：关闭后开戏/接戏默认不再勾选（各弹窗内仍可单独开启） */}
+                  <div className="menu-push-row" role="menuitem" onClick={(e) => e.stopPropagation()}>
+                    <Group justify="space-between" wrap="nowrap" w="100%">
+                      <Group gap={6} wrap="nowrap">
+                        <span style={{ fontSize: 14, lineHeight: 1 }}>🤖</span>
+                        <Text size="sm">AI 自动接戏</Text>
+                        <Text size="xs" c="dimmed">
+                          {aiAutoOn ? '默认开启' : '默认关闭'}
+                        </Text>
+                      </Group>
+                      <Box
+                        pos="relative"
+                        display="inline-flex"
+                        style={{ alignItems: 'center', justifyContent: 'center' }}
+                        w={44}
+                        h={22}
+                      >
+                        <Switch size="sm" checked={aiAutoOn} onChange={handleAiAutoToggle} aria-label="AI 自动接戏" />
                       </Box>
                     </Group>
                   </div>
