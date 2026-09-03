@@ -322,11 +322,10 @@ export function NotificationsModalContent({ onClose }: { onClose: () => void }) 
                     {timeAgo(n.created_at)}
                   </div>
                 </div>
-                {/* 再弹一次：应用内 toast +（有推送权限时）原样重放一条真实系统通知——
-                    点击系统通知走既有 sw notificationclick（data.url 跳转），与真推送行为一致 */}
+                {/* 再弹一次：真实服务器重放（插一条新通知并推送）。实心按钮样式：带边框+底色，
+                    一眼可点；点击反馈 = 短暂变绿实心 ✓ */}
                 <ActionIcon
-                  variant="subtle"
-                  size="md"
+                  variant="default"
                   aria-label={replayFb === n.id ? '已再弹一次' : '再弹一次'}
                   title="再弹一次"
                   onClick={(e) => {
@@ -335,12 +334,18 @@ export function NotificationsModalContent({ onClose }: { onClose: () => void }) 
                   }}
                   style={{
                     flexShrink: 0,
-                    marginLeft: 2,
+                    marginLeft: 4,
                     alignSelf: 'center',
-                    borderRadius: 8,
                     width: 30,
                     height: 30,
-                    color: replayFb === n.id ? 'var(--success-color, #2f9e44)' : 'var(--muted)',
+                    borderRadius: 8,
+                    ...(replayFb === n.id
+                      ? {
+                          background: '#2f9e44',
+                          borderColor: '#2f9e44',
+                          color: '#fff',
+                        }
+                      : {}),
                   }}
                 >
                   {replayFb === n.id ? '✓' : '↻'}
