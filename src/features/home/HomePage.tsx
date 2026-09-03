@@ -11,7 +11,7 @@ import { useDiscussions, useTags, refreshListsAfterWrite, preloadAllPrimaryLists
 import { readInitData } from '../../api/client';
 import { openModalOnce } from '../../lib/modals';
 import { focusOnEnter } from '../../lib/modalFocus';
-import type { Discussion, InitData } from '../../types';
+import type { Discussion, InitData, User } from '../../types';
 import TagBar, { type SortKey } from './tagbar';
 import FeedView from './feed';
 import ListView from './list';
@@ -25,6 +25,18 @@ import { TagPickerContent } from './tagPicker';
 const newSeed = () => Math.floor(Date.now() / 60000) + 1;
 
 const SORT_KEYS: SortKey[] = ['recommend', 'latest', 'hot'];
+
+// 弹窗内容自己订阅 /tags（useTags 为全局 SWR hook，portal 内上下文同样生效）：
+// openModalOnce 的 children 是打开瞬间的快照 —— 若 /tags 的"瘦身快照补拉全量"尚未完成，
+// 弹窗会一直停留在"只有主标签"直到重开；让内容自订阅后，补拉完成时首开弹窗也会实时补全。
+function ModalComposerBody(props: { user: User; defaultTagId: number | null; onPosted: (id: number) => void }) {
+  const { tags } = useTags();
+  return <ComposerContent user={props.user} tags={tags} defaultTagId={props.defaultTagId} onPosted={props.onPosted} />;
+}
+function ModalTagPickerBody(props: { activeTag: number | null; onPick: (id: number | null) => void }) {
+  const { tags } = useTags();
+  return <TagPickerContent tags={tags} activeTag={props.activeTag} onPick={props.onPick} />;
+}
 
 // 扁横幅：显示「下一步」引导——调用 /api/me/next-step（与 MCP get_daily_todo 同一 action 逻辑：
 // 未登录→"注册《主格》"；已登录→首个未完成建议任务；全部完成→🎉）
@@ -262,12 +274,7 @@ export default function HomePage() {
           size: 'md',
           ...focusOnEnter('input'), // 标题输入框（弹窗内第一个输入框）
           children: (
-            <ComposerContent
-              user={user}
-              tags={tags}
-              defaultTagId={tag}
-              onPosted={handlePosted}
-            />
+            <ModalComposerBody user={user} defaultTagId={tag} onPosted={handlePosted} />
           ),
         });
       },
@@ -287,8 +294,7 @@ export default function HomePage() {
           size: 'md',
           ...focusOnEnter('input'), // 搜索标签输入框
           children: (
-            <TagPickerContent
-              tags={tags}
+            <ModalTagPickerBody
               activeTag={tag}
               onPick={(id) => {
                 modals.closeAll();
