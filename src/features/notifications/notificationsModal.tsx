@@ -227,10 +227,12 @@ export function NotificationsModalContent({ onClose }: { onClose: () => void }) 
   const markAllRead = async () => {
     if (markingAll) return;
     setMarkingAll(true);
+    console.log('[allread] click  data=', data?.data?.length, 'extra=', extra.length, 'isLoading=', isLoading);
     // 乐观：本地立即标记已读。base 兜底用弹窗当前 data——若点击瞬间 SWR 缓存刚好被
     // 某次刷新置空（current 无 data），(current?.data || []) 会变成空列表 → 短暂闪
     // "还没有通知"；用有内容的 base 保证乐观帧不空、等 revalidate 收敛。
     const optimistic = (current?: NotifListResult): NotifListResult => {
+      console.log('[allread] updater current.data=', current?.data?.length, 'hook data=', data?.data?.length);
       const base =
         current && Array.isArray(current.data) && current.data.length > 0 ? current : data;
       return {
@@ -243,10 +245,12 @@ export function NotificationsModalContent({ onClose }: { onClose: () => void }) 
     } catch {
       /* 乐观更新失败忽略 */
     }
+    console.log('[allread] optimistic applied');
     setMarkingAll(false); // 乐观已生效：按钮立即恢复（不等网络请求，避免"已已读还转圈"）
     void globalMutate('/me'); // 未读徽标（乐观后重拉确认）
     try {
       await api('/me/notifications/read', { method: 'POST', body: { all: true } });
+      console.log('[allread] server done, revalidate');
       void globalMutate('/me/notifications');
       void globalMutate('/me');
     } catch {
@@ -283,9 +287,16 @@ export function NotificationsModalContent({ onClose }: { onClose: () => void }) 
             <Loader size="sm" />
           </Group>
         ) : list.length === 0 ? (
-          <Text c="dimmed" ta="center" py="xl">
-            还没有通知
-          </Text>
+          <div>
+            {/* 诊断：出现空帧（"还没有通知"）时打印当时状态 */}
+            {(() => {
+              console.log('[notif] EMPTY_FRAME data=', data?.data?.length, 'extra=', extra.length, 'isLoading=', isLoading, 'markingAll=', markingAll);
+              return null;
+            })()}
+            <Text c="dimmed" ta="center" py="xl">
+              还没有通知
+            </Text>
+          </div>
         ) : (
           <Stack gap={4}>
             {list.map((n) => (
