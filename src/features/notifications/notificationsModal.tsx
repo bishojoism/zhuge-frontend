@@ -39,7 +39,7 @@ export function NotificationsModalContent({ onClose }: { onClose: () => void }) 
   const { user } = useMe();
   const navigate = useNavigate();
   const { data, isLoading } = useNotifications();
-  // 分页：SWR 只拿第 1 页（10 条），"加载更多"追加本地 state（弹窗每次打开重新 mount，state 自然重置）
+  // 分页：SWR 只拿第 1 页（20 条），"加载更多"追加本地 state（弹窗每次打开重新 mount，state 自然重置）
   const [extra, setExtra] = useState<NotificationItem[]>([]);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(false);
@@ -50,18 +50,7 @@ export function NotificationsModalContent({ onClose }: { onClose: () => void }) 
     setPage(1);
     setHasMore(!!data?.meta?.hasMore);
   }, [data]);
-  // 渲染级按 id 去重：page1 与 extra 合并后去重——新通知把旧 id 顶进第 1 页时，
-  // 该 id 可能同时残留在已加载的 extra 里（分页边界重叠），不去重会"同一条出现两行"
-  const list = (() => {
-    const seen = new Set<number>();
-    const out: NotificationItem[] = [];
-    for (const n of [...(data?.data ?? []), ...extra]) {
-      if (!n || seen.has(n.id)) continue;
-      seen.add(n.id);
-      out.push(n);
-    }
-    return out;
-  })();
+  const list = [...(data?.data ?? []), ...extra];
   // 防重复：StrictMode 下 effect 会执行两次，且 user 在加载中/未登录间跳动时可能连续触发
   const promptedRef = useRef(false);
 
@@ -86,11 +75,8 @@ export function NotificationsModalContent({ onClose }: { onClose: () => void }) 
       const r = await api<NotifListResult>(`/me/notifications?page=${next}`);
       const nextItems = r.data || [];
       setExtra((prev) => {
-        // 交叉去重：既去 extra 内部重复，也去掉已出现在第 1 页（data）的 id，
-        // 避免分页边界重叠时同一条渲染两行（渲染层还有兜底去重）
-        const inPage1 = new Set((data?.data ?? []).map((n) => n.id));
         const seen = new Set(prev.map((n) => n.id));
-        return [...prev, ...nextItems.filter((n) => !seen.has(n.id) && !inPage1.has(n.id))];
+        return [...prev, ...nextItems.filter((n) => !seen.has(n.id))];
       });
       setPage(next);
       setHasMore(!!r.meta?.hasMore);
