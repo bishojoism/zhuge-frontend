@@ -324,11 +324,15 @@ export function ComposerContent({ user, tags, defaultTagId, onPosted }: Composer
         ) : null}
       </Group>
       {characters.length > 0 && (
-        <div>
-          <Text size="xs" c="dimmed" mb={4}>
-            皮上演绎（可选）
-          </Text>
-          <CharacterPicker options={characters} value={characterId} onChange={setCharacterId} width="100%" placeholder="不指定" />
+        <div style={{ marginBottom: 8 }}>
+          {/* 与接戏/滴滴的皮选择器一致：无副 label，hint 直接放触发器占位「（可选）皮上」 */}
+          <CharacterPicker
+            options={characters}
+            value={characterId}
+            onChange={setCharacterId}
+            width="100%"
+            ariaLabel="发帖皮（可选）"
+          />
         </div>
       )}
       <Group justify="space-between" wrap="nowrap" align="center">
