@@ -142,6 +142,14 @@ export default function Layout({ children }: { children: ReactNode }) {
   const push = usePushNotify();
   // 通知弹窗（本地 state 单例）
   const [notifOpen, setNotifOpen] = useState(false);
+  // 整页刷新中：按钮转圈 + toast 反馈，稍作停顿再 reload（立即 reload 在缓存页下"无感知"）
+  const [refreshing, setRefreshing] = useState(false);
+  const handleRefresh = () => {
+    if (refreshing) return;
+    setRefreshing(true);
+    notifications.show({ message: '正在刷新页面…', color: 'gray', autoClose: 1500 });
+    setTimeout(() => window.location.reload(), 600);
+  };
   // 头像下拉菜单（受控）：宫格按钮是自定义 button 而非 Menu.Item，Mantine 不会自动关闭，
   // 打开徽章/皮等弹窗前先关菜单，避免弹窗与下拉叠在一起
   const [menuOpen, setMenuOpen] = useState(false);
@@ -434,11 +442,12 @@ export default function Layout({ children }: { children: ReactNode }) {
             <ActionIcon
               variant="subtle"
               size="lg"
-              onClick={() => window.location.reload()}
+              onClick={handleRefresh}
               aria-label="刷新页面"
               title="刷新页面"
+              disabled={refreshing}
             >
-              <IconRefresh size={20} />
+              {refreshing ? <Loader size={18} /> : <IconRefresh size={20} />}
             </ActionIcon>
           </Tooltip>
           {pwaButton}
