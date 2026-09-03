@@ -135,7 +135,7 @@ export interface DiscussionDetail {
   } | null;
 }
 
-export type NotifType = 'didi' | 'reply' | 'report' | 'report_result' | 'invite' | 'coin';
+export type NotifType = 'didi' | 'reply' | 'report' | 'report_result' | 'invite' | 'coin' | 'content_review';
 
 export interface NotificationItem {
   id: number;

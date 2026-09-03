@@ -11,12 +11,14 @@ import { requireLogin } from '../auth/authModals';
 import { timeAgo } from '../../lib/utils';
 import type { NotificationItem, NotifListResult, NotifType } from '../../types';
 
-// 通知图标：didi → 📨；invite → 🎭（邀请接戏）；coin → 🪙（投币/打赏）；report/report_result → ⚑；其余（reply）→ 💬
+// 通知图标：didi → 📨；invite → 🎭（邀请接戏）；coin → 🪙（投币/打赏）；report/report_result → ⚑；
+// content_review → 🛡（内容送审，管理员复核）；其余（reply）→ 💬
 function notifIcon(type: NotifType): string {
   if (type === 'didi') return '📨';
   if (type === 'invite') return '🎭';
   if (type === 'coin') return '🪙';
   if (type === 'report' || type === 'report_result') return '⚑';
+  if (type === 'content_review') return '🛡';
   return '💬';
 }
 
