@@ -203,6 +203,7 @@ export interface PrivateItem {
   image_url?: string | null;
   // 滴滴响应状态：'accepted' | 'declined' | null（待回应）
   didi_status?: 'accepted' | 'declined' | null;
+  didi_count?: number;
   // 三连相关（列表接口返回，列表卡片展示）
   first_post_id?: number | null;
   like_count?: number;
@@ -211,6 +212,12 @@ export interface PrivateItem {
   liked?: number | null;
   favorited?: number | null;
   author_earned?: number | null;
+  // 主题信息完整字段（与主页列表同构，点进主题乐观帧一致显示）
+  excerpt?: string;
+  tags?: string; // "A / B"
+  first_character_id?: number | null;
+  author_badges?: string | null;
+  post_didi_count?: number;
 }
 
 // 我的滴滴响应率（作为被滴滴方）
@@ -239,6 +246,15 @@ export interface MyTopicItem {
   liked?: number | null;
   favorited?: number | null;
   author_earned?: number | null;
+  // 主题信息完整字段（与主页列表同构，点进主题乐观帧一致显示）
+  author?: string;
+  author_avatar?: string | null;
+  author_gender?: Gender;
+  excerpt?: string;
+  tags?: string; // "A / B"
+  first_character_id?: number | null;
+  author_badges?: string | null;
+  post_didi_count?: number;
 }
 
 export interface CharacterItem {
