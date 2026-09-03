@@ -248,6 +248,13 @@ export function NotificationsModalContent({ onClose }: { onClose: () => void }) 
     }
   };
 
+  // "再弹一次"：调服务器重放该条通知的真实推送（NotifyDO 广播 + Web Push）。
+  // 与原通知一致：**不弹应用内 toast**；有系统推送权限的设备会再收到系统通知（点击走
+  // sw.js notificationclick 跳转对应主题）。服务器只重放推送，不重复插库、不改已读。
+  const replayOnce = (n: NotificationItem) => {
+    void api(`/me/notifications/${n.id}/replay`, { method: 'POST' }).catch(() => {});
+  };
+
   return (
     <div style={{ position: 'relative' }}>
       <Stack gap="xs">
@@ -308,6 +315,30 @@ export function NotificationsModalContent({ onClose }: { onClose: () => void }) 
                     {timeAgo(n.created_at)}
                   </div>
                 </div>
+                {/* 再弹一次：应用内 toast +（有推送权限时）原样重放一条真实系统通知——
+                    点击系统通知走既有 sw notificationclick（data.url 跳转），与真推送行为一致 */}
+                <button
+                  type="button"
+                  aria-label="再弹一次"
+                  title="再弹一次"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    replayOnce(n);
+                  }}
+                  style={{
+                    border: 'none',
+                    background: 'none',
+                    cursor: 'pointer',
+                    padding: '4px 3px',
+                    fontSize: 13,
+                    color: 'var(--muted)',
+                    opacity: 0.55,
+                    alignSelf: 'center',
+                    marginLeft: 2,
+                  }}
+                >
+                  ↻
+                </button>
                 {!n.is_read && <span className="notif-dot" />}
               </div>
             ))}
