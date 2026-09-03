@@ -2,7 +2,7 @@
 // 弹窗由 Layout 用 Mantine <Modal opened> 控制（单例，避免 @mantine/modals 全局栈叠加问题）
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button, Group, Loader, Stack, Text } from '@mantine/core';
+import { ActionIcon, Button, Group, Loader, Stack, Text } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { mutate as globalMutate } from 'swr';
 import { api } from '../../api/client';
@@ -53,6 +53,8 @@ export function NotificationsModalContent({ onClose }: { onClose: () => void }) 
   const list = [...(data?.data ?? []), ...extra];
   // 防重复：StrictMode 下 effect 会执行两次，且 user 在加载中/未登录间跳动时可能连续触发
   const promptedRef = useRef(false);
+  // 再弹一次"点击反馈"：正在重放的那条 id（图标短暂变 ✓ 后再还原）
+  const [replayFb, setReplayFb] = useState<number | null>(null);
 
   // 未登录：提示登录（只提示一次；由外层 onClose 关闭本弹窗）
   useEffect(() => {
@@ -252,7 +254,12 @@ export function NotificationsModalContent({ onClose }: { onClose: () => void }) 
   // 与原通知一致：**不弹应用内 toast**；有系统推送权限的设备会再收到系统通知（点击走
   // sw.js notificationclick 跳转对应主题）。服务器只重放推送，不重复插库、不改已读。
   const replayOnce = (n: NotificationItem) => {
-    void api(`/me/notifications/${n.id}/replay`, { method: 'POST' }).catch(() => {});
+    setReplayFb(n.id); // 点击感知：图标短暂变 ✓
+    void api(`/me/notifications/${n.id}/replay`, { method: 'POST' })
+      .catch(() => {})
+      .finally(() => {
+        window.setTimeout(() => setReplayFb((cur) => (cur === n.id ? null : cur)), 1200);
+      });
   };
 
   return (
@@ -317,28 +324,27 @@ export function NotificationsModalContent({ onClose }: { onClose: () => void }) 
                 </div>
                 {/* 再弹一次：应用内 toast +（有推送权限时）原样重放一条真实系统通知——
                     点击系统通知走既有 sw notificationclick（data.url 跳转），与真推送行为一致 */}
-                <button
-                  type="button"
-                  aria-label="再弹一次"
+                <ActionIcon
+                  variant="subtle"
+                  size="md"
+                  aria-label={replayFb === n.id ? '已再弹一次' : '再弹一次'}
                   title="再弹一次"
                   onClick={(e) => {
                     e.stopPropagation();
                     replayOnce(n);
                   }}
                   style={{
-                    border: 'none',
-                    background: 'none',
-                    cursor: 'pointer',
-                    padding: '4px 3px',
-                    fontSize: 13,
-                    color: 'var(--muted)',
-                    opacity: 0.55,
-                    alignSelf: 'center',
+                    flexShrink: 0,
                     marginLeft: 2,
+                    alignSelf: 'center',
+                    borderRadius: 8,
+                    width: 30,
+                    height: 30,
+                    color: replayFb === n.id ? 'var(--success-color, #2f9e44)' : 'var(--muted)',
                   }}
                 >
-                  ↻
-                </button>
+                  {replayFb === n.id ? '✓' : '↻'}
+                </ActionIcon>
                 {!n.is_read && <span className="notif-dot" />}
               </div>
             ))}
