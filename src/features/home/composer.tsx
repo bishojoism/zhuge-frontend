@@ -269,7 +269,22 @@ export function ComposerContent({ user, tags, defaultTagId, onPosted }: Composer
       )}
       {/* 提交行：高级设置开关 + 保存状态 + 开戏（始终可见） */}
       <Group justify="space-between" wrap="nowrap" align="center">
-        <Button variant="subtle" size="compact-sm" onClick={() => setAdvanced((v) => !v)}>
+        <Button
+          variant="subtle"
+          size="compact-sm"
+          onClick={() => {
+            // iOS：点击 <button> 不移走输入框焦点——收起键盘后焦点仍留在标题框；
+            // 展开高级设置使弹窗变高/滚动时 Safari 会把持焦输入框滚回视野并重新唤起键盘。
+            // 先主动失焦，切断焦点残留。
+            try {
+              const ae = document.activeElement as HTMLElement | null;
+              if (ae && typeof ae.blur === 'function') ae.blur();
+            } catch {
+              /* 忽略 */
+            }
+            setAdvanced((v) => !v);
+          }}
+        >
           {advanced ? '收起高级设置 ▴' : '高级设置 ▾'}
         </Button>
         <span style={{ fontSize: 12, color: 'var(--muted)', minHeight: 16 }}>{saveLabel}</span>
