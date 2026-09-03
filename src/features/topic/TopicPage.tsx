@@ -849,7 +849,7 @@ export default function TopicPage() {
                 }
               }}
               clearable
-              searchable
+              // 不用 searchable：非 searchable 渲染 <button>（非 <input>），iOS 不弹"自动填充"
               nothingFoundMessage="无匹配皮"
               renderOption={({ option }) => {
                 const c = charMap.get(option.value);

@@ -326,13 +326,13 @@ export function ComposerContent({ user, tags, defaultTagId, onPosted }: Composer
         <Select
           label="皮上演绎（可选）"
           placeholder="不指定"
-          // iOS Safari 无视 autoComplete="new-password"；new-password 可压制"自动填充"菜单
+          // 不用 searchable：非 searchable 时 Mantine 渲染 <button> 触发（非 <input>），
+          // iOS 不会弹"自动填充"（此前 new-password 对个别机型仍会弹）；代价是不能打字搜皮名
           autoComplete="new-password"
           data={characters.map((c) => ({ value: String(c.id), label: c.name }))}
           value={characterId}
           onChange={setCharacterId}
           clearable
-          searchable
           nothingFoundMessage="无匹配皮"
           renderOption={({ option }) => {
             const c = charMap.get(option.value);
