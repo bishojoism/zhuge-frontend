@@ -12,6 +12,7 @@ import { IconLock } from '@tabler/icons-react';
 import { mutate } from 'swr';
 import { focusOnEnter } from '../../lib/modalFocus';
 import { openModalOnce } from '../../lib/modals';
+import { readInvitedBy, consumeInvite } from '../../lib/invite';
 import { api } from '../../api/client';
 
 function errMsg(e: unknown): string {
@@ -114,16 +115,7 @@ function LoginModal() {
 
 // ============ 注册弹窗（密码注册） ============
 // 邀请人 id（来自 ?invite=<uid> 链接，main.tsx 已存 localStorage）：注册时提交，
-// 邀请人与被邀请人各得邀请徽章
-function getInvitedBy(): number | undefined {
-  try {
-    const v = localStorage.getItem('zhuge-invite');
-    if (v && /^\d{1,10}$/.test(v)) return Number(v);
-  } catch {
-    /* 忽略 */
-  }
-  return undefined;
-}
+// 邀请人与被邀请人各得邀请徽章；0 步自动注册（AuthContext）同样携带并消费
 
 function RegisterModal() {
   const [username, setUsername] = useState('');
@@ -156,11 +148,12 @@ function RegisterModal() {
     }
     setBusy(true);
     try {
-      const invitedBy = getInvitedBy();
+      const invitedBy = readInvitedBy();
       await api('/register', {
         method: 'POST',
         body: { username: name, password, ...(invitedBy ? { invitedBy } : {}) },
       });
+      if (invitedBy) consumeInvite(); // 注册成功即消费（单设备一次邀请）
       if (!alive.current) return;
       await refreshUser();
       modals.closeAll();

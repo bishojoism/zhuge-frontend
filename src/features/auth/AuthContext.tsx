@@ -6,6 +6,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, type ReactNode } from 'react';
 import { api } from '../../api/client';
 import { useMe } from '../../api/hooks';
+import { readInvitedBy, consumeInvite } from '../../lib/invite';
 import type { User } from '../../types';
 
 interface AuthContextValue {
@@ -52,12 +53,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (registeringRef.current) return;
     registeringRef.current = true;
     (async () => {
+      // 邀请链接（?invite=<uid>）也作用于 0 步自动注册：否则链接触达的绝大多数新访客
+      // 都先自动注册成游客（无 invited_by），邀请关系丢失，邀请人/被邀请人徽章都拿不到
+      const invitedBy = readInvitedBy();
       for (let attempt = 0; attempt < 3; attempt++) {
         try {
           await api('/register', {
             method: 'POST',
-            body: { username: randomUsername(), password: randomPassword(), autoGuest: true },
+            body: {
+              username: randomUsername(),
+              password: randomPassword(),
+              autoGuest: true,
+              ...(invitedBy ? { invitedBy } : {}),
+            },
           });
+          if (invitedBy) consumeInvite(); // 注册成功即消费（单设备一次邀请）
           await mutate(); // register 已 Set-Cookie 登录态 → refresh 后 user 有值
           break;
         } catch {
