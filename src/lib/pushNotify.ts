@@ -47,6 +47,45 @@ const SUBSCRIBE_TIMEOUT_MS = 8000;
 // 若不加超时，busy 会永久卡住、后续点击全部被挡
 const REQUEST_PERM_TIMEOUT_MS = 3000;
 
+// 订阅是否仍使用当前 VAPID 公钥。
+// 密钥轮换（换私钥必须换公钥）后，旧订阅在推送服务侧与旧公钥绑定，
+// 服务端用新私钥签名会被拒 → 必须退订并用新公钥重建。
+// 浏览器不暴露 applicationServerKey（读不到）→ 视为"无法校验"，交由服务端同步逻辑兜底。
+function subUsesCurrentKey(sub: PushSubscription): boolean {
+  try {
+    const key = (sub as unknown as { applicationServerKey?: ArrayBuffer | null }).applicationServerKey;
+    if (!key) return true;
+    const expect = urlBase64ToUint8Array(APPLICATION_SERVER_KEY);
+    if (key.byteLength !== expect.byteLength) return false;
+    const a = new Uint8Array(key);
+    const b = new Uint8Array(expect);
+    for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return false;
+    return true;
+  } catch {
+    return true;
+  }
+}
+
+// 把浏览器侧订阅同步到服务端（upsert，幂等）。
+// 服务端记录可能因清理/换设备丢失，但浏览器订阅仍在 → 加载时补报自愈。
+async function syncSubscriptionToServer(sub: PushSubscription): Promise<boolean> {
+  const p256dh = sub.getKey('p256dh');
+  const auth = sub.getKey('auth');
+  if (!p256dh || !auth) return false;
+  try {
+    await api('/push/subscribe', {
+      method: 'POST',
+      body: {
+        endpoint: sub.endpoint,
+        keys: { p256dh: bytesToBase64Url(p256dh), auth: bytesToBase64Url(auth) },
+      },
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export function usePushNotify() {
   const [state, setState] = useState<PushState>('default');
   // 订阅/退订进行中（Switch 显示加载）
@@ -82,6 +121,28 @@ export function usePushNotify() {
       const sub = await reg.pushManager.getSubscription();
       // 只有真实存在订阅才算已开启；权限 granted 但订阅失败（如推送服务不可达）→ 未开启
       setState(sub ? 'subscribed' : 'default');
+      if (sub && Notification.permission === 'granted') {
+        // 自愈①：服务端记录丢失（清理/异常）→ 幂等补报
+        if (subUsesCurrentKey(sub)) {
+          await syncSubscriptionToServer(sub);
+        } else {
+          // 自愈②：VAPID 密钥已轮换，旧订阅已失效 → 退订旧 key，改用当前 key 重建
+          try {
+            await sub.unsubscribe().catch(() => {});
+            const fresh = await withTimeout(
+              reg.pushManager.subscribe({
+                userVisibleOnly: true,
+                applicationServerKey: urlBase64ToUint8Array(APPLICATION_SERVER_KEY),
+              }),
+              SUBSCRIBE_TIMEOUT_MS
+            );
+            const okSync = await syncSubscriptionToServer(fresh);
+            setState(okSync ? 'subscribed' : 'default');
+          } catch {
+            setState('default');
+          }
+        }
+      }
     } catch {
       setState('default');
     }
@@ -112,6 +173,11 @@ export function usePushNotify() {
       try {
         const reg = await withTimeout(navigator.serviceWorker.ready, 5000);
         let sub = await reg.pushManager.getSubscription();
+        // VAPID 密钥轮换后旧订阅已失效（公钥不匹配）→ 退订后用当前公钥重建
+        if (sub && !subUsesCurrentKey(sub)) {
+          await sub.unsubscribe().catch(() => {});
+          sub = null;
+        }
         if (!sub) {
           sub = await withTimeout(
             reg.pushManager.subscribe({
