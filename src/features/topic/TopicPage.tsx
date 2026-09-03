@@ -48,6 +48,7 @@ export default function TopicPage() {
     loadMoreRef,
     loadingMore,
     setPendingTarget,
+    cancelTargetLock,
     injectOptimistic,
     removeOptimistic,
   } = useTopicPagination(id);
@@ -665,6 +666,9 @@ export default function TopicPage() {
   // 跳楼/定位（普通函数 + focusPost effect：effect 同样必须在条件 return 之前声明）
   const jumpToLast = () => {
     if (lastPos === null) return;
+    // 先取消在跑的定位锁：通知跳转的看门狗（最长 8s）会继续把滚动拽回旧目标，
+    // 不取消的话点"回到上次位置"会被拽回去（像锁没解开）
+    cancelTargetLock();
     const el = document.querySelector(`[data-num="${lastPos}"]`);
     if (el) {
       // 滚动到目标楼（顶部对齐导航栏下方）：window.scrollTo smooth + 动态测量导航栏高度，
@@ -678,6 +682,8 @@ export default function TopicPage() {
 
   // 点击回复引用 → 跳转到被回复的帖子并短暂高亮
   const jumpToPost = (targetId: number) => {
+    // 同 jumpToLast：先取消在跑的定位锁，避免旧看门狗把滚动拽回旧目标
+    cancelTargetLock();
     const target = posts.find((p) => p.id === targetId);
     if (!target) {
       // 目标未加载（可能在前面的分页里）：定位加载后跳转

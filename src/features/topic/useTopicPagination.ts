@@ -228,16 +228,28 @@ export function useTopicPagination(id: string | undefined) {
   useEffect(() => {
     if (!pendingTarget) initialJumpScrollRef.current = false;
   }, [pendingTarget]);
+  // 主动取消定位校正（解锁）：停看门狗轮询与绝对上限 timer，清空 pendingTarget。
+  // 暴露给页面层：用户显式发起新的跳转（回到上次位置/引用跳楼）时先取消在跑的旧锁——
+  // 否则通知跳转留下的看门狗（最长 8s）会继续把滚动拽回旧目标，跟新跳转打架
+  // （表现：点了"回到上次位置"又被拽回去，像锁没解开）。
+  const cancelTargetLock = useCallback(() => {
+    if (jumpWatchRef.current) window.clearInterval(jumpWatchRef.current);
+    jumpWatchRef.current = null;
+    if (jumpSettleTimerRef.current) window.clearTimeout(jumpSettleTimerRef.current);
+    jumpSettleTimerRef.current = null;
+    setPendingTarget(null);
+  }, []);
   useLayoutEffect(() => {
     if (!pendingTarget || !id) return;
+    // 清掉旧的校正窗口：pendingTarget 变更（新跳转替换旧目标）或数据变化重跑本 effect 时，
+    // 旧看门狗必须立即停——即使新目标尚未找到（fetch 中），也不能让旧锁继续拽滚动
+    if (jumpSettleTimerRef.current) window.clearTimeout(jumpSettleTimerRef.current);
+    if (jumpWatchRef.current) window.clearInterval(jumpWatchRef.current);
     const found = 'id' in pendingTarget
       ? mergedPosts.find((p) => p.id === pendingTarget.id)
       : mergedPosts.find((p) => p.number === pendingTarget.number);
     if (found) {
       const num = found.number;
-      // 清掉旧的校正窗口：每次数据变化重跑本 effect，重新武装
-      if (jumpSettleTimerRef.current) window.clearTimeout(jumpSettleTimerRef.current);
-      if (jumpWatchRef.current) window.clearInterval(jumpWatchRef.current);
       // 目标楼能否滚到视口顶部：乐观帧只含少量楼层（缺目标楼之前的楼层），页面高度不足，
       // 此时定位滚不到顶（视口顶部是主题数据），滚了也是白滚，等真实楼层到达页面变高后再定位。
       // 用「目标楼到文档底部的高度 ≥ 视口高度」判断下方是否有足够内容把它顶到视口顶部。
@@ -273,13 +285,8 @@ export function useTopicPagination(id: string | undefined) {
       };
       // 结束校正（解锁）：清掉目标锁轮询与绝对上限 timer，清空 pendingTarget。
       // 三种触发：位置稳定 2s + 真实数据到位；8s 绝对上限；用户开始手动滚动（把手柄交还）。
-      const unlockTargetLock = () => {
-        if (jumpWatchRef.current) window.clearInterval(jumpWatchRef.current);
-        jumpWatchRef.current = null;
-        if (jumpSettleTimerRef.current) window.clearTimeout(jumpSettleTimerRef.current);
-        jumpSettleTimerRef.current = null;
-        setPendingTarget(null);
-      };
+      // 解锁 = 复用组件级 cancelTargetLock（同一份清理逻辑）
+      const unlockTargetLock = cancelTargetLock;
       // 校正窗口（目标锁）：定位完成后持续校验目标楼位置，直到"真实数据到位 + 位置稳定"。
       // 为什么窗口必须比原来的 1.5s 长：iOS Safari 的扰动会晚到——
       //  1) 主题页 auto-reply effect 里 navigate(replace) 清 ?reply= query，iOS Safari 对该
@@ -450,6 +457,7 @@ export function useTopicPagination(id: string | undefined) {
     loadMoreRef,
     loadingMore,
     setPendingTarget,
+    cancelTargetLock,
     injectOptimistic,
     removeOptimistic,
   };
