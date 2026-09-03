@@ -880,10 +880,16 @@ export default function TopicPage() {
                   : '写下你的接戏……'
             }
           />
-          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
             <Button variant="subtle" size="compact-sm" onClick={() => setComposerAdvanced((v) => !v)}>
               {composerAdvanced ? '收起高级设置 ▴' : '高级设置 ▾'}
             </Button>
+            {/* 收起时提示 AI 自动接戏开关状态 */}
+            {!composerAdvanced && !isPrivate && (
+              <Text size="xs" c="dimmed">
+                {replyAiAuto ? 'AI 自动接戏开（1 币/次）' : 'AI 自动接戏关'}
+              </Text>
+            )}
             {composerAdvanced && (
               <>
             <Button variant="subtle" size="compact-sm" onClick={handlePickImage} loading={uploading}>

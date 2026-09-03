@@ -276,6 +276,12 @@ export function ComposerContent({ user, tags, defaultTagId, onPosted }: Composer
           将发布到「{tags.find((t) => t.id === tagIds[0])?.name ?? ''}」（可展开修改）
         </Text>
       )}
+      {/* 收起时提示 AI 自动接戏开关状态（展开后直接可见，无需重复提示） */}
+      {!advanced && (
+        <Text size="xs" c="dimmed">
+          {aiAuto ? 'AI 自动接戏已开启（1 币/次，后台自动接戏）' : 'AI 自动接戏已关闭'}
+        </Text>
+      )}
       {/* 提交行：高级设置开关 + 保存状态 + 开戏（始终可见） */}
       <Group justify="space-between" wrap="nowrap" align="center">
         <Button
