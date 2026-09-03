@@ -30,6 +30,7 @@ import {
   IconUserPlus,
   IconListCheck,
   IconStar,
+  IconRefresh,
 } from '@tabler/icons-react';
 import { useAuth } from '../features/auth/AuthContext';
 import { useUnread, useCoins, useTags, preloadAllPrimaryLists } from '../api/hooks';
@@ -427,6 +428,17 @@ export default function Layout({ children }: { children: ReactNode }) {
               title="使用帮助"
             >
               <IconHelpCircle size={20} />
+            </ActionIcon>
+          </Tooltip>
+          <Tooltip label="刷新页面" withArrow>
+            <ActionIcon
+              variant="subtle"
+              size="lg"
+              onClick={() => window.location.reload()}
+              aria-label="刷新页面"
+              title="刷新页面"
+            >
+              <IconRefresh size={20} />
             </ActionIcon>
           </Tooltip>
           {pwaButton}
