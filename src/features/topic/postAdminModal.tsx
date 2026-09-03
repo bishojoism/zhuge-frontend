@@ -111,7 +111,7 @@ function PostAdminModalContent({ targetType, targetId, authorId, authorName, onD
         minRows={3}
         autoFocus
         data-autofocus
-        autoComplete="off"
+        autoComplete="new-password"
         value={reason}
         onChange={(e) => setReason(e.currentTarget.value)}
       />

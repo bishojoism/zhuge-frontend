@@ -44,7 +44,7 @@ export function BanIpModal({ ip, onClose }: BanIpModalProps) {
       </Text>
       <Textarea
         label="原因（必填）"
-        autoComplete="off"
+        autoComplete="new-password"
         value={reason}
         onChange={(e) => setReason(e.currentTarget.value)}
         minRows={3}

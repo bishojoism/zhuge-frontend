@@ -82,7 +82,7 @@ export function UserActionModal({ user, onClose }: UserActionModalProps) {
       {needsIp && (
         <TextInput
           label="IP 地址"
-          autoComplete="off"
+          autoComplete="new-password"
           value={ip}
           onChange={(e) => setIp(e.currentTarget.value)}
           placeholder="要封禁/解封的 IP"
@@ -90,7 +90,7 @@ export function UserActionModal({ user, onClose }: UserActionModalProps) {
       )}
       <Textarea
         label="原因（必填，将通知对方）"
-        autoComplete="off"
+        autoComplete="new-password"
         value={reason}
         onChange={(e) => setReason(e.currentTarget.value)}
         minRows={3}

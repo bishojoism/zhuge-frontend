@@ -110,7 +110,7 @@ function InviteContent({ discussionId }: { discussionId: number }) {
         <TextInput
           size="sm"
           placeholder="搜索用户名…"
-          autoComplete="off"
+          autoComplete="new-password"
           value={q}
           onChange={(e) => setQ(e.currentTarget.value)}
           style={{ flex: 1 }}

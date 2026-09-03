@@ -188,7 +188,7 @@ function CharacterForm({ character, onSaved, onCancel }: { character: Character 
   const [more, setMore] = useState(false);
   return (
     <Stack gap="sm">
-      <TextInput label="姓名" required autoComplete="off" value={name} onChange={(e) => setName(e.currentTarget.value)} placeholder="如：林晚秋" />
+      <TextInput label="姓名" required autoComplete="new-password" value={name} onChange={(e) => setName(e.currentTarget.value)} placeholder="如：林晚秋" />
       <Select
         label="性别"
         placeholder="选择"
@@ -199,9 +199,9 @@ function CharacterForm({ character, onSaved, onCancel }: { character: Character 
       />
       {more ? (
         <>
-          <TextInput label="年龄" autoComplete="off" value={age} onChange={(e) => setAge(e.currentTarget.value)} placeholder="如：22" />
-          <TextInput label="身份" autoComplete="off" value={identity} onChange={(e) => setIdentity(e.currentTarget.value)} placeholder="如：书院山长之女 / 江湖郎中" />
-          <Textarea label="备注" autoComplete="off" value={note} onChange={(e) => setNote(e.currentTarget.value)} placeholder="性格、背景、口头禅等补充…" minRows={2} autosize />
+          <TextInput label="年龄" autoComplete="new-password" value={age} onChange={(e) => setAge(e.currentTarget.value)} placeholder="如：22" />
+          <TextInput label="身份" autoComplete="new-password" value={identity} onChange={(e) => setIdentity(e.currentTarget.value)} placeholder="如：书院山长之女 / 江湖郎中" />
+          <Textarea label="备注" autoComplete="new-password" value={note} onChange={(e) => setNote(e.currentTarget.value)} placeholder="性格、背景、口头禅等补充…" minRows={2} autosize />
           <Stack gap={6}>
             <Text size="sm">外貌（图片）</Text>
             {appearance ? (

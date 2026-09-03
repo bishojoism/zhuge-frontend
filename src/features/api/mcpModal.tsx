@@ -141,7 +141,7 @@ function McpContent() {
         </Group>
         <PasswordInput
           placeholder="粘贴或在本界面生成的开放 API 令牌"
-          autoComplete="off"
+          autoComplete="new-password"
           value={token}
           onChange={(e) => setToken(e.currentTarget.value)}
           size="xs"
@@ -151,7 +151,7 @@ function McpContent() {
           <Group gap={8} wrap="nowrap">
             <TextInput
               placeholder="令牌名称（可留空）"
-              autoComplete="off"
+              autoComplete="new-password"
               maxLength={40}
               style={{ flex: 1 }}
               value={tokenName}

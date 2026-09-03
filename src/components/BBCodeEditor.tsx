@@ -184,7 +184,7 @@ export default function BBCodeEditor({
             internalRef.current = el;
             if (inputRef) inputRef.current = el;
           }}
-          autoComplete="off"
+          autoComplete="new-password"
           minRows={minRows}
           autosize={autosize}
           value={value}

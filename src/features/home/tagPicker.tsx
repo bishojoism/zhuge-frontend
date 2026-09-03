@@ -33,7 +33,7 @@ export function TagPickerContent({ tags, activeTag, onPick }: TagPickerContentPr
     <>
       <TextInput
         placeholder="搜索标签（IP 名 / 别名）…"
-        autoComplete="off"
+        autoComplete="new-password"
         autoFocus
         data-autofocus
         value={q}

@@ -72,7 +72,7 @@ export function ReportActionModal({ report, onClose }: ReportActionModalProps) {
       />
       <Textarea
         label="处理原因（必填，将通知举报者和被举报者）"
-        autoComplete="off"
+        autoComplete="new-password"
         value={note}
         onChange={(e) => setNote(e.currentTarget.value)}
         minRows={3}

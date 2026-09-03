@@ -56,7 +56,7 @@ export function TagRequestContent() {
       <TextInput
         label="标签名"
         placeholder="2-20 字，如 IP 名 / 题材"
-        autoComplete="off"
+        autoComplete="new-password"
         maxLength={20}
         value={name}
         onChange={(e) => setName(e.currentTarget.value)}
@@ -65,7 +65,7 @@ export function TagRequestContent() {
       <Textarea
         label="说明用途（可选）"
         placeholder="为什么需要这个标签？"
-        autoComplete="off"
+        autoComplete="new-password"
         minRows={2}
         autosize
         maxLength={200}

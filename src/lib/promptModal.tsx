@@ -90,7 +90,7 @@ function PromptForm({
             key={f.key}
             label={f.label}
             placeholder={f.placeholder}
-            autoComplete="off"
+            autoComplete="new-password"
             minRows={2}
             autosize
             maxLength={200}
@@ -114,7 +114,7 @@ function PromptForm({
             key={f.key}
             label={f.label}
             placeholder={f.placeholder}
-            autoComplete="off"
+            autoComplete="new-password"
             maxLength={40}
             data-autofocus
             value={values[f.key] || ''}

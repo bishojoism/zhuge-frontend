@@ -128,7 +128,7 @@ curl -X POST '${window.location.origin}/api/discussions/1/posts' \\
         <Group gap={8} wrap="nowrap">
           <TextInput
             placeholder="令牌名称（可留空）"
-            autoComplete="off"
+            autoComplete="new-password"
             maxLength={40}
             style={{ flex: 1 }}
             value={name}

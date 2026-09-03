@@ -141,7 +141,7 @@ export function TagsTab() {
       </Group>
       <TextInput
         placeholder="搜索标签名 / 描述…"
-        autoComplete="off"
+        autoComplete="new-password"
         value={q}
         onChange={(e) => setQ(e.currentTarget.value)}
       />

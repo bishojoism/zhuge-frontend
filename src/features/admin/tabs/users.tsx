@@ -31,7 +31,7 @@ export function UsersTab({ rows, loading, meId }: { rows: AdminUserRow[]; loadin
       <Stack gap="sm">
         <TextInput
           placeholder="按用户名搜索…"
-          autoComplete="off"
+          autoComplete="new-password"
           value={q}
           onChange={(e) => setQ(e.currentTarget.value)}
           leftSection={<span style={{ fontSize: 13, opacity: 0.6 }}>🔍</span>}
@@ -143,9 +143,9 @@ export function IpLogsTab({ rows, loading }: { rows: AdminIpLogRow[]; loading: b
     <Card withBorder>
       <Stack gap="sm">
         <Group gap="sm" wrap="wrap" className="admin-filters">
-          <TextInput placeholder="按 IP…" autoComplete="off" value={f.ip} onChange={(e) => setF({ ...f, ip: e.currentTarget.value })} />
-          <TextInput placeholder="按接口…" autoComplete="off" value={f.path} onChange={(e) => setF({ ...f, path: e.currentTarget.value })} />
-          <TextInput placeholder="按用户…" autoComplete="off" value={f.user} onChange={(e) => setF({ ...f, user: e.currentTarget.value })} />
+          <TextInput placeholder="按 IP…" autoComplete="new-password" value={f.ip} onChange={(e) => setF({ ...f, ip: e.currentTarget.value })} />
+          <TextInput placeholder="按接口…" autoComplete="new-password" value={f.path} onChange={(e) => setF({ ...f, path: e.currentTarget.value })} />
+          <TextInput placeholder="按用户…" autoComplete="new-password" value={f.user} onChange={(e) => setF({ ...f, user: e.currentTarget.value })} />
         </Group>
         {loading && rows.length === 0 ? (
           <Stack align="center" py="xl">

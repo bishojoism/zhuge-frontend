@@ -477,7 +477,7 @@ export function PostCard({
                 <Select
                   size="xs"
                   placeholder="（可选）皮上"
-                  // iOS Safari 无视 autoComplete="off" 仍弹"自动填充"；new-password 让它
+                  // iOS Safari 无视 autoComplete="new-password" 仍弹"自动填充"；new-password 让它
                   // 当作新密码字段不再提供钥匙串/自动填充菜单
                   autoComplete="new-password"
                   w={150}

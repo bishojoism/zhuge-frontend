@@ -202,7 +202,7 @@ export function PromoTab() {
             value={topicId}
             onChange={(e) => setTopicId(e.currentTarget.value.replace(/\D/g, ''))}
             style={{ width: 140 }}
-            autoComplete="off"
+            autoComplete="new-password"
           />
           <Button size="compact-sm" variant="default" loading={busy} onClick={() => topicId && doSticky(Number(topicId), true)}>
             置顶

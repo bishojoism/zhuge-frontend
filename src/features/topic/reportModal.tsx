@@ -85,7 +85,7 @@ function ReportModalContent({ targetType, targetId }: ReportModalProps) {
       <TextInput
         placeholder="或自定义理由……（选理由后可删改）"
         maxLength={200}
-        autoComplete="off"
+        autoComplete="new-password"
         value={custom}
         onChange={(e) => changeCustom(e.currentTarget.value)}
       />
