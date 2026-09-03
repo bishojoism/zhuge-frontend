@@ -218,6 +218,12 @@ export interface PrivateItem {
   first_character_id?: number | null;
   author_badges?: string | null;
   post_didi_count?: number;
+  // 定位原帖（私密主题 = 被滴滴帖；列表接口带 → 乐观帧即显示"定位原帖"）
+  origin_post_id?: number | null;
+  origin_discussion_id?: number | null;
+  origin_discussion_title?: string | null;
+  origin_author?: string | null;
+  origin_excerpt?: string | null;
 }
 
 // 我的滴滴响应率（作为被滴滴方）

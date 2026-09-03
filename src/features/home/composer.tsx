@@ -570,7 +570,8 @@ export type OptimisticExtraPost = Partial<TopicPost> & { number: number; content
 export function seedTopicCacheFromList(
   d: Partial<Discussion> & { id: number; title: string },
   allTags?: Tag[],
-  extraPosts?: OptimisticExtraPost[]
+  extraPosts?: OptimisticExtraPost[],
+  originPost?: DiscussionDetail['originPost']
 ): void {
   const now = new Date().toISOString().replace('T', ' ').slice(0, 19);
   const excerpt = (d.excerpt || '').trim();
@@ -676,6 +677,8 @@ export function seedTopicCacheFromList(
         tags: d.tags,
         author_badges: d.author_badges,
       },
+      // 私密主题（滴滴）：原帖定位信息（列表已带 → 乐观帧即显示"定位原帖"，不闪变）
+      originPost: originPost ?? null,
       posts: [builtFirstPost, ...extraWithoutFloor1],
       totalPosts: d.comment_count || 1,
       page: 1,

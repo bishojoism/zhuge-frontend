@@ -56,7 +56,20 @@ export default function PrivatePage() {
 
   const openTopic = (d: PrivateItem) => {
     // 乐观种入详情缓存（私密主题列表数据预填充，跳转后不闪骨架屏）
-    seedTopicCacheFromList({ ...d, is_private: 1 }, tags);
+    seedTopicCacheFromList(
+      { ...d, is_private: 1 },
+      tags,
+      undefined,
+      d.origin_post_id
+        ? {
+            postId: d.origin_post_id,
+            discussionId: d.origin_discussion_id ?? 0,
+            discussionTitle: d.origin_discussion_title ?? null,
+            author: d.origin_author ?? null,
+            excerpt: d.origin_excerpt ?? null,
+          }
+        : null
+    );
     // 预加载详情页 chunk
     void import('../topic/TopicPage');
     navigate(`/d/${d.id}`, { state: { from: '/private' } });
