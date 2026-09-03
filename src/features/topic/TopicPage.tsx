@@ -2,7 +2,8 @@
 // 页面编排 + 交互逻辑；帖子卡片/弹窗/分页/小部件已拆分到本目录独立文件
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
-import { Button, Group, Menu, SegmentedControl, Select, Skeleton, Text, TextInput } from '@mantine/core';
+import { Button, Group, Menu, SegmentedControl, Skeleton, Text, TextInput } from '@mantine/core';
+import { CharacterPicker } from './CharacterPicker';
 import { modals } from '@mantine/modals';
 import { notifications } from '@mantine/notifications';
 import useSWR, { mutate as globalMutate } from 'swr';
@@ -828,53 +829,23 @@ export default function TopicPage() {
       ) : (
         <>
           {composerAdvanced && replyCharacters.length > 0 && (
-            <Select
-              size="xs"
-              // 皮说明移入选择器自身占位（hint）：与滴滴选择器一致，「（可选）皮上」；
-              // 可见 label 移除后补 aria-label 保留无障碍名称
-              placeholder="（可选）皮上"
-              aria-label="接戏皮（可选）"
-              // iOS Safari 无视 autoComplete="new-password"；new-password 可压制"自动填充"菜单
-              autoComplete="new-password"
-              data={replyCharacters.map((c: { id: number; name: string }) => ({ value: String(c.id), label: c.name }))}
-              value={replyCharacterId}
-              onChange={(v) => {
-                replyCharTouchedRef.current = true;
-                setReplyCharacterId(v);
-                try {
-                  if (v) localStorage.setItem(`zhuge-reply-char-${id}`, v);
-                  else localStorage.removeItem(`zhuge-reply-char-${id}`);
-                } catch {
-                  /* 忽略 */
-                }
-              }}
-              clearable
-              // 不用 searchable：非 searchable 渲染 <button>（非 <input>），iOS 不弹"自动填充"
-              nothingFoundMessage="无匹配皮"
-              renderOption={({ option }) => {
-                const c = charMap.get(option.value);
-                return (
-                  <Group gap={8} wrap="nowrap">
-                    {c?.appearance ? (
-                      <img
-                        src={c.appearance}
-                        alt=""
-                        style={{ width: 24, height: 24, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }}
-                      />
-                    ) : (
-                      <span style={{ width: 24, textAlign: 'center', flexShrink: 0, fontSize: 15 }}>👤</span>
-                    )}
-                    <span>{option.label}</span>
-                    {c?.gender ? (
-                      <span style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--muted)' }}>
-                        {GENDER_LABEL[c.gender] || c.gender}
-                      </span>
-                    ) : null}
-                  </Group>
-                );
-              }}
-              mb={8}
-            />
+            <div style={{ marginBottom: 8 }}>
+              <CharacterPicker
+                options={replyCharacters}
+                value={replyCharacterId}
+                onChange={(v) => {
+                  replyCharTouchedRef.current = true;
+                  setReplyCharacterId(v);
+                  try {
+                    if (v) localStorage.setItem(`zhuge-reply-char-${id}`, v);
+                    else localStorage.removeItem(`zhuge-reply-char-${id}`);
+                  } catch {
+                    /* 忽略 */
+                  }
+                }}
+                ariaLabel="接戏皮（可选）"
+              />
+            </div>
           )}
           <BBCodeEditor
             value={content}

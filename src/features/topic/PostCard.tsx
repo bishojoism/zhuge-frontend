@@ -1,7 +1,8 @@
 // ===== 帖子卡片（首帖/回复共用；首帖可带主题标题/标签） =====
 // 含行渲染（BBCode 解析 + 搜索关键词高亮）、超长内容折叠、一键三连（点赞/投币/收藏；打赏在「更多」菜单）
 import { memo, useEffect, useRef, useState, type ReactNode } from 'react';
-import { Button, Group, Menu, Select } from '@mantine/core';
+import { Button, Group, Menu } from '@mantine/core';
+import { CharacterPicker } from './CharacterPicker';
 import { notifications } from '@mantine/notifications';
 import { mutate as globalMutate } from 'swr';
 import { hasBBCode, parseBBCode } from '../../lib/bbcode';
@@ -474,40 +475,14 @@ export function PostCard({
               {/* 滴滴身份选择：点击滴滴前选好皮（留空 = 以本人身份），同接戏一致。
                   占位文案缩短 + 选择器收窄（w=150），与「滴滴（私服）」按钮同行不换行 */}
               {onDidiChars && didiCharOptions.length > 0 && (
-                <Select
-                  size="xs"
-                  placeholder="（可选）皮上"
-                  // iOS Safari 无视 autoComplete="new-password" 仍弹"自动填充"；new-password 让它
-                  // 当作新密码字段不再提供钥匙串/自动填充菜单
-                  autoComplete="new-password"
-                  w={150}
-                  data={didiCharOptions}
-                  value={didiCharId}
+                <CharacterPicker
+                  options={didiCharOptions
+                    .map((o) => charMap.get(o.value))
+                    .filter((c): c is CharacterItem => !!c)}
+                  value={didiCharId ?? null}
                   onChange={onDidiChars}
-                  clearable
-                  nothingFoundMessage="无皮"
-                  renderOption={({ option }) => {
-                    const c = charMap.get(option.value);
-                    return (
-                      <Group gap={8} wrap="nowrap">
-                        {c?.appearance ? (
-                          <img
-                            src={c.appearance}
-                            alt=""
-                            style={{ width: 24, height: 24, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }}
-                          />
-                        ) : (
-                          <span style={{ width: 24, textAlign: 'center', flexShrink: 0, fontSize: 15 }}>👤</span>
-                        )}
-                        <span>{option.label}</span>
-                        {c?.gender ? (
-                          <span style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--muted)' }}>
-                            {GENDER_LABEL[c.gender] || c.gender}
-                          </span>
-                        ) : null}
-                      </Group>
-                    );
-                  }}
+                  width={150}
+                  ariaLabel="滴滴皮（可选）"
                 />
               )}
               <Button size="compact-sm" color="clay" onClick={onDidi} loading={didiLoading}>

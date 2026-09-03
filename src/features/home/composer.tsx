@@ -1,6 +1,7 @@
 // ===== 发帖弹窗（openComposer 等价物）：标题/内容/标签/配图 + 云草稿自动保存 =====
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ActionIcon, Button, Group, Select, Stack, Text, TextInput } from '@mantine/core';
+import { ActionIcon, Button, Group, Stack, Text, TextInput } from '@mantine/core';
+import { CharacterPicker } from '../topic/CharacterPicker';
 import { modals } from '@mantine/modals';
 import { notifications } from '@mantine/notifications';
 import { api } from '../../api/client';
@@ -323,40 +324,12 @@ export function ComposerContent({ user, tags, defaultTagId, onPosted }: Composer
         ) : null}
       </Group>
       {characters.length > 0 && (
-        <Select
-          label="皮上演绎（可选）"
-          placeholder="不指定"
-          // 不用 searchable：非 searchable 时 Mantine 渲染 <button> 触发（非 <input>），
-          // iOS 不会弹"自动填充"（此前 new-password 对个别机型仍会弹）；代价是不能打字搜皮名
-          autoComplete="new-password"
-          data={characters.map((c) => ({ value: String(c.id), label: c.name }))}
-          value={characterId}
-          onChange={setCharacterId}
-          clearable
-          nothingFoundMessage="无匹配皮"
-          renderOption={({ option }) => {
-            const c = charMap.get(option.value);
-            return (
-              <Group gap={8} wrap="nowrap">
-                {c?.appearance ? (
-                  <img
-                    src={c.appearance}
-                    alt=""
-                    style={{ width: 24, height: 24, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }}
-                  />
-                ) : (
-                  <span style={{ width: 24, textAlign: 'center', flexShrink: 0, fontSize: 15 }}>👤</span>
-                )}
-                <span>{option.label}</span>
-                {c?.gender ? (
-                  <span style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--muted)' }}>
-                    {GENDER_LABEL[c.gender] || c.gender}
-                  </span>
-                ) : null}
-              </Group>
-            );
-          }}
-        />
+        <div>
+          <Text size="xs" c="dimmed" mb={4}>
+            皮上演绎（可选）
+          </Text>
+          <CharacterPicker options={characters} value={characterId} onChange={setCharacterId} width="100%" placeholder="不指定" />
+        </div>
       )}
       <Group justify="space-between" wrap="nowrap" align="center">
         <Text size="sm">
