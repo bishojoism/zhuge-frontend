@@ -69,6 +69,7 @@ const GROUPS: { title: string; items: Endpoint[] }[] = [
       { method: 'POST', path: '/api/me/gender', desc: '设置性别', auth: true, body: '{ gender }' },
       { method: 'GET', path: '/api/me/notifications', desc: '通知列表 + 未读数（含跳转 url）', auth: true },
       { method: 'POST', path: '/api/me/notifications/read', desc: '标记已读（单条 { id } 或全部 { all: true }）', auth: true },
+      { method: 'POST', path: '/api/me/notifications/:id/replay', desc: '再弹一次：复制该通知为新行（插到最前、未读+1）并重新推送到达', auth: true },
       { method: 'GET', path: '/api/me/badges', desc: '我的徽章 + 邀请统计', auth: true },
       { method: 'GET', path: '/api/me/invites', desc: '邀请明细（谁通过我的链接注册）', auth: true },
       { method: 'GET', path: '/api/me/blocks', desc: '我的屏蔽列表', auth: true },

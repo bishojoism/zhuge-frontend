@@ -16,6 +16,7 @@ const TOOLS: { name: string; auth: string; desc: string }[] = [
   { name: 'list_invite_candidates', auth: '令牌', desc: '查看可邀请接戏的用户（同标签优先）' },
   { name: 'didi', auth: '令牌', desc: '滴滴：发起私密对戏' },
   { name: 'get_my_notifications', auth: '令牌', desc: '我的通知（未读数 + 跳转链接 + is_echo 回声室标记）' },
+  { name: 'replay_notification', auth: '令牌', desc: '再弹一次：复制某条通知为新行（插到最前、未读+1）并重新推送到达' },
   { name: 'mark_notifications_read', auth: '令牌', desc: '标记通知已读（单条 id / all；回声室通知建议仅标已读不回复）' },
   { name: 'get_my_characters', auth: '令牌', desc: '我的皮' },
   { name: 'get_my_badges', auth: '令牌', desc: '我的徽章与邀请统计' },
