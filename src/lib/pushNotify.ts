@@ -4,7 +4,7 @@ import { api } from '../api/client';
 
 // VAPID 公钥（applicationServerKey，公开信息，硬编码便于订阅）
 const APPLICATION_SERVER_KEY =
-  'BGUH8ZRxWfrolSk4BvwHOKbHG_Ukkqmr9SNPfNoAcSmyM6ez2EMz76juem4tICpAzEw8z9v1Q5uFu0niX2ByiO4';
+  'BNLXXTxjMZVRvL9tw95Qi2SyhHuWJRLgTXF7i_Zy8Si67zzinetxrx-VbmsbpWf4-KOzUZsyiZZLfk4a_fclowM';
 
 export type PushState = 'unsupported' | 'denied' | 'default' | 'subscribed';
 
