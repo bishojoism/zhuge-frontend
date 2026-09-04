@@ -105,7 +105,7 @@ export function NotificationsModalContent({ onClose }: { onClose: () => void }) 
           void loadMore();
         }
       },
-      { rootMargin: '0px 0px 500px 0px' }
+      { rootMargin: '0px 0px 1500px 0px' }
     );
     observer.observe(sentinel);
     return () => observer.disconnect();
