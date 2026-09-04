@@ -91,15 +91,15 @@ function routeH1(pathname: string): string {
 export default function Layout({ children }: { children: ReactNode }) {
   // 深色/浅色/跟随系统 三态循环切换（图标显示当前状态）
   const { colorScheme, setColorScheme } = useMantineColorScheme();
-  // 阅读字号档位（头像菜单选择）：CSS 变量 data-font-scale 驱动（styles.css --fs-*），
-  // localStorage 持久化；standard 时移除属性用 :root 默认值。index.html 内联脚本先于
-  // React 设置属性防首帧闪烁。
-  const [fontScale, setFontScale] = useState<'small' | 'standard' | 'large'>(() => {
+  // 全局字号档位（头像菜单选择）：根元素 zoom 全局缩放（styles.css data-font-scale），
+  // localStorage 持久化；md 为默认不设属性。兼容旧三档值 small/standard/large。
+  const [fontScale, setFontScale] = useState<'xs' | 'sm' | 'md' | 'lg' | 'xl'>(() => {
     try {
       const v = localStorage.getItem('zhuge-font-scale');
-      return v === 'small' || v === 'large' ? v : 'standard';
+      const norm = v === 'small' ? 'sm' : v === 'large' ? 'lg' : v === 'standard' ? 'md' : v;
+      return norm === 'xs' || norm === 'sm' || norm === 'lg' || norm === 'xl' ? norm : 'md';
     } catch {
-      return 'standard';
+      return 'md';
     }
   });
   useEffect(() => {
@@ -108,7 +108,7 @@ export default function Layout({ children }: { children: ReactNode }) {
     } catch {
       /* localStorage 不可用忽略 */
     }
-    if (fontScale === 'standard') document.documentElement.removeAttribute('data-font-scale');
+    if (fontScale === 'md') document.documentElement.removeAttribute('data-font-scale');
     else document.documentElement.setAttribute('data-font-scale', fontScale);
   }, [fontScale]);
   const { user, logout } = useAuth();
@@ -392,44 +392,25 @@ export default function Layout({ children }: { children: ReactNode }) {
     </Tooltip>
   ) : null;
 
-  // 设置云同步：本地 localStorage 仍是主存储；登录后拉取账号设置覆盖本地，变更时回写。
-  // PUT 按单键合并（/api/me/settings { key, value }），避免并发整包覆盖。游客/未登录静默。
-  const pushSetting = (key: 'colorScheme' | 'fontScale' | 'aiAuto', value: unknown) => {
+  // AI 自动接戏默认开关云同步（唯一云同步项）：显示模式/字号是设备偏好，只存本地。
+  // 登录后拉取账号设置覆盖本地；云端空则把本地当前值推上云（首设备数据上云）。
+  // PUT 按单键合并（/api/me/settings { key, value }）。游客/未登录静默。
+  const pushSetting = (key: 'aiAuto', value: unknown) => {
     if (!user) return;
     void api('/me/settings', { method: 'PUT', body: { key, value } }).catch(() => {
       /* 同步失败静默：下次变更再试，本地优先 */
     });
   };
-  // 每个 user 只拉取应用一次：云端有值则覆盖本地（跨设备延续）；云端空则把本地当前值推上云
-  //（首设备数据上云）。0 步自动注册的游客 id 也会存（游客转正后设置保留）。
   const syncedUidRef = useRef<number | null>(null);
   useEffect(() => {
     if (!user || syncedUidRef.current === user.id) return;
     syncedUidRef.current = user.id;
     void (async () => {
       try {
-        const r = await api<{
-          data: Partial<Record<'colorScheme' | 'fontScale' | 'aiAuto', unknown>>;
-        }>('/me/settings');
+        const r = await api<{ data: Partial<Record<'aiAuto', unknown>> }>('/me/settings');
         const s = r.data || {};
-        let had = false;
-        if (s.colorScheme === 'light' || s.colorScheme === 'dark' || s.colorScheme === 'auto') {
-          had = true;
-          setColorScheme(s.colorScheme);
-        }
-        if (s.fontScale === 'small' || s.fontScale === 'standard' || s.fontScale === 'large') {
-          had = true;
-          setFontScale(s.fontScale);
-        }
-        if (s.aiAuto === 0 || s.aiAuto === 1) {
-          had = true;
-          setAiAutoOn(s.aiAuto === 1);
-        }
-        if (!had) {
-          pushSetting('colorScheme', colorScheme);
-          pushSetting('fontScale', fontScale);
-          pushSetting('aiAuto', aiAutoOn ? 1 : 0);
-        }
+        if (s.aiAuto === 0 || s.aiAuto === 1) setAiAutoOn(s.aiAuto === 1);
+        else pushSetting('aiAuto', aiAutoOn ? 1 : 0);
       } catch {
         /* 拉取失败：保留本地设置 */
       }
@@ -455,10 +436,7 @@ export default function Layout({ children }: { children: ReactNode }) {
           title={m.label}
           aria-label={m.label}
           aria-pressed={colorScheme === m.value}
-          onClick={() => {
-            setColorScheme(m.value);
-            pushSetting('colorScheme', m.value);
-          }}
+          onClick={() => setColorScheme(m.value)}
         >
           {m.icon}
         </button>
@@ -466,14 +444,16 @@ export default function Layout({ children }: { children: ReactNode }) {
     </div>
   );
 
-  // 字号三档：一行三选（A 字大小区分档位，当前档高亮）——与显示模式同交互
+  // 字号五档：一行五选（A 字大小区分档位，当前档高亮）——根元素 zoom 全局缩放（设备偏好，不同步云端）
   const fontRow = (
     <div className="scheme-row" role="group" aria-label="字号">
       {(
         [
-          { value: 'small', label: '小字号', fs: 11 },
-          { value: 'standard', label: '标准字号', fs: 14 },
-          { value: 'large', label: '大字号', fs: 18 },
+          { value: 'xs', label: '极小字号', fs: 9 },
+          { value: 'sm', label: '小字号', fs: 11 },
+          { value: 'md', label: '标准字号', fs: 14 },
+          { value: 'lg', label: '大字号', fs: 17 },
+          { value: 'xl', label: '特大字号', fs: 20 },
         ] as const
       ).map((m) => (
         <button
@@ -483,10 +463,7 @@ export default function Layout({ children }: { children: ReactNode }) {
           title={m.label}
           aria-label={m.label}
           aria-pressed={fontScale === m.value}
-          onClick={() => {
-            setFontScale(m.value);
-            pushSetting('fontScale', m.value);
-          }}
+          onClick={() => setFontScale(m.value)}
         >
           <span style={{ fontSize: m.fs, fontWeight: 700, lineHeight: 1 }}>A</span>
         </button>

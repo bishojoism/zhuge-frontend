@@ -41,12 +41,16 @@
       } catch (e) {}
     })();
   </script>
-  <!-- 字号档位防闪烁：React 挂载前按 localStorage 设置 data-font-scale（CSS 变量驱动阅读字号） -->
+  <!-- 字号档位防闪烁：React 挂载前按 localStorage 设置 data-font-scale（根元素 zoom 全局缩放）。
+       兼容旧三档值：small→sm / standard→md / large→lg -->
   <script>
     (function () {
       try {
         var f = localStorage.getItem('zhuge-font-scale');
-        if (f === 'small' || f === 'large') document.documentElement.setAttribute('data-font-scale', f);
+        if (f === 'small') f = 'sm';
+        else if (f === 'large') f = 'lg';
+        else if (f === 'standard') f = 'md';
+        if (f === 'xs' || f === 'sm' || f === 'lg' || f === 'xl') document.documentElement.setAttribute('data-font-scale', f);
       } catch (e) {}
     })();
   </script>

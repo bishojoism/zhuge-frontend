@@ -278,7 +278,7 @@
     .topic-clickable { cursor: pointer; }
     .topic-clickable:hover { border-color: rgba(124,142,163,.35); box-shadow: var(--shadow-lg); transform: translateY(-2px); }
     .topic-clickable:active { transform: scale(.995); }
-    .topic-title { font-size: var(--fs-list-title, 16px); font-weight: 600; margin-bottom: 7px; line-height: 1.5; letter-spacing: .2px; }
+    .topic-title { font-size: 16px; font-weight: 600; margin-bottom: 7px; line-height: 1.5; letter-spacing: .2px; }
     .topic-title a { color: var(--text); }
     .topic-title a:hover { color: var(--primary-deep); }
     /* 鍐呭鎽樿锛氭渶澶?2 琛屾埅鏂?*/
@@ -466,7 +466,7 @@
     /* 鎬у埆鏍囪 */
     .gender-mark { font-size: 12px; margin-left: 4px; color: var(--primary); }
     .post-time { font-size: 12px; color: var(--muted); }
-    .post-body { font-size: var(--fs-post, 14px); line-height: 1.85; word-break: break-word; color: var(--text-soft); }
+    .post-body { font-size: 14px; line-height: 1.85; word-break: break-word; color: var(--text-soft); }
     /* 主题内搜索命中高亮 */
     .post-body mark { background: #ffe58f; color: inherit; padding: 0 1px; border-radius: 2px; }
     .post-body p { margin-bottom: 8px; }
@@ -634,10 +634,10 @@
     }
     .feed-card:hover .feed-card-inner { box-shadow: var(--shadow-lg); }
     .feed-card-head { display: flex; align-items: center; gap: 11px; margin-bottom: 16px; }
-    .feed-card-author { font-weight: 600; font-size: var(--fs-feed-author, 15px); color: var(--text); }
+    .feed-card-author { font-weight: 600; font-size: 15px; color: var(--text); }
     .feed-card-time { font-size: 12px; color: var(--muted); }
-    .feed-card-title { font-size: var(--fs-card-title, 21px); font-weight: 700; line-height: 1.5; margin-bottom: 12px; letter-spacing: .2px; }
-    .feed-card-excerpt { font-size: var(--fs-card-excerpt, 15px); line-height: 1.9; color: var(--text-soft); overflow: hidden; white-space: pre-line; word-break: break-word; max-height: 5.7em; } /* 3 行 × 1.9 */
+    .feed-card-title { font-size: 21px; font-weight: 700; line-height: 1.5; margin-bottom: 12px; letter-spacing: .2px; }
+    .feed-card-excerpt { font-size: 15px; line-height: 1.9; color: var(--text-soft); overflow: hidden; white-space: pre-line; word-break: break-word; max-height: 5.7em; } /* 3 行 × 1.9 */
     .feed-tags { margin-top: 16px; display: flex; gap: 6px; flex-wrap: wrap; }
     .feed-actions {
       margin-top: 16px;
@@ -1146,3 +1146,10 @@ body { margin: 0; }
 .toggle-cell.busy { opacity: .6; }
 :root[data-mantine-color-scheme="dark"] .toggle-cell { color: var(--text-soft); }
 :root[data-mantine-color-scheme="dark"] .toggle-cell.on { color: #fff; background: var(--primary-dark); }
+/* ===== Global font scale (avatar menu: xs/sm/md/lg/xl, md = default) ===== */
+/* Zoom on the root element: reflows like browser page zoom — scales ALL text and
+   layout proportionally (not just topic/feed text). Safari 17.4+/modern all support. */
+html[data-font-scale="xs"] { zoom: 0.88; }
+html[data-font-scale="sm"] { zoom: 0.95; }
+html[data-font-scale="lg"] { zoom: 1.12; }
+html[data-font-scale="xl"] { zoom: 1.25; }
