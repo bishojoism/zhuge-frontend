@@ -7,6 +7,7 @@ import { timeAgo } from '../../../lib/utils';
 import { type AdminIpLogRow, type AdminUserRow } from '../adminApi';
 import { UserActionModal } from '../UserActionModal';
 import { BanIpModal } from '../BanIpModal';
+import { InviteDrillModal } from '../InviteDrillModal';
 
 // ============ 用户列表 ============
 export function UsersTab({ rows, loading, meId }: { rows: AdminUserRow[]; loading: boolean; meId: number }) {
@@ -22,6 +23,17 @@ export function UsersTab({ rows, loading, meId }: { rows: AdminUserRow[]; loadin
       m.open({
         title: `管理用户：${u.username}`,
         children: <UserActionModal user={u} onClose={() => modals.closeAll()} />,
+      });
+    });
+  };
+
+  // 邀请穿透：查该用户邀请码拉来的注册者（邀请数 / 活跃 / IP 去重 / 同 IP 标记）
+  const openInvite = (u: AdminUserRow) => {
+    openModalOnce('admin-invite-' + u.id, (m) => {
+      m.open({
+        title: `邀请穿透：${u.username}`,
+        size: 640,
+        children: <InviteDrillModal user={u} onClose={() => modals.closeAll()} />,
       });
     });
   };
@@ -95,14 +107,19 @@ export function UsersTab({ rows, loading, meId }: { rows: AdminUserRow[]; loadin
                       </Text>
                     </Table.Td>
                     <Table.Td>
-                      <Button
-                        size="compact-xs"
-                        variant="default"
-                        disabled={u.id === meId}
-                        onClick={() => openManage(u)}
-                      >
-                        {u.id === meId ? '（自己）' : '操作'}
-                      </Button>
+                      <Group gap={6} wrap="nowrap">
+                        <Button size="compact-xs" variant="default" onClick={() => openInvite(u)} title="邀请穿透">
+                          邀请
+                        </Button>
+                        <Button
+                          size="compact-xs"
+                          variant="default"
+                          disabled={u.id === meId}
+                          onClick={() => openManage(u)}
+                        >
+                          {u.id === meId ? '（自己）' : '操作'}
+                        </Button>
+                      </Group>
                     </Table.Td>
                   </Table.Tr>
                 ))}
