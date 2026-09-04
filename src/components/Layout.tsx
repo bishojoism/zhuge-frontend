@@ -172,6 +172,10 @@ export default function Layout({ children }: { children: ReactNode }) {
   useEffect(() => {
     setTab('home');
   }, [routerLocation.pathname]);
+  // 切换 tab 面板时回到顶部（文档流页面切换）
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [tab]);
   // 整页刷新中：按钮转圈 + toast 反馈，稍作停顿再 reload（立即 reload 在缓存页下"无感知"）
   const [refreshing, setRefreshing] = useState(false);
   const handleRefresh = () => {
@@ -482,11 +486,12 @@ export default function Layout({ children }: { children: ReactNode }) {
           用 <main> 作为页面主地标，并带路由级视觉隐藏 h1（axe 地标/标题规则） */}
       <main className="container" key={location.pathname}>
         <h1 className="vh">{routeH1(location.pathname)}</h1>
-        {children}
+        {/* 消息/我的 tab：隐藏路由内容（文档流面板渲染在下方，见后） */}
+        {tab === 'home' || !isTabPage ? children : null}
       </main>
-      {/* ===== 底部 tab 面板：消息 ===== */}
+      {/* ===== 消息 tab 页面（文档流，非悬浮覆盖） ===== */}
       {isTabPage && tab === 'inbox' ? (
-        <section className="tab-panel tab-panel-inbox" aria-label="消息">
+        <section className="tab-page tab-panel-inbox" aria-label="消息">
           {user ? (
             <NotificationsModalContent onClose={() => setTab('home')} />
           ) : (
@@ -499,9 +504,9 @@ export default function Layout({ children }: { children: ReactNode }) {
           )}
         </section>
       ) : null}
-      {/* ===== 底部 tab 面板：我的 ===== */}
+      {/* ===== 我的 tab 页面（文档流） ===== */}
       {isTabPage && tab === 'me' ? (
-        <section className="tab-panel tab-panel-me" aria-label="我的">
+        <section className="tab-page tab-panel-me" aria-label="我的">
           {user ? (
             <>
               <div className="me-head">

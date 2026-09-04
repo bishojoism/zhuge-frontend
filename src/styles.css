@@ -1416,3 +1416,10 @@ body.zhuge-tabbar { padding-bottom: calc(54px + env(safe-area-inset-bottom)); }
 .tab-panel { top: var(--nav-h); }
 
 .me-install-block { margin: 2px 0 8px; }
+
+/* ===== Tab pages render in document flow (not floating overlays) ===== */
+.tab-page {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 12px 16px 40px;
+}
