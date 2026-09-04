@@ -186,58 +186,6 @@ export default function Layout({ children }: { children: ReactNode }) {
     }
     pushSetting('aiAuto', next ? 1 : 0);
   };
-  // 路由变化守卫：离开主题页（/d/:id，返回主页等）时归零页面滚动。
-  // 常驻定时器方案：浏览器可能在返回导航后任意时刻异步恢复滚动位置（即使
-  // scrollRestoration=manual），一次性补刀不够；用常驻 interval 在"离开主题页后的
-  // 一段时间内"持续检查并归零，确保导航栏不被滚出视口。
-  const guardLocation = useLocation();
-  const prevPathRef = useRef(guardLocation.pathname);
-  const leaveTopicAtRef = useRef(0); // 最近一次离开主题页的时间戳（0=不在守卫窗口）
-  useEffect(() => {
-    const wasTopic = /^\/d\/\d+/.test(prevPathRef.current);
-    const nowTopic = /^\/d\/\d+/.test(guardLocation.pathname);
-    prevPathRef.current = guardLocation.pathname;
-    if (wasTopic && !nowTopic) {
-      // 刚从主题页离开 → 开启守卫窗口（5 秒）
-      leaveTopicAtRef.current = Date.now();
-      // 仅推荐模式（feed）主页需要回顶：列表模式（最新/热门）允许自由滚动，
-      // 只清一次主题页的滚动残留即可（不持续拦截，避免"看门狗"阻止下滑）
-      const sort = new URLSearchParams(guardLocation.search).get('sort');
-      const isFeedHome = !sort && /^\/(tag\/\d+)?$/.test(guardLocation.pathname);
-      if (!isFeedHome) return;
-      const reset = () => {
-        const sy = window.scrollY || document.documentElement.scrollTop || document.body.scrollTop || 0;
-        if (sy !== 0) {
-          try { window.scrollTo(0, 0); } catch { /* 忽略 */ }
-        }
-      };
-      reset();
-    }
-  }, [guardLocation.pathname, guardLocation.search]);
-
-  // 常驻定时器：仅推荐模式（feed）主页持续归零滚动（该模式页面本就不应滚动）；
-  // 列表模式（最新/热门）不拦截任何滚动——从主题返回后可直接下滑浏览，无"看门狗"。
-  // 覆盖"点 Logo 回主页/整页刷新后 feed 未挂载"等守卫历史路径判断不到的场景。
-  useEffect(() => {
-    const iv = window.setInterval(() => {
-      const isTopic = /^\/d\/\d+/.test(guardLocation.pathname);
-      // 推荐模式主页判断：路径是 / 或 /tag/:id，且 sort 非 latest/hot
-      const sort = new URLSearchParams(guardLocation.search).get('sort');
-      const isFeedHome = !isTopic && !sort && (/^\/(tag\/\d+)?$/.test(guardLocation.pathname));
-      // 清除过期的守卫窗口标记（不再用于拦截，仅清理状态）
-      if (leaveTopicAtRef.current !== 0 && Date.now() - leaveTopicAtRef.current > 5000) {
-        leaveTopicAtRef.current = 0;
-      }
-      if (isTopic) return; // 主题页内允许滚动
-      if (!isFeedHome) return; // 列表模式（最新/热门）主页自由滚动，不拦截
-      const sy = window.scrollY || document.documentElement.scrollTop || document.body.scrollTop || 0;
-      if (sy !== 0) {
-        try { window.scrollTo(0, 0); } catch { /* 忽略 */ }
-      }
-    }, 100);
-    return () => window.clearInterval(iv);
-  }, [guardLocation.pathname, guardLocation.search]);
-
   // 无障碍变通：Mantine Menu 内部装饰元素（autofocus 定位 div、Menu.Divider、Menu.arrow）
   // 在 role=menu 里会被 axe 判为缺少合法子项（aria-required-children）。
   // 只给"无 role 且不含可聚焦控件"的纯装饰节点补 aria-hidden；功能性宫格/开关组
