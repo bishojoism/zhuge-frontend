@@ -514,6 +514,7 @@ export default function Layout({ children }: { children: ReactNode }) {
                   </div>
                 </div>
               </div>
+              {pwaButton ? <div className="me-install-block">{pwaButton}</div> : null}
               <div className="me-section-title">快捷入口</div>
               <div className="menu-groups menu-grid" role="group">
                 {[
@@ -597,7 +598,6 @@ export default function Layout({ children }: { children: ReactNode }) {
                   <span>AI</span>
                 </button>
               </div>
-              {pwaButton ? <div className="me-section-block">{pwaButton}</div> : null}
               <button type="button" className="btn me-logout" onClick={handleLogout}>
                 登出
               </button>
@@ -611,6 +611,7 @@ export default function Layout({ children }: { children: ReactNode }) {
                   <div className="me-level">登录后同步你的皮 / 主题 / 格币</div>
                 </div>
               </div>
+              {pwaButton ? <div className="me-install-block">{pwaButton}</div> : null}
               <div className="me-auth-actions">
                 <button type="button" className="btn btn-primary" onClick={openLoginModal}>
                   登录
@@ -647,7 +648,6 @@ export default function Layout({ children }: { children: ReactNode }) {
                   使用帮助
                 </button>
               </div>
-              {pwaButton ? <div className="me-section-block">{pwaButton}</div> : null}
             </>
           )}
         </section>

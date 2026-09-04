@@ -1414,3 +1414,5 @@ body.zhuge-tabbar { padding-bottom: calc(54px + env(safe-area-inset-bottom)); }
 }
 .list-sticky { top: var(--nav-h); }
 .tab-panel { top: var(--nav-h); }
+
+.me-install-block { margin: 2px 0 8px; }
