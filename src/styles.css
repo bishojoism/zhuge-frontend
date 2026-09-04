@@ -1423,3 +1423,9 @@ body.zhuge-tabbar { padding-bottom: calc(54px + env(safe-area-inset-bottom)); }
   margin: 0 auto;
   padding: 12px 16px 40px;
 }
+
+/* ===== Flatten container padding while an inbox/me tab page is shown ===== */
+body.zhuge-tabpage .container {
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+}

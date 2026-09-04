@@ -169,6 +169,12 @@ export default function Layout({ children }: { children: ReactNode }) {
     document.body.classList.toggle('zhuge-tabbar', isTabPage);
     return () => document.body.classList.remove('zhuge-tabbar');
   }, [isTabPage]);
+  // 消息/我的 tab（首页组件卸载后 zhuge-home 消失，.container 恢复上下 padding）
+  // → 压平容器 padding，让 tab 页面内容紧贴导航栏
+  useEffect(() => {
+    document.body.classList.toggle('zhuge-tabpage', isTabPage && tab !== 'home');
+    return () => document.body.classList.remove('zhuge-tabpage');
+  }, [isTabPage, tab]);
   useEffect(() => {
     setTab('home');
   }, [routerLocation.pathname]);
