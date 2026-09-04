@@ -1221,3 +1221,19 @@ body {
 :root[data-mantine-color-scheme="dark"] .list-sticky {
   background: rgba(21, 24, 29, 0.5);
 }
+/* ===== Panels fully transparent (v4): let texture show through ===== */
+/* User wants NO frosted glass — make the card stage and sticky bar fully
+   transparent. Cards/list items keep their own solid var(--card) background,
+   so text contrast stays intact; texture shows around/behind floating cards. */
+.feed-viewport,
+.list-sticky {
+  background: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+:root[data-mantine-color-scheme="dark"] .feed-viewport,
+:root[data-mantine-color-scheme="dark"] .list-sticky {
+  background: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
