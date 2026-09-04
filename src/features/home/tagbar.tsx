@@ -14,9 +14,9 @@ const SORT_LABEL: Record<SortKey, string> = {
 };
 
 const SORT_OPTIONS: { key: SortKey; label: string }[] = [
-  { key: 'recommend', label: '✨ 推荐' },
-  { key: 'latest', label: '🕐 最新' },
-  { key: 'hot', label: '🔥 热门' },
+  { key: 'recommend', label: '✨ 推荐（滑卡）' },
+  { key: 'latest', label: '🕐 最新（列表）' },
+  { key: 'hot', label: '🔥 热门（列表）' },
 ];
 
 interface TagBarProps {
