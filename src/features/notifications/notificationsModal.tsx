@@ -42,7 +42,8 @@ export function NotificationsModalContent({ onClose }: { onClose: () => void }) 
   const navigate = useNavigate();
   const { data, isLoading } = useNotifications();
   // 「下一步」引导（原首页横幅迁入）：/api/me/next-step——登录态显示首个未完成建议任务/🎉
-  const { data: nextData } = useNextStep();
+  // 首帧数据未就绪也渲染占位横幅（骨架），避免面板顶部空白闪帧
+  const { data: nextData, isLoading: nextLoading } = useNextStep();
   // 分页：SWR 只拿第 1 页（20 条），"加载更多"追加本地 state（弹窗每次打开重新 mount，state 自然重置）
   const [extra, setExtra] = useState<NotificationItem[]>([]);
   const [page, setPage] = useState(1);
@@ -293,11 +294,17 @@ export function NotificationsModalContent({ onClose }: { onClose: () => void }) 
   return (
     <div style={{ position: 'relative' }}>
       <Stack gap="xs">
-        {/* 「下一步」引导条（原首页横幅迁移至此）：首个未完成建议任务 / 全部完成 🎉 */}
+        {/* 「下一步」引导条（原首页横幅迁移至此）：首个未完成建议任务 / 全部完成 🎉；
+            数据未就绪时渲染占位骨架（首帧不空顶） */}
         {nextData?.next ? (
           <div className="notif-next" role="note">
             <span className="notif-next-label">下一步</span>
             <span className="notif-next-text">{nextData.next}</span>
+          </div>
+        ) : nextLoading ? (
+          <div className="notif-next notif-next-loading" role="note" aria-label="下一步加载中">
+            <span className="notif-next-label">下一步</span>
+            <span className="notif-next-text notif-next-skeleton">…</span>
           </div>
         ) : null}
         {list.length > 0 && (
