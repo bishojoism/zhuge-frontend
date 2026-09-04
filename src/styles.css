@@ -1178,3 +1178,31 @@ body {
 :root[data-font-scale="sm"] { --zh-scale: 0.95; }
 :root[data-font-scale="lg"] { --zh-scale: 1.12; }
 :root[data-font-scale="xl"] { --zh-scale: 1.25; }
+/* ===== Ambient background texture v2 (visible but content-safe) ===== */
+/* Stronger glows + clipped brand circles + finer dot grid. Cards/text keep solid
+   backgrounds so contrast is untouched; decoration lives at viewport edges and
+   between panels only. No motion, no color-only meaning (WCAG-safe). */
+body {
+  background-color: var(--bg);
+  background-image:
+    radial-gradient(circle 460px at 103% -40px, rgba(224, 92, 72, 0.14), transparent 72%),
+    radial-gradient(1200px 900px at 88% -8%, rgba(232, 99, 74, 0.12), transparent 55%),
+    radial-gradient(circle 380px at -70px 108%, rgba(77, 105, 142, 0.16), transparent 70%),
+    radial-gradient(1000px 760px at -6% 30%, rgba(70, 110, 165, 0.14), transparent 58%),
+    radial-gradient(circle 300px at 60% -160px, rgba(150, 110, 175, 0.1), transparent 70%),
+    radial-gradient(rgba(58, 70, 94, 0.06) 1px, transparent 1px);
+  background-size: auto, auto, auto, auto, auto, 18px 18px;
+  background-attachment: fixed;
+}
+:root[data-mantine-color-scheme="dark"] body {
+  background-color: var(--bg);
+  background-image:
+    radial-gradient(circle 460px at 103% -40px, rgba(232, 106, 84, 0.2), transparent 72%),
+    radial-gradient(1200px 900px at 88% -8%, rgba(232, 99, 74, 0.16), transparent 55%),
+    radial-gradient(circle 380px at -70px 108%, rgba(112, 140, 184, 0.22), transparent 70%),
+    radial-gradient(1000px 760px at -6% 30%, rgba(108, 148, 196, 0.18), transparent 58%),
+    radial-gradient(circle 300px at 60% -160px, rgba(160, 130, 190, 0.14), transparent 70%),
+    radial-gradient(rgba(226, 234, 250, 0.05) 1px, transparent 1px);
+  background-size: auto, auto, auto, auto, auto, 18px 18px;
+  background-attachment: fixed;
+}
