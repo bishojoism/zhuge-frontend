@@ -34,7 +34,7 @@ import {
   IconHome,
 } from '@tabler/icons-react';
 import { useAuth } from '../features/auth/AuthContext';
-import { useUnread, useCoins, useTags, preloadAllPrimaryLists } from '../api/hooks';
+import { useUnread, useCoins, useTags, useNextStep, preloadAllPrimaryLists } from '../api/hooks';
 import { api } from '../api/client';
 import { levelLabel } from '../lib/coins';
 import { useNotifySocket } from '../lib/ws';
@@ -117,6 +117,9 @@ export default function Layout({ children }: { children: ReactNode }) {
   // 未登录不请求通知（首屏零 API）
   const { unread, mutate: refreshUnread } = useUnread(!!user);
   const { data: coinData, mutate: mutateCoins } = useCoins(!!user);
+  // 预热"下一步"引导数据（消息 tab 面板首帧即显示横幅，不等挂载后请求）：
+  // useNextStep 内部按登录态取 key，全局 SWR 缓存填充后 NotificationsModalContent 命中首帧
+  useNextStep();
   // 全局预热首页列表：在任意页面（详情页/我的/私密等）停留时后台预加载
   // "全部 × recommend/latest/hot" + 主标签列表 → 回首页直接命中 SWR 缓存，
   // 零请求零骨架（其他页面点 logo 回首页不再闪加载）。
