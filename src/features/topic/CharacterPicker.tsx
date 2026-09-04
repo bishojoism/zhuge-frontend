@@ -1,8 +1,8 @@
-// 皮上选择器（无文本输入版）：真实 <button> + Menu 下拉 —— iOS 物理上不可能弹"自动填充"。
-// 背景：Mantine Select 底层永远是文本 <input>（searchable=false 只是 readOnly input，非 button），
+// 皮上选择器（无文本输入版）：真实 &lt;button&gt; + Menu 下拉 —— iOS 物理上不可能弹"自动填充"。
+// 背景：Mantine Select 底层永远是文本 &lt;input&gt;（searchable=false 只是 readOnly input，非 button），
 // 而 iOS 对 readonly input 也会弹"自动填充"且无视 autocomplete 属性（off/new-password 均不可靠，
 // 社区实证：iOS autofill 在 readonly input 上照常出现并跨屏残留）。
-// 本组件 DOM 不含任何 <input>，从根上消除该问题；代价是无打字搜索（皮名靠滚动选择）。
+// 本组件 DOM 不含任何 &lt;input&gt;，从根上消除该问题；代价是无打字搜索（皮名靠滚动选择）。
 import { Button, Group, Menu } from '@mantine/core';
 import type { CharacterItem } from '../../types';
 import { GENDER_LABEL } from './topicTypes';

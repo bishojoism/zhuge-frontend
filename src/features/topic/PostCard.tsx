@@ -55,7 +55,7 @@ export interface PostCardProps {
   isPrivate?: boolean;
   /** 首帖（主题卡片）：不显示误导性的"接戏"按钮（与底部回复框重复） */
   isFirstPost?: boolean;
-  /** 主题内搜索关键词：命中内容用 <mark> 高亮 */
+  /** 主题内搜索关键词：命中内容用 &lt;mark&gt; 高亮 */
   highlight?: string;
 }
 
@@ -104,7 +104,7 @@ export function renderLine(line: string, kw?: string): ReactNode {
 // 折叠用 max-height 按渲染高度截断（行高固定）而非按字数 slice：
 // 按字数截断会切坏 BBCode 标签结构（如 [b] 只有开标签没有闭标签）→ 渲染样式错误。
 // 完整渲染 + 高度截断：BBCode 结构完整、显示高度由实际渲染行数决定。
-// 折叠态子 <p> 去掉 margin，行高固定 → max-height = clampLines 行高，截断行数准确。
+// 折叠态子 &lt;p&gt; 去掉 margin，行高固定 → max-height = clampLines 行高，截断行数准确。
 export const LongContent = memo(function LongContent({
   content,
   highlight,

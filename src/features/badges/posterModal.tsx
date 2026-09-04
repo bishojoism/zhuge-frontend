@@ -1,5 +1,5 @@
 // ===== 邀请海报弹窗：邀请链接转竖版海报（头像 + 昵称 + 二维码 + 品牌），长按保存 =====
-// canvas 绘制 → 显示 <img>，iOS 长按保存图片 / PC 下载按钮
+// canvas 绘制 → 显示 &lt;img&gt;，iOS 长按保存图片 / PC 下载按钮
 import { useEffect, useRef, useState } from 'react';
 import { Button, Group, Stack, Text } from '@mantine/core';
 import { modals } from '@mantine/modals';

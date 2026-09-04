@@ -30,7 +30,7 @@ if ('scrollRestoration' in history) {
   history.scrollRestoration = 'manual';
 }
 
-// 邀请链接捕获：?invite=<uid>（来自"我的徽章"弹窗复制的链接）→ 存 localStorage，
+// 邀请链接捕获：?invite=&lt;uid&gt;（来自"我的徽章"弹窗复制的链接）→ 存 localStorage，
 // 注册弹窗提交时带上 invitedBy（邀请人与被邀请人各得邀请徽章）
 try {
   const inviteParam = new URLSearchParams(window.location.search).get('invite');

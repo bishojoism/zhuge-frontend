@@ -114,7 +114,7 @@ function LoginModal() {
 }
 
 // ============ 注册弹窗（密码注册） ============
-// 邀请人 id（来自 ?invite=<uid> 链接，main.tsx 已存 localStorage）：注册时提交，
+// 邀请人 id（来自 ?invite=&lt;uid&gt; 链接，main.tsx 已存 localStorage）：注册时提交，
 // 邀请人与被邀请人各得邀请徽章；0 步自动注册（AuthContext）同样携带并消费
 
 function RegisterModal() {

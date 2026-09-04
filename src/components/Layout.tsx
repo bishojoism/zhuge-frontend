@@ -58,7 +58,7 @@ function IosUrlBarCollapser() {
 const openLoginModal = () => import('../features/auth/authModals').then((m) => m.openLoginModal());
 const openRegisterModal = () => import('../features/auth/authModals').then((m) => m.openRegisterModal());
 const openSecurityModal = () => import('../features/security/securityModals').then((m) => m.openSecurityModal());
-// 通知弹窗：Layout 内嵌 <Modal opened> 单例控制（@mantine/modals 全局栈 7.x OPEN 不去重，
+// 通知弹窗：Layout 内嵌 &lt;Modal opened&gt; 单例控制（@mantine/modals 全局栈 7.x OPEN 不去重，
 // 重复打开会叠加多个弹窗；本地 state 天然单例），组件静态引入避免重复加载
 import { NotificationsModalContent } from '../features/notifications/notificationsModal';
 const openAvatarModal = () => import('../features/profile/profileModals').then((m) => m.openAvatarModal());
@@ -79,7 +79,7 @@ const openMyTopicsModal = () => import('../features/me/myTabModals').then((m) =>
 // （动态 import 会延到手势之外，弹窗可能不出现）
 import { openIosInstallHint } from '../features/pwa/installHint';
 
-// 无障碍：每个页面一个主地标（<main>）+ 一个 h1（axe landmark-one-main /
+// 无障碍：每个页面一个主地标（&lt;main&gt;）+ 一个 h1（axe landmark-one-main /
 // page-has-heading-one）。h1 视觉隐藏（.vh），文案按路由给页面主题；
 // 各页可见大标题仍是 div（视觉不变），读屏先听到 h1 再听正文。
 function routeH1(pathname: string): string {
@@ -221,7 +221,7 @@ export default function Layout({ children }: { children: ReactNode }) {
       'a[href],button:not([disabled]),input:not([disabled]),select,textarea,[tabindex]:not([tabindex="-1"])';
     const fix = () => {
       // Mantine Portal 容器（body 直属 div[data-portal]，承载 Menu/Modal/Tooltip）本身无
-      // 语义、又在 <main> 之外 → axe region 误报。补 role=presentation：去掉容器自身语义，
+      // 语义、又在 &lt;main&gt; 之外 → axe region 误报。补 role=presentation：去掉容器自身语义，
       // 内容（role=dialog/menu/tooltip）保持暴露；dialog/menu 内容不受 region 规则约束。
       document.querySelectorAll('body > div[data-portal="true"]').forEach((el) => {
         if (!el.getAttribute('role')) el.setAttribute('role', 'presentation');
@@ -489,7 +489,7 @@ export default function Layout({ children }: { children: ReactNode }) {
       </nav>
       {/* 内容区：key=路径 → 路由切换时强制重建整个内容区（清掉旧页残留的 DOM，
           如主题页的帖子卡片在水合/协调后残留在主页顶部）。
-          用 <main> 作为页面主地标，并带路由级视觉隐藏 h1（axe 地标/标题规则） */}
+          用 &lt;main&gt; 作为页面主地标，并带路由级视觉隐藏 h1（axe 地标/标题规则） */}
       <main className="container" key={location.pathname}>
         <h1 className="vh">{routeH1(location.pathname)}</h1>
         {/* 消息/我的 tab：隐藏路由内容（文档流面板渲染在下方，见后） */}

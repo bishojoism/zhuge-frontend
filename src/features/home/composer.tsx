@@ -288,7 +288,7 @@ export function ComposerContent({ user, tags, defaultTagId, onPosted }: Composer
           variant="subtle"
           size="compact-sm"
           onClick={() => {
-            // iOS：点击 <button> 不移走输入框焦点——收起键盘后焦点仍留在标题框；
+            // iOS：点击 &lt;button&gt; 不移走输入框焦点——收起键盘后焦点仍留在标题框；
             // 展开高级设置使弹窗变高/滚动时 Safari 会把持焦输入框滚回视野并重新唤起键盘。
             // 先主动失焦，切断焦点残留。
             try {
@@ -561,10 +561,10 @@ export function seedTopicCache(
 // 点进主题的乐观首帧即显示全文，无需等真实数据替换；帖子 id 用负值标记乐观帖。
 // allTags：全量标签（useTags）用于匹配真实标签颜色，乐观帧即显示正确颜色（不传则用默认色）。
 // 种两个 order 的 key（同 seedTopicCache）。
-// 参数用宽松类型（Partial<Discussion>）：首页 feed/list、搜索、我的主题、私密列表的条目都可传。
+// 参数用宽松类型（Partial&lt;Discussion&gt;）：首页 feed/list、搜索、我的主题、私密列表的条目都可传。
 // extraPosts：附加的乐观帖（如通知点入时的"触发回复 + 被回复的那楼"回复链），负 id 标记乐观，
 // 按 number 与首帖一起并入，真实数据到达后同楼覆盖。
-// 用 Partial<TopicPost> 全字段透传：created_at/author_badges/author_earned/reply_to_* /
+// 用 Partial&lt;TopicPost&gt; 全字段透传：created_at/author_badges/author_earned/reply_to_* /
 // 三连计数等，让乐观帧与真实数据视觉完全一致（时间/徽章/等级/回复引用不"变一下"）。
 export type OptimisticExtraPost = Partial<TopicPost> & { number: number; content: string };
 export function seedTopicCacheFromList(

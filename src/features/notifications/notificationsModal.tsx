@@ -1,5 +1,5 @@
 // ===== 通知弹窗：SWR 缓存列表（WS 实时刷新）+ 点击标已读跳转 + 全部已读 =====
-// 弹窗由 Layout 用 Mantine <Modal opened> 控制（单例，避免 @mantine/modals 全局栈叠加问题）
+// 弹窗由 Layout 用 Mantine &lt;Modal opened&gt; 控制（单例，避免 @mantine/modals 全局栈叠加问题）
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ActionIcon, Button, Group, Loader, Stack, Text } from '@mantine/core';

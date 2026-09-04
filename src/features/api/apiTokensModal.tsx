@@ -1,5 +1,5 @@
 // ===== 开放 API 弹窗：头像菜单「开放 API」入口 =====
-// 个人访问令牌：程序调用 API 用（Authorization: Bearer <token>），替代 cookie
+// 个人访问令牌：程序调用 API 用（Authorization: Bearer &lt;token&gt;），替代 cookie
 import { useState } from 'react';
 import { Button, Divider, Group, Loader, Stack, Text, TextInput } from '@mantine/core';
 import { modals } from '@mantine/modals';

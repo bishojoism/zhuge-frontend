@@ -75,7 +75,7 @@ function downloadBlob(blob: Blob, filename: string): void {
   window.setTimeout(() => URL.revokeObjectURL(url), 2000);
 }
 
-// ===== 文字记录导出（.txt，含主题链接；已登录时附邀请码 ?invite=<uid> 拉新）=====
+// ===== 文字记录导出（.txt，含主题链接；已登录时附邀请码 ?invite=&lt;uid&gt; 拉新）=====
 export function exportTextLog(d: Discussion, posts: ExportPost[], inviterId?: number): void {
   const url = location.origin + '/d/' + d.id + (inviterId ? `?invite=${inviterId}` : '');
   const lines: string[] = [];
@@ -142,7 +142,7 @@ function pill(ctx: CanvasRenderingContext2D, text: string, x: number, y: number,
   return w;
 }
 
-// ===== 图片记录导出（精修版 PNG；已登录时二维码附邀请码 ?invite=<uid> 拉新）=====
+// ===== 图片记录导出（精修版 PNG；已登录时二维码附邀请码 ?invite=&lt;uid&gt; 拉新）=====
 export async function exportImageLog(d: Discussion, posts: ExportPost[], style: LogStyle, inviterId?: number): Promise<void> {
   const canvas = document.createElement('canvas');
   const ctx = canvas.getContext('2d');

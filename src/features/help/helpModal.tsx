@@ -1,6 +1,6 @@
 // ===== 使用帮助弹窗（Nielsen 原则 10：帮助与文档） =====
 // 维护说明：
-// - body 里可用 **加粗**（渲染层转 <b>，勿用未处理的 markdown 星号残留）
+// - body 里可用 **加粗**（渲染层转 &lt;b&gt;，勿用未处理的 markdown 星号残留）
 // - 条目与文案需与当前 UI 保持一致（新增/改动功能时同步更新）
 import { List, Stack, Text, ThemeIcon } from '@mantine/core';
 import { modals } from '@mantine/modals';
@@ -8,7 +8,7 @@ import { IconCircleCheck } from '@tabler/icons-react';
 import { openModalOnce } from '../../lib/modals';
 import type { ReactNode } from 'react';
 
-// 把 **加粗** 渲染为 <b>（防止 markdown 星号原样显示）
+// 把 **加粗** 渲染为 &lt;b&gt;（防止 markdown 星号原样显示）
 function renderBody(body: string): ReactNode[] {
   const parts = body.split(/\*\*(.+?)\*\*/g);
   return parts.map((p, i) => (i % 2 === 1 ? <b key={i}>{p}</b> : p));

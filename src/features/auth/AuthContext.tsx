@@ -53,7 +53,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (registeringRef.current) return;
     registeringRef.current = true;
     (async () => {
-      // 邀请链接（?invite=<uid>）也作用于 0 步自动注册：否则链接触达的绝大多数新访客
+      // 邀请链接（?invite=&lt;uid&gt;）也作用于 0 步自动注册：否则链接触达的绝大多数新访客
       // 都先自动注册成游客（无 invited_by），邀请关系丢失，邀请人/被邀请人徽章都拿不到
       const invitedBy = readInvitedBy();
       for (let attempt = 0; attempt < 3; attempt++) {

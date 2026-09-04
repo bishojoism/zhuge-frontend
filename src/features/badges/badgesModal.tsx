@@ -44,7 +44,7 @@ export function BadgesContent({ userId }: { userId: number }) {
   const base = data.badges.filter((b) => b.tier === 0);
   const adv = data.badges.filter((b) => b.tier === 1);
 
-  // 邀请链接：主站首页带 ?invite=<uid>（前端注册弹窗读取该参数）
+  // 邀请链接：主站首页带 ?invite=&lt;uid&gt;（前端注册弹窗读取该参数）
   const inviteLink = `${window.location.origin}/?invite=${userId}`;
 
   const copyInvite = async () => {
