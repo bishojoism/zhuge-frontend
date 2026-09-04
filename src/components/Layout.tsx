@@ -31,6 +31,7 @@ import {
   IconListCheck,
   IconStar,
   IconRefresh,
+  IconCheck,
 } from '@tabler/icons-react';
 import { useAuth } from '../features/auth/AuthContext';
 import { useUnread, useCoins, useTags, preloadAllPrimaryLists } from '../api/hooks';
@@ -91,14 +92,6 @@ function routeH1(pathname: string): string {
 export default function Layout({ children }: { children: ReactNode }) {
   // 深色/浅色/跟随系统 三态循环切换（图标显示当前状态）
   const { colorScheme, setColorScheme } = useMantineColorScheme();
-  const dark = colorScheme === 'dark';
-  const schemeLabel = colorScheme === 'dark' ? '深色模式' : colorScheme === 'light' ? '浅色模式' : '跟随系统';
-  const schemeNext = colorScheme === 'light' ? '深色' : colorScheme === 'dark' ? '跟随系统' : '浅色';
-  const cycleScheme = () => {
-    if (colorScheme === 'light') setColorScheme('dark');
-    else if (colorScheme === 'dark') setColorScheme('auto');
-    else setColorScheme('light');
-  };
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   // 未登录不请求通知（首屏零 API）
@@ -379,6 +372,26 @@ export default function Layout({ children }: { children: ReactNode }) {
     </Tooltip>
   ) : null;
 
+  // 显示模式三选项（深色/浅色/跟随系统）：移入头像下拉菜单后，登录/未登录菜单共用，
+  // 当前激活项右侧打勾 + 高亮。setColorScheme 由 localStorageColorSchemeManager 持久化。
+  const schemeItems = (
+    [
+      { value: 'light', label: '浅色模式', icon: <IconSun size={16} /> },
+      { value: 'dark', label: '深色模式', icon: <IconMoon size={16} /> },
+      { value: 'auto', label: '跟随系统', icon: <IconDeviceDesktop size={16} /> },
+    ] as const
+  ).map((m) => (
+    <Menu.Item
+      key={m.value}
+      leftSection={m.icon}
+      rightSection={colorScheme === m.value ? <IconCheck size={14} /> : null}
+      onClick={() => setColorScheme(m.value)}
+      style={colorScheme === m.value ? { color: 'var(--primary-deep)', fontWeight: 600 } : undefined}
+    >
+      {m.label}
+    </Menu.Item>
+  ));
+
   return (
     <>
       <IosUrlBarCollapser />
@@ -410,23 +423,6 @@ export default function Layout({ children }: { children: ReactNode }) {
         </Link>
         <div className="nav-spacer" />
         <div className="nav-user">
-          <Tooltip label={`切换到${schemeNext}`} withArrow>
-            <ActionIcon
-              variant="subtle"
-              size="lg"
-              onClick={cycleScheme}
-              aria-label="切换显示模式"
-              title={`当前：${schemeLabel}，点击切换到${schemeNext}`}
-            >
-              {colorScheme === 'dark' ? (
-                <IconMoon size={20} />
-              ) : colorScheme === 'light' ? (
-                <IconSun size={20} />
-              ) : (
-                <IconDeviceDesktop size={20} />
-              )}
-            </ActionIcon>
-          </Tooltip>
           <Tooltip label="刷新页面" withArrow>
             <ActionIcon
               variant="subtle"
@@ -635,6 +631,9 @@ export default function Layout({ children }: { children: ReactNode }) {
                     </Group>
                   </div>
                   <Menu.Divider />
+                  <Menu.Label>显示模式</Menu.Label>
+                  {schemeItems}
+                  <Menu.Divider />
                   <Menu.Item leftSection={<IconLogout size={16} />} onClick={handleLogout}>
                     <Text component="span" style={{ color: 'var(--st-danger)' }}>
                       登出
@@ -675,6 +674,9 @@ export default function Layout({ children }: { children: ReactNode }) {
                   <Menu.Item leftSection={<IconRobot size={16} />} onClick={() => navigate('/docs/mcp')}>
                     MCP
                   </Menu.Item>
+                  <Menu.Divider />
+                  <Menu.Label>显示模式</Menu.Label>
+                  {schemeItems}
                 </Menu.Dropdown>
               </Menu>
             </>
