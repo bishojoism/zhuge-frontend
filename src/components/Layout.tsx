@@ -31,7 +31,6 @@ import {
   IconListCheck,
   IconStar,
   IconRefresh,
-  IconCheck,
 } from '@tabler/icons-react';
 import { useAuth } from '../features/auth/AuthContext';
 import { useUnread, useCoins, useTags, preloadAllPrimaryLists } from '../api/hooks';
@@ -418,24 +417,30 @@ export default function Layout({ children }: { children: ReactNode }) {
     </div>
   );
 
-  // 字号三档（小/标准/大）：A 字大小作图标区分，当前档打勾高亮（同显示模式交互）
-  const fontItems = (
-    [
-      { value: 'small', label: '小字号', icon: <span style={{ fontSize: 11, fontWeight: 700 }}>A</span> },
-      { value: 'standard', label: '标准字号', icon: <span style={{ fontSize: 14, fontWeight: 700 }}>A</span> },
-      { value: 'large', label: '大字号', icon: <span style={{ fontSize: 18, fontWeight: 700 }}>A</span> },
-    ] as const
-  ).map((m) => (
-    <Menu.Item
-      key={m.value}
-      leftSection={m.icon}
-      rightSection={fontScale === m.value ? <IconCheck size={14} /> : null}
-      onClick={() => setFontScale(m.value)}
-      style={fontScale === m.value ? { color: 'var(--primary-deep)', fontWeight: 600 } : undefined}
-    >
-      {m.label}
-    </Menu.Item>
-  ));
+  // 字号三档：一行三选（A 字大小区分档位，当前档高亮）——与显示模式同交互
+  const fontRow = (
+    <div className="scheme-row" role="group" aria-label="字号">
+      {(
+        [
+          { value: 'small', label: '小字号', fs: 11 },
+          { value: 'standard', label: '标准字号', fs: 14 },
+          { value: 'large', label: '大字号', fs: 18 },
+        ] as const
+      ).map((m) => (
+        <button
+          key={m.value}
+          type="button"
+          className={`scheme-cell${fontScale === m.value ? ' active' : ''}`}
+          title={m.label}
+          aria-label={m.label}
+          aria-pressed={fontScale === m.value}
+          onClick={() => setFontScale(m.value)}
+        >
+          <span style={{ fontSize: m.fs, fontWeight: 700, lineHeight: 1 }}>A</span>
+        </button>
+      ))}
+    </div>
+  );
 
   return (
     <>
@@ -629,7 +634,7 @@ export default function Layout({ children }: { children: ReactNode }) {
                   </div>
                   <Menu.Divider />
                   <Menu.Label>字号</Menu.Label>
-                  {fontItems}
+                  {fontRow}
                   <Menu.Label>显示模式</Menu.Label>
                   {schemeRow}
                   <Menu.Divider />
@@ -675,7 +680,7 @@ export default function Layout({ children }: { children: ReactNode }) {
                   </Menu.Item>
                   <Menu.Divider />
                   <Menu.Label>字号</Menu.Label>
-                  {fontItems}
+                  {fontRow}
                   <Menu.Label>显示模式</Menu.Label>
                   {schemeRow}
                 </Menu.Dropdown>
