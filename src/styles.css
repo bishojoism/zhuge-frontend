@@ -1273,3 +1273,6 @@ body::before {
     radial-gradient(rgba(226, 234, 250, 0.05) 1px, transparent 1px);
   background-size: auto, auto, auto, auto, auto, 18px 18px;
 }
+/* ===== Flat avatar menu spacing (no group titles / no dividers) ===== */
+.menu-groups.menu-grid { grid-template-columns: repeat(4, 1fr); }
+.menu-grid { margin-bottom: 6px; }

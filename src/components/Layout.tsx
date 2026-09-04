@@ -556,7 +556,7 @@ export default function Layout({ children }: { children: ReactNode }) {
                   {/* 功能宫格：按语义分组（我的内容 / 我的账号 / 系统），高频置顶，便于扫视。
                       分组容器 role=presentation 仅去掉自身语义（不隐藏），其内按钮带
                       role=menuitem 作为合法菜单项进入可访问性树 */}
-                  <div className="menu-groups" role="presentation">
+                  <div className="menu-groups menu-grid" role="presentation">
                     {[
                       {
                         title: '我的内容',
@@ -590,32 +590,23 @@ export default function Layout({ children }: { children: ReactNode }) {
                             : []),
                         ],
                       },
-                    ].map((g) => (
-                      <div key={g.title} className="menu-group" role="presentation">
-                        <div className="menu-group-title">{g.title}</div>
-                        <div className="menu-grid" role="presentation">
-                          {g.items.map((it) => (
-                            <button
-                              key={it.label}
-                              type="button"
-                              role="menuitem"
-                              className="menu-grid-item"
-                              onClick={() => {
-                                setMenuOpen(false);
-                                it.onClick();
-                              }}
-                            >
-                              {it.icon}
-                              <span>{it.label}</span>
-                            </button>
-                          ))}
-                        </div>
-                      </div>
+                    ].flatMap((g) => g.items).map((it) => (
+                      <button
+                        key={it.label}
+                        type="button"
+                        role="menuitem"
+                        className="menu-grid-item"
+                        onClick={() => {
+                          setMenuOpen(false);
+                          it.onClick();
+                        }}
+                      >
+                        {it.icon}
+                        <span>{it.label}</span>
+                      </button>
                     ))}
                   </div>
-                  <Menu.Divider />
-                  {/* 快捷开关一行：调试 / 系统通知 / AI 自动接戏 —— 三个明灭态按钮（亮=开、暗=关），
-                      替代原来三行 Switch，省菜单纵向空间 */}
+                  {/* 快捷开关一行：调试 / 系统通知 / AI 自动接戏 —— 三个明灭态按钮（亮=开、暗=关） */}
                   <div className="toggle-row" role="group" aria-label="快捷开关">
                     <button
                       type="button"
@@ -661,12 +652,8 @@ export default function Layout({ children }: { children: ReactNode }) {
                       <span>AI</span>
                     </button>
                   </div>
-                  <Menu.Divider />
-                  <Menu.Label>字号</Menu.Label>
                   {fontRow}
-                  <Menu.Label>显示模式</Menu.Label>
                   {schemeRow}
-                  <Menu.Divider />
                   <Menu.Item leftSection={<IconLogout size={16} />} onClick={handleLogout}>
                     <Text component="span" style={{ color: 'var(--st-danger)' }}>
                       登出
@@ -696,8 +683,6 @@ export default function Layout({ children }: { children: ReactNode }) {
                   <Menu.Item leftSection={<IconUserPlus size={16} />} color="clay" onClick={() => openRegisterModal()}>
                     注册新账号
                   </Menu.Item>
-                  {/* 未登录也能用的公开项：帮助 / 开放 API / MCP 文档（无需登录可看；生成令牌才需登录） */}
-                  <Menu.Divider />
                   <Menu.Item leftSection={<IconHelpCircle size={16} />} onClick={() => openHelpModal()}>
                     使用帮助
                   </Menu.Item>
@@ -707,10 +692,7 @@ export default function Layout({ children }: { children: ReactNode }) {
                   <Menu.Item leftSection={<IconRobot size={16} />} onClick={() => navigate('/docs/mcp')}>
                     MCP
                   </Menu.Item>
-                  <Menu.Divider />
-                  <Menu.Label>字号</Menu.Label>
                   {fontRow}
-                  <Menu.Label>显示模式</Menu.Label>
                   {schemeRow}
                 </Menu.Dropdown>
               </Menu>
