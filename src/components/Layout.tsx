@@ -163,6 +163,12 @@ export default function Layout({ children }: { children: ReactNode }) {
   const [tab, setTab] = useState<'home' | 'inbox' | 'me'>('home');
   // 路由变化（点击"我的"里功能跳 /private 等）时自动收起面板露出路由内容
   const routerLocation = useLocation();
+  // 是否"主页类"路由（/ 与 /tag/:id）：仅主页显示底部 tab 栏，其他页面（主题/文档/管理等）隐藏
+  const isTabPage = /^\/(tag\/\d+)?$/.test(routerLocation.pathname);
+  useEffect(() => {
+    document.body.classList.toggle('zhuge-tabbar', isTabPage);
+    return () => document.body.classList.remove('zhuge-tabbar');
+  }, [isTabPage]);
   useEffect(() => {
     setTab('home');
   }, [routerLocation.pathname]);
@@ -479,7 +485,7 @@ export default function Layout({ children }: { children: ReactNode }) {
         {children}
       </main>
       {/* ===== 底部 tab 面板：消息 ===== */}
-      {tab === 'inbox' ? (
+      {isTabPage && tab === 'inbox' ? (
         <section className="tab-panel tab-panel-inbox" aria-label="消息">
           {user ? (
             <NotificationsModalContent onClose={() => setTab('home')} />
@@ -494,7 +500,7 @@ export default function Layout({ children }: { children: ReactNode }) {
         </section>
       ) : null}
       {/* ===== 底部 tab 面板：我的 ===== */}
-      {tab === 'me' ? (
+      {isTabPage && tab === 'me' ? (
         <section className="tab-panel tab-panel-me" aria-label="我的">
           {user ? (
             <>
@@ -646,8 +652,9 @@ export default function Layout({ children }: { children: ReactNode }) {
           )}
         </section>
       ) : null}
-      {/* ===== 底部 tab 栏（首页 / 消息 / 我的） ===== */}
-      <nav className="bottom-tabbar" aria-label="主导航">
+      {/* ===== 底部 tab 栏（仅主页类路由显示） ===== */}
+      {isTabPage ? (
+        <nav className="bottom-tabbar" aria-label="主导航">
         <button
           type="button"
           className={`tabbar-item${tab === 'home' ? ' active' : ''}`}
@@ -680,7 +687,8 @@ export default function Layout({ children }: { children: ReactNode }) {
           <IconUserCircle size={22} strokeWidth={tab === 'me' ? 2.4 : 1.8} />
           <span>我的</span>
         </button>
-      </nav>
+        </nav>
+      ) : null}
     </>
   );
 }

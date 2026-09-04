@@ -84,10 +84,7 @@ export default function AdminPage() {
   return (
     <Stack gap="md" pt="md">
       <Group justify="space-between">
-        <Button variant="subtle" onClick={() => navigate('/')}>
-          ← 返回
-        </Button>
-        <Text fw={600} size="lg">
+                <Text fw={600} size="lg">
           管理后台
         </Text>
         <div style={{ width: 72 }} />

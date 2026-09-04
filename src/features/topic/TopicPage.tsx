@@ -964,13 +964,6 @@ export default function TopicPage() {
 
   return (
     <>
-      {/* 返回 */}
-      <div style={{ marginBottom: 12 }}>
-        <Button variant="subtle" size="compact-md" leftSection={<IconArrowLeft size={16} />} onClick={goBack}>
-          返回
-        </Button>
-      </div>
-
       {/* 主题 + 首帖合并为同一张卡片（作者头 + 标题 + 标签 + 正文 + 操作行） */}
       {firstPost ? (
         <PostCard

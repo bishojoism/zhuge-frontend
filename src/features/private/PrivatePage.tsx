@@ -79,10 +79,7 @@ export default function PrivatePage() {
 
   return (
     <>
-      <Button variant="subtle" size="compact-md" mb="sm" onClick={() => navigate('/')}>
-        ← 返回
-      </Button>
-      <Group justify="space-between" align="baseline" mb="md">
+            <Group justify="space-between" align="baseline" mb="md">
         <Text size="lg" fw={700}>
           我的滴滴
         </Text>

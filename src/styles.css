@@ -1398,3 +1398,7 @@ body { padding-bottom: calc(54px + env(safe-area-inset-bottom)); }
 
 /* ===== Grid card author name: tighter still ===== */
 .grid-list .topic-meta .author-link { max-width: 7em; }
+
+/* ===== Bottom clearance only on tab-bar pages ===== */
+body { padding-bottom: 0; }
+body.zhuge-tabbar { padding-bottom: calc(54px + env(safe-area-inset-bottom)); }

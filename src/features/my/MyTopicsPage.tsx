@@ -54,10 +54,7 @@ export default function MyTopicsPage() {
 
   return (
     <>
-      <Button variant="subtle" size="compact-md" mb="sm" onClick={() => navigate('/')}>
-        ← 返回
-      </Button>
-      <Text size="lg" fw={700} mb="md">
+            <Text size="lg" fw={700} mb="md">
         我的主题
       </Text>
       {isLoading && list.length === 0 ? (
