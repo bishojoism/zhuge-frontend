@@ -378,7 +378,18 @@ export function NotificationsModalContent({ onClose }: { onClose: () => void }) 
                     {replayFb === n.id ? '✓' : '↻'}
                   </ActionIcon>
                 </div>
-                <div className="notif-body">
+                <div
+                  className="notif-body"
+                  role="button"
+                  tabIndex={0}
+                  aria-label={`${notifText(n)}，回车打开`}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      markReadAndGo(n);
+                    }
+                  }}
+                >
                   <div className="notif-text">{notifText(n)}</div>
                   {/* 被回复/被滴滴帖子的内容摘要（"回复了什么"）：通知更完整，点入前先看到上下文 */}
                   {n.target_excerpt ? (
