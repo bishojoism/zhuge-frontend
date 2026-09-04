@@ -669,7 +669,7 @@ export default function Layout({ children }: { children: ReactNode }) {
         <button
           type="button"
           className={`tabbar-item${tab === 'inbox' ? ' active' : ''}`}
-          onClick={() => setTab(tab === 'inbox' ? 'home' : 'inbox')}
+          onClick={() => setTab('inbox')}
           aria-label="消息"
         >
           <span className="tabbar-icon-wrap">
@@ -681,7 +681,7 @@ export default function Layout({ children }: { children: ReactNode }) {
         <button
           type="button"
           className={`tabbar-item${tab === 'me' ? ' active' : ''}`}
-          onClick={() => setTab(tab === 'me' ? 'home' : 'me')}
+          onClick={() => setTab('me')}
           aria-label="我的"
         >
           <IconUserCircle size={22} strokeWidth={tab === 'me' ? 2.4 : 1.8} />
