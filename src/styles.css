@@ -1310,3 +1310,11 @@ body::before {
 .grid-list .topic-excerpt { flex: 1 1 auto; }
 /* Author row pinned to card bottom: all cards in a row align at the bottom */
 .grid-list .topic-meta { margin-top: auto; }
+/* ===== Grid card: author row above topic info ===== */
+.grid-list .topic .topic-meta {
+  order: -1;          /* move before .topic-title */
+  margin-top: 0;      /* was pinned to bottom (margin-top:auto) */
+  margin-bottom: calc(8px * var(--zh-scale, 1));
+}
+.grid-list .topic .topic-meta + * { /* gap between meta and title handled by margin */
+}
