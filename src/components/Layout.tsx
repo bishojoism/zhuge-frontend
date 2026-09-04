@@ -543,7 +543,7 @@ export default function Layout({ children }: { children: ReactNode }) {
                   { icon: <IconRobot size={20} />, label: 'MCP', onClick: () => openMcpModal() },
                   { icon: <IconBan size={20} />, label: '屏蔽管理', onClick: () => openBlocksModal() },
                   ...(user.isAdmin
-                    ? [{ icon: <IconShield size={20} />, label: '管理', onClick: () => navigate('/admin') }]
+                    ? [{ icon: <IconShield size={20} />, label: '管理', route: true, onClick: () => navigate('/admin') }]
                     : []),
                   ...(pwa.canInstall || pwa.canInstallIos
                     ? [
@@ -563,7 +563,9 @@ export default function Layout({ children }: { children: ReactNode }) {
                     type="button"
                     className="menu-grid-item"
                     onClick={() => {
-                      setTab('home'); // 跳路由前收起面板，露出路由内容
+                      // 仅跳路由的项（route:true，如管理页）先收起面板露出路由内容；
+                      // 弹窗项直接在当前面板上弹窗，不切回首页 tab
+                      if ('route' in it && it.route) setTab('home');
                       it.onClick();
                     }}
                   >
