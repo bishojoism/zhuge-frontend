@@ -1380,3 +1380,6 @@ body { padding-bottom: calc(54px + env(safe-area-inset-bottom)); }
 
 /* ===== Grid block spans same width as list mode ===== */
 .grid-list { padding: 0 0 20px; }
+
+/* ===== Grid card author name: tighter cap before ellipsis ===== */
+.grid-list .topic-meta .author-link { max-width: 12em; }
