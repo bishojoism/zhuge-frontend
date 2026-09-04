@@ -31,6 +31,7 @@ import {
   IconListCheck,
   IconStar,
   IconRefresh,
+  IconHome,
 } from '@tabler/icons-react';
 import { useAuth } from '../features/auth/AuthContext';
 import { useUnread, useCoins, useTags, preloadAllPrimaryLists } from '../api/hooks';
@@ -152,8 +153,13 @@ export default function Layout({ children }: { children: ReactNode }) {
   }, [user, mutateCoins]);
   const pwa = usePwaInstall();
   const push = usePushNotify();
-  // 通知弹窗（本地 state 单例）
-  const [notifOpen, setNotifOpen] = useState(false);
+  // 底部 tab 导航：home = 路由内容（首页/列表等），inbox = 消息面板，me = 我的面板
+  const [tab, setTab] = useState<'home' | 'inbox' | 'me'>('home');
+  // 路由变化（点击"我的"里功能跳 /private 等）时自动收起面板露出路由内容
+  const routerLocation = useLocation();
+  useEffect(() => {
+    setTab('home');
+  }, [routerLocation.pathname]);
   // 整页刷新中：按钮转圈 + toast 反馈，稍作停顿再 reload（立即 reload 在缓存页下"无感知"）
   const [refreshing, setRefreshing] = useState(false);
   const handleRefresh = () => {
@@ -162,9 +168,6 @@ export default function Layout({ children }: { children: ReactNode }) {
     notifications.show({ message: '正在刷新页面…', color: 'gray', autoClose: 1500 });
     setTimeout(() => window.location.reload(), 600);
   };
-  // 头像下拉菜单（受控）：宫格按钮是自定义 button 而非 Menu.Item，Mantine 不会自动关闭，
-  // 打开徽章/皮等弹窗前先关菜单，避免弹窗与下拉叠在一起
-  const [menuOpen, setMenuOpen] = useState(false);
   // 调试模式（vConsole 虚拟控制台）：localStorage 记忆，dev 模式视为已开启
   const [debugOn, setDebugOn] = useState(() => isDebugMode() || import.meta.env.DEV);
   // AI 自动接戏全局开关：localStorage 记忆（'1' 默认开；'0' 关）。关掉后开戏/接戏弹窗
@@ -448,212 +451,7 @@ export default function Layout({ children }: { children: ReactNode }) {
         >
           <span className="dot">主</span>主格
         </Link>
-        <div className="nav-spacer" />
-        <div className="nav-user">
-          <Tooltip label="刷新页面" withArrow>
-            <ActionIcon
-              variant="subtle"
-              size="lg"
-              onClick={handleRefresh}
-              aria-label="刷新页面"
-              title="刷新页面"
-              disabled={refreshing}
-            >
-              {refreshing ? <Loader size={18} /> : <IconRefresh size={20} />}
-            </ActionIcon>
-          </Tooltip>
-          {pwaButton}
-          {user ? (
-            <>
-              <Tooltip label="通知" withArrow>
-                <ActionIcon
-                  variant="subtle"
-                  size="lg"
-                  onClick={() => setNotifOpen(true)}
-                  style={{ position: 'relative' }}
-                  aria-label="通知"
-                >
-                  <IconBell size={20} />
-                  {unread > 0 && <span className="notif-badge">{unread > 99 ? '99+' : unread}</span>}
-                </ActionIcon>
-              </Tooltip>
-              <Menu position="bottom-end" withArrow opened={menuOpen} onChange={setMenuOpen}>
-                <Menu.Target>
-                  {/* 不用 Button 包裹：避免按钮自身的 overflow/圆角裁剪性别徽标；
-                      role=button 让 Mantine 注入的 aria-haspopup/aria-expanded 合法 */}
-                  <span
-                    className="nav-avatar-btn"
-                    aria-label="用户菜单"
-                    role="button"
-                    tabIndex={0}
-                    onClick={() => setMenuOpen(true)}
-                  >
-                    <Avatar user={user} size="md" showGender className="nav-avatar" />
-                  </span>
-                </Menu.Target>
-                <Menu.Dropdown>
-                  <Menu.Label>
-                    {user.username}
-                    <Text component="span" size="xs" style={{ color: 'var(--primary)' }} ml={6}>
-                      🪙 {coinData?.balance ?? ''}
-                    </Text>
-                    <Text component="span" size="xs" c="dimmed" ml={4}>
-                      {coinData ? `· ${levelLabel(coinData.level)}` : ''}
-                    </Text>
-                  </Menu.Label>
-                  {/* 功能宫格：按语义分组（我的内容 / 我的账号 / 系统），高频置顶，便于扫视。
-                      分组容器 role=presentation 仅去掉自身语义（不隐藏），其内按钮带
-                      role=menuitem 作为合法菜单项进入可访问性树 */}
-                  <div className="menu-groups menu-grid" role="presentation">
-                    {[
-                      {
-                        title: '我的内容',
-                        items: [
-                          { icon: <IconHeartHandshake size={20} />, label: '我的滴滴', onClick: () => navigate('/private') },
-                          { icon: <IconFolder size={20} />, label: '我的主题', onClick: () => navigate('/my') },
-                          { icon: <IconListCheck size={20} />, label: '今日任务', onClick: () => openCoinsModal() },
-                          { icon: <IconStar size={20} />, label: '收藏夹', onClick: () => openFavoritesModal() },
-                        ],
-                      },
-                      {
-                        title: '我的账号',
-                        items: [
-                          { icon: <IconMasksTheater size={20} />, label: '皮', onClick: () => openCharactersModal() },
-                          { icon: <IconAward size={20} />, label: '我的徽章', onClick: () => openBadgesModal(user.id) },
-                          { icon: <IconUserPlus size={20} />, label: '邀请好友', onClick: () => openInviteModal(user.id, user.username) },
-                          { icon: <IconKey size={20} />, label: '账号安全', onClick: () => openSecurityModal() },
-                          { icon: <IconPhoto size={20} />, label: '上传头像', onClick: () => openAvatarModal() },
-                          { icon: <IconUserCog size={20} />, label: '性别', onClick: () => openGenderModal() },
-                        ],
-                      },
-                      {
-                        title: '系统',
-                        items: [
-                          { icon: <IconHelpCircle size={20} />, label: '使用帮助', onClick: () => openHelpModal() },
-                          { icon: <IconApi size={20} />, label: '开放 API', onClick: () => openApiTokensModal() },
-                          { icon: <IconRobot size={20} />, label: 'MCP', onClick: () => openMcpModal() },
-                          { icon: <IconBan size={20} />, label: '屏蔽管理', onClick: () => openBlocksModal() },
-                          ...(user.isAdmin
-                            ? [{ icon: <IconShield size={20} />, label: '管理', onClick: () => navigate('/admin') }]
-                            : []),
-                        ],
-                      },
-                    ].flatMap((g) => g.items).map((it) => (
-                      <button
-                        key={it.label}
-                        type="button"
-                        role="menuitem"
-                        className="menu-grid-item"
-                        onClick={() => {
-                          setMenuOpen(false);
-                          it.onClick();
-                        }}
-                      >
-                        {it.icon}
-                        <span>{it.label}</span>
-                      </button>
-                    ))}
-                  </div>
-                  {/* 快捷开关一行：调试 / 系统通知 / AI 自动接戏 —— 三个明灭态按钮（亮=开、暗=关） */}
-                  <div className="toggle-row" role="group" aria-label="快捷开关">
-                    <button
-                      type="button"
-                      className={`toggle-cell${debugOn ? ' on' : ''}`}
-                      aria-pressed={debugOn}
-                      title={`调试模式（vConsole）：${debugOn ? '已开启' : '未开启'}`}
-                      onClick={handleDebugToggle}
-                    >
-                      <IconBug size={15} />
-                      <span>调试</span>
-                    </button>
-                    <button
-                      type="button"
-                      className={`toggle-cell${push.state === 'subscribed' ? ' on' : ''}${push.busy ? ' busy' : ''}`}
-                      aria-pressed={push.state === 'subscribed'}
-                      disabled={push.busy}
-                      title={
-                        push.busy
-                          ? '系统通知：处理中…'
-                          : push.iosNeedsPwa
-                            ? '系统通知：需先安装 PWA'
-                            : push.state === 'denied'
-                              ? '系统通知：已拒绝（需在浏览器设置中允许）'
-                              : push.state === 'unsupported'
-                                ? '系统通知：当前浏览器不支持'
-                                : push.state === 'subscribed'
-                                  ? '系统通知：已开启'
-                                  : '系统通知：未开启'
-                      }
-                      onClick={handlePushToggle}
-                    >
-                      {push.busy ? <Loader size={13} /> : <IconBellRinging size={15} />}
-                      <span>通知</span>
-                    </button>
-                    <button
-                      type="button"
-                      className={`toggle-cell${aiAutoOn ? ' on' : ''}`}
-                      aria-pressed={aiAutoOn}
-                      title={`AI 自动接戏（开戏/接戏默认勾选）：${aiAutoOn ? '默认开启' : '默认关闭'}`}
-                      onClick={handleAiAutoToggle}
-                    >
-                      <span style={{ fontSize: 13, lineHeight: 1 }}>🤖</span>
-                      <span>AI</span>
-                    </button>
-                  </div>
-                  {fontRow}
-                  {schemeRow}
-                  <Menu.Item leftSection={<IconLogout size={16} />} onClick={handleLogout}>
-                    <Text component="span" style={{ color: 'var(--st-danger)' }}>
-                      登出
-                    </Text>
-                  </Menu.Item>
-                </Menu.Dropdown>
-              </Menu>
-            </>
-          ) : (
-            <>
-              {/* 未登录：单个用户图标下拉菜单（登录 / 注册新账号），省导航栏空间 */}
-              <Menu position="bottom-end" withArrow>
-                <Menu.Target>
-                  <ActionIcon
-                    variant="subtle"
-                    size="lg"
-                    aria-label="登录或注册"
-                    title="登录 / 注册"
-                  >
-                    <IconUserCircle size={22} />
-                  </ActionIcon>
-                </Menu.Target>
-                <Menu.Dropdown>
-                  <Menu.Item leftSection={<IconLogin size={16} />} onClick={() => openLoginModal()}>
-                    登录
-                  </Menu.Item>
-                  <Menu.Item leftSection={<IconUserPlus size={16} />} color="clay" onClick={() => openRegisterModal()}>
-                    注册新账号
-                  </Menu.Item>
-                  <Menu.Item leftSection={<IconHelpCircle size={16} />} onClick={() => openHelpModal()}>
-                    使用帮助
-                  </Menu.Item>
-                  <Menu.Item leftSection={<IconApi size={16} />} onClick={() => navigate('/docs/api')}>
-                    开放 API
-                  </Menu.Item>
-                  <Menu.Item leftSection={<IconRobot size={16} />} onClick={() => navigate('/docs/mcp')}>
-                    MCP
-                  </Menu.Item>
-                  {fontRow}
-                  {schemeRow}
-                </Menu.Dropdown>
-              </Menu>
-            </>
-          )}
-        </div>
       </nav>
-      {/* 通知弹窗：单例（本地 state 控制，避免 modals 栈叠加）
-          transition duration 0：点击通知跳转时弹窗立即消失，不做 200ms 淡出——
-          否则用户会看到"点击后弹窗慢慢淡出"的延迟感（误以为加载中） */}
-      <Modal opened={notifOpen} onClose={() => setNotifOpen(false)} title="通知" size={480} centered transitionProps={{ transition: 'pop', duration: 0 }}>
-        <NotificationsModalContent onClose={() => setNotifOpen(false)} />
-      </Modal>
       {/* 内容区：key=路径 → 路由切换时强制重建整个内容区（清掉旧页残留的 DOM，
           如主题页的帖子卡片在水合/协调后残留在主页顶部）。
           用 <main> 作为页面主地标，并带路由级视觉隐藏 h1（axe 地标/标题规则） */}
@@ -661,6 +459,209 @@ export default function Layout({ children }: { children: ReactNode }) {
         <h1 className="vh">{routeH1(location.pathname)}</h1>
         {children}
       </main>
+      {/* ===== 底部 tab 面板：消息 ===== */}
+      {tab === 'inbox' ? (
+        <section className="tab-panel tab-panel-inbox" aria-label="消息">
+          {user ? (
+            <NotificationsModalContent onClose={() => setTab('home')} />
+          ) : (
+            <div className="tab-empty-hint">
+              <p>登录后查看消息（接戏 / 滴滴 / 投币通知）</p>
+              <button type="button" className="btn btn-primary" onClick={openLoginModal}>
+                登录
+              </button>
+            </div>
+          )}
+        </section>
+      ) : null}
+      {/* ===== 底部 tab 面板：我的 ===== */}
+      {tab === 'me' ? (
+        <section className="tab-panel tab-panel-me" aria-label="我的">
+          {user ? (
+            <>
+              <div className="me-head">
+                <Avatar user={user} size="md" showGender />
+                <div className="me-head-text">
+                  <div className="me-username">{user.username}</div>
+                  <div className="me-level">
+                    🪙 {coinData?.balance ?? ''}
+                    {coinData ? ` · ${levelLabel(coinData.level)}` : ''}
+                  </div>
+                </div>
+              </div>
+              <div className="me-section-title">快捷入口</div>
+              <div className="menu-groups menu-grid" role="group">
+                {[
+                  { icon: <IconHeartHandshake size={20} />, label: '我的滴滴', onClick: () => navigate('/private') },
+                  { icon: <IconFolder size={20} />, label: '我的主题', onClick: () => navigate('/my') },
+                  { icon: <IconListCheck size={20} />, label: '今日任务', onClick: () => openCoinsModal() },
+                  { icon: <IconStar size={20} />, label: '收藏夹', onClick: () => openFavoritesModal() },
+                  { icon: <IconMasksTheater size={20} />, label: '皮', onClick: () => openCharactersModal() },
+                  { icon: <IconAward size={20} />, label: '我的徽章', onClick: () => openBadgesModal(user.id) },
+                  { icon: <IconUserPlus size={20} />, label: '邀请好友', onClick: () => openInviteModal(user.id, user.username) },
+                  { icon: <IconKey size={20} />, label: '账号安全', onClick: () => openSecurityModal() },
+                  { icon: <IconPhoto size={20} />, label: '上传头像', onClick: () => openAvatarModal() },
+                  { icon: <IconUserCog size={20} />, label: '性别', onClick: () => openGenderModal() },
+                  { icon: <IconHelpCircle size={20} />, label: '使用帮助', onClick: () => openHelpModal() },
+                  { icon: <IconApi size={20} />, label: '开放 API', onClick: () => openApiTokensModal() },
+                  { icon: <IconRobot size={20} />, label: 'MCP', onClick: () => openMcpModal() },
+                  { icon: <IconBan size={20} />, label: '屏蔽管理', onClick: () => openBlocksModal() },
+                  ...(user.isAdmin
+                    ? [{ icon: <IconShield size={20} />, label: '管理', onClick: () => navigate('/admin') }]
+                    : []),
+                ].map((it) => (
+                  <button
+                    key={it.label}
+                    type="button"
+                    className="menu-grid-item"
+                    onClick={() => {
+                      setTab('home'); // 跳路由前收起面板，露出路由内容
+                      it.onClick();
+                    }}
+                  >
+                    {it.icon}
+                    <span>{it.label}</span>
+                  </button>
+                ))}
+              </div>
+              <div className="me-section-title">偏好</div>
+              <div className="me-section-block">{fontRow}{schemeRow}</div>
+              <div className="me-section-title">快捷开关</div>
+              <div className="toggle-row" role="group" aria-label="快捷开关">
+                <button
+                  type="button"
+                  className={`toggle-cell${debugOn ? ' on' : ''}`}
+                  aria-pressed={debugOn}
+                  title={`调试模式（vConsole）：${debugOn ? '已开启' : '未开启'}`}
+                  onClick={handleDebugToggle}
+                >
+                  <IconBug size={15} />
+                  <span>调试</span>
+                </button>
+                <button
+                  type="button"
+                  className={`toggle-cell${push.state === 'subscribed' ? ' on' : ''}${push.busy ? ' busy' : ''}`}
+                  aria-pressed={push.state === 'subscribed'}
+                  disabled={push.busy}
+                  title={
+                    push.busy
+                      ? '系统通知：处理中…'
+                      : push.iosNeedsPwa
+                        ? '系统通知：需先安装 PWA'
+                        : push.state === 'denied'
+                          ? '系统通知：已拒绝（需在浏览器设置中允许）'
+                          : push.state === 'unsupported'
+                            ? '系统通知：当前浏览器不支持'
+                            : push.state === 'subscribed'
+                              ? '系统通知：已开启'
+                              : '系统通知：未开启'
+                  }
+                  onClick={handlePushToggle}
+                >
+                  {push.busy ? <Loader size={13} /> : <IconBellRinging size={15} />}
+                  <span>通知</span>
+                </button>
+                <button
+                  type="button"
+                  className={`toggle-cell${aiAutoOn ? ' on' : ''}`}
+                  aria-pressed={aiAutoOn}
+                  title={`AI 自动接戏（开戏/接戏默认勾选）：${aiAutoOn ? '默认开启' : '默认关闭'}`}
+                  onClick={handleAiAutoToggle}
+                >
+                  <span style={{ fontSize: 13, lineHeight: 1 }}>🤖</span>
+                  <span>AI</span>
+                </button>
+              </div>
+              {pwaButton ? <div className="me-section-block">{pwaButton}</div> : null}
+              <button type="button" className="btn me-logout" onClick={handleLogout}>
+                登出
+              </button>
+            </>
+          ) : (
+            <>
+              <div className="me-head">
+                <Avatar user={null} size="md" />
+                <div className="me-head-text">
+                  <div className="me-username">未登录</div>
+                  <div className="me-level">登录后同步你的皮 / 主题 / 格币</div>
+                </div>
+              </div>
+              <div className="me-auth-actions">
+                <button type="button" className="btn btn-primary" onClick={openLoginModal}>
+                  登录
+                </button>
+                <button type="button" className="btn btn-accent" onClick={openRegisterModal}>
+                  注册新账号
+                </button>
+              </div>
+              <div className="me-section-title">偏好</div>
+              <div className="me-section-block">{fontRow}{schemeRow}</div>
+              <div className="me-section-title">公开功能</div>
+              <div className="me-link-list">
+                <button
+                  type="button"
+                  className="me-link"
+                  onClick={() => {
+                    setTab('home');
+                    navigate('/docs/api');
+                  }}
+                >
+                  开放 API
+                </button>
+                <button
+                  type="button"
+                  className="me-link"
+                  onClick={() => {
+                    setTab('home');
+                    navigate('/docs/mcp');
+                  }}
+                >
+                  MCP
+                </button>
+                <button type="button" className="me-link" onClick={openHelpModal}>
+                  使用帮助
+                </button>
+              </div>
+              {pwaButton ? <div className="me-section-block">{pwaButton}</div> : null}
+            </>
+          )}
+        </section>
+      ) : null}
+      {/* ===== 底部 tab 栏（首页 / 消息 / 我的） ===== */}
+      <nav className="bottom-tabbar" aria-label="主导航">
+        <button
+          type="button"
+          className={`tabbar-item${tab === 'home' ? ' active' : ''}`}
+          onClick={() => {
+            if (location.pathname !== '/' || location.search) navigate('/');
+            setTab('home');
+          }}
+        >
+          <IconHome size={22} strokeWidth={tab === 'home' ? 2.4 : 1.8} />
+          <span>首页</span>
+        </button>
+        <button
+          type="button"
+          className={`tabbar-item${tab === 'inbox' ? ' active' : ''}`}
+          onClick={() => setTab(tab === 'inbox' ? 'home' : 'inbox')}
+          aria-label="消息"
+        >
+          <span className="tabbar-icon-wrap">
+            <IconBell size={22} strokeWidth={tab === 'inbox' ? 2.4 : 1.8} />
+            {unread > 0 ? <span className="tabbar-badge">{unread > 99 ? '99+' : unread}</span> : null}
+          </span>
+          <span>消息</span>
+        </button>
+        <button
+          type="button"
+          className={`tabbar-item${tab === 'me' ? ' active' : ''}`}
+          onClick={() => setTab(tab === 'me' ? 'home' : 'me')}
+          aria-label="我的"
+        >
+          <IconUserCircle size={22} strokeWidth={tab === 'me' ? 2.4 : 1.8} />
+          <span>我的</span>
+        </button>
+      </nav>
     </>
   );
 }
