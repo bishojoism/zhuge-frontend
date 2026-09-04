@@ -1284,3 +1284,8 @@ body::before {
   background-color: transparent;
   background-image: none;
 }
+/* ===== Cards square corners (recommend + list modes) ===== */
+.feed-card-inner,
+.topic {
+  border-radius: 0 !important;
+}
