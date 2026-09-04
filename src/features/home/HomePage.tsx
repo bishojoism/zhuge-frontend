@@ -19,11 +19,10 @@ import { ComposerContent } from './composer';
 import { seedTopicCacheFromList } from './composer';
 import { TagPickerContent } from './tagPicker';
 
-// 推荐随机种子：每次整页加载生成全新随机值（刷新前后顺序不同）；
-// 同一会话内（SPA 切最新/热门/标签、返回首页等）保持当前 seed —— 切换视图不重排。
+// 推荐随机种子：SSR 每次刷新随机（登录/游客都有会话 cookie → SSR 不缓存、每次新 seed），
+// initSnap 内联同 seed 列表首帧秒开；同会话内切换视图/标签保持 seed（顺序稳定）。
+// 无 cookie 兜底（爬虫/测速）才用 newSeed 兜底随机。
 const newSeed = () => Math.floor(Math.random() * 1e9) + 1;
-// 模块级标记：只在"整页加载后首次挂载"换一次 seed（SPA 内 remount 不再重排）
-let seedInitialized = false;
 
 const SORT_KEYS: SortKey[] = ['recommend', 'latest', 'hot'];
 
@@ -118,16 +117,6 @@ export default function HomePage() {
   const [feedSeed, setFeedSeed] = useState<number>(initSnap.seed);
   const tagRef = useRef(urlTag);
   const sortRef = useRef(urlSort);
-
-  // 整页加载后首次挂载换随机推荐种子（无 cookie 首页整页缓存会复用旧 seed 内联列表，
-  // 换 seed 让每次刷新看到不同顺序）；SPA 内 remount（tab/路由往返）保持当前 seed
-  useEffect(() => {
-    if (!seedInitialized) {
-      seedInitialized = true;
-      setFeedSeed(newSeed());
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   // URL 变化（点标签 / 前进后退 / 直接输入）→ 同步状态。
   // seed 保持会话稳定：切视图/切标签不重排（同会话内推荐顺序一致，A==B）
