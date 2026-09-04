@@ -519,7 +519,6 @@ export default function Layout({ children }: { children: ReactNode }) {
                   </div>
                 </div>
               </div>
-              {pwaButton ? <div className="me-install-block">{pwaButton}</div> : null}
               <div className="me-section-title">快捷入口</div>
               <div className="menu-groups menu-grid" role="group">
                 {[
@@ -539,6 +538,18 @@ export default function Layout({ children }: { children: ReactNode }) {
                   { icon: <IconBan size={20} />, label: '屏蔽管理', onClick: () => openBlocksModal() },
                   ...(user.isAdmin
                     ? [{ icon: <IconShield size={20} />, label: '管理', onClick: () => navigate('/admin') }]
+                    : []),
+                  ...(pwa.canInstall || pwa.canInstallIos
+                    ? [
+                        {
+                          icon: <IconDownload size={20} />,
+                          label: pwa.canInstallIos ? '安装到桌面' : '安装 App',
+                          onClick: () => {
+                            if (pwa.canInstall) pwa.promptInstall();
+                            else openIosInstallHint();
+                          },
+                        },
+                      ]
                     : []),
                 ].map((it) => (
                   <button
@@ -616,7 +627,6 @@ export default function Layout({ children }: { children: ReactNode }) {
                   <div className="me-level">登录后同步你的皮 / 主题 / 格币</div>
                 </div>
               </div>
-              {pwaButton ? <div className="me-install-block">{pwaButton}</div> : null}
               <div className="me-auth-actions">
                 <button type="button" className="btn btn-primary" onClick={openLoginModal}>
                   登录
@@ -652,6 +662,18 @@ export default function Layout({ children }: { children: ReactNode }) {
                 <button type="button" className="me-link" onClick={openHelpModal}>
                   使用帮助
                 </button>
+                {(pwa.canInstall || pwa.canInstallIos) && (
+                  <button
+                    type="button"
+                    className="me-link"
+                    onClick={() => {
+                      if (pwa.canInstall) pwa.promptInstall();
+                      else openIosInstallHint();
+                    }}
+                  >
+                    安装《主格》到桌面
+                  </button>
+                )}
               </div>
             </>
           )}
