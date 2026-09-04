@@ -1,7 +1,7 @@
 // ===== 布局：顶部导航（毛玻璃）+ 主容器 + 通知/WS 接线 =====
 import { type ReactNode, useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { ActionIcon, Box, Button, Group, Loader, Menu, Modal, Switch, Text, Tooltip, useMantineColorScheme } from '@mantine/core';
+import { ActionIcon, Button, Loader, Menu, Modal, Text, Tooltip, useMantineColorScheme } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { mutate } from 'swr';
 import {
@@ -580,100 +580,52 @@ export default function Layout({ children }: { children: ReactNode }) {
                     ))}
                   </div>
                   <Menu.Divider />
-                  {/* 调试模式开关（vConsole 虚拟控制台）：同系统通知，用自定义 div 保证 Switch 点击可靠 */}
-                  <div className="menu-push-row" role="menuitem" onClick={(e) => e.stopPropagation()}>
-                    <Group justify="space-between" wrap="nowrap" w="100%">
-                      <Group gap={6} wrap="nowrap">
-                        <IconBug size={16} />
-                        <Text size="sm">调试模式</Text>
-                        <Text size="xs" c="dimmed">
-                          {debugOn ? '已开启' : '未开启'}
-                        </Text>
-                      </Group>
-                      <Box
-                        pos="relative"
-                        display="inline-flex"
-                        style={{ alignItems: 'center', justifyContent: 'center' }}
-                        w={44}
-                        h={22}
-                      >
-                        <Switch size="sm" checked={debugOn} onChange={handleDebugToggle} aria-label="调试模式" />
-                      </Box>
-                    </Group>
-                  </div>
-                  {/* 系统通知开关：不用 Menu.Item（button 内嵌 Switch 非法嵌套，点击可能被吞），
-                      用自定义 div 保证点击事件可靠触发 */}
-                  <div className="menu-push-row" role="menuitem" onClick={(e) => e.stopPropagation()}>
-                    <Group justify="space-between" wrap="nowrap" w="100%">
-                      <Group gap={6} wrap="nowrap">
-                        <IconBellRinging size={16} />
-                        <Text size="sm">系统通知</Text>
-                        {push.busy ? (
-                          <Text size="xs" c="dimmed">
-                            处理中…
-                          </Text>
-                        ) : push.iosNeedsPwa ? (
-                          <Text size="xs" style={{ color: 'var(--st-warn)' }}>
-                            需先安装
-                          </Text>
-                        ) : push.state === 'subscribed' ? (
-                          <Text size="xs" style={{ color: 'var(--st-ok)' }}>
-                            已开启
-                          </Text>
-                        ) : push.state === 'denied' ? (
-                          <Text size="xs" style={{ color: 'var(--st-danger)' }}>
-                            已拒绝
-                          </Text>
-                        ) : push.state === 'unsupported' ? (
-                          <Text size="xs" c="dimmed">
-                            不支持
-                          </Text>
-                        ) : (
-                          <Text size="xs" c="dimmed">
-                            未开启
-                          </Text>
-                        )}
-                      </Group>
-                      <Box
-                        pos="relative"
-                        display="inline-flex"
-                        style={{ alignItems: 'center', justifyContent: 'center' }}
-                        w={44}
-                        h={22}
-                      >
-                        <Switch
-                          size="sm"
-                          checked={push.state === 'subscribed'}
-                          // 只禁用"处理中"：iOS 普通标签页 PushManager 不存在（supported=false），
-                          // 但此时点按应进入"需先安装/不支持"提示分支，不能直接禁用
-                          disabled={push.busy}
-                          onChange={handlePushToggle}
-                          aria-label="系统通知"
-                        />
-                        {push.busy && <Loader size={14} style={{ position: 'absolute', inset: 0, margin: 'auto' }} />}
-                      </Box>
-                    </Group>
-                  </div>
-                  {/* AI 自动接戏全局开关：关闭后开戏/接戏默认不再勾选（各弹窗内仍可单独开启） */}
-                  <div className="menu-push-row" role="menuitem" onClick={(e) => e.stopPropagation()}>
-                    <Group justify="space-between" wrap="nowrap" w="100%">
-                      <Group gap={6} wrap="nowrap">
-                        <span style={{ fontSize: 14, lineHeight: 1 }}>🤖</span>
-                        <Text size="sm">AI 自动接戏</Text>
-                        <Text size="xs" c="dimmed">
-                          {aiAutoOn ? '默认开启' : '默认关闭'}
-                        </Text>
-                      </Group>
-                      <Box
-                        pos="relative"
-                        display="inline-flex"
-                        style={{ alignItems: 'center', justifyContent: 'center' }}
-                        w={44}
-                        h={22}
-                      >
-                        <Switch size="sm" checked={aiAutoOn} onChange={handleAiAutoToggle} aria-label="AI 自动接戏" />
-                      </Box>
-                    </Group>
+                  {/* 快捷开关一行：调试 / 系统通知 / AI 自动接戏 —— 三个明灭态按钮（亮=开、暗=关），
+                      替代原来三行 Switch，省菜单纵向空间 */}
+                  <div className="toggle-row" role="group" aria-label="快捷开关">
+                    <button
+                      type="button"
+                      className={`toggle-cell${debugOn ? ' on' : ''}`}
+                      aria-pressed={debugOn}
+                      title={`调试模式（vConsole）：${debugOn ? '已开启' : '未开启'}`}
+                      onClick={handleDebugToggle}
+                    >
+                      <IconBug size={15} />
+                      <span>调试</span>
+                    </button>
+                    <button
+                      type="button"
+                      className={`toggle-cell${push.state === 'subscribed' ? ' on' : ''}${push.busy ? ' busy' : ''}`}
+                      aria-pressed={push.state === 'subscribed'}
+                      disabled={push.busy}
+                      title={
+                        push.busy
+                          ? '系统通知：处理中…'
+                          : push.iosNeedsPwa
+                            ? '系统通知：需先安装 PWA'
+                            : push.state === 'denied'
+                              ? '系统通知：已拒绝（需在浏览器设置中允许）'
+                              : push.state === 'unsupported'
+                                ? '系统通知：当前浏览器不支持'
+                                : push.state === 'subscribed'
+                                  ? '系统通知：已开启'
+                                  : '系统通知：未开启'
+                      }
+                      onClick={handlePushToggle}
+                    >
+                      {push.busy ? <Loader size={13} /> : <IconBellRinging size={15} />}
+                      <span>通知</span>
+                    </button>
+                    <button
+                      type="button"
+                      className={`toggle-cell${aiAutoOn ? ' on' : ''}`}
+                      aria-pressed={aiAutoOn}
+                      title={`AI 自动接戏（开戏/接戏默认勾选）：${aiAutoOn ? '默认开启' : '默认关闭'}`}
+                      onClick={handleAiAutoToggle}
+                    >
+                      <span style={{ fontSize: 13, lineHeight: 1 }}>🤖</span>
+                      <span>AI</span>
+                    </button>
                   </div>
                   <Menu.Divider />
                   <Menu.Label>字号</Menu.Label>

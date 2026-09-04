@@ -1129,3 +1129,20 @@ body { margin: 0; }
 .scheme-cell.active { background: var(--primary-soft); color: var(--primary-deep); border-color: var(--primary); }
 :root[data-mantine-color-scheme="dark"] .scheme-cell { color: var(--text-soft); }
 :root[data-mantine-color-scheme="dark"] .scheme-cell.active { color: #fff; background: var(--primary-dark); }
+/* ===== Quick toggles one row: debug / push / ai (lit = on) ===== */
+.toggle-row { display: flex; gap: 6px; padding: 2px 12px 6px; }
+.toggle-cell {
+  flex: 1; display: flex; align-items: center; justify-content: center; gap: 4px;
+  padding: 7px 2px; border-radius: 8px; cursor: pointer; font-size: 12px;
+  border: 1px solid var(--border); background: transparent;
+  color: var(--text-soft); opacity: .72; transition: all .15s ease;
+}
+.toggle-cell:hover { opacity: 1; border-color: var(--primary); color: var(--primary-deep); }
+.toggle-cell.on {
+  opacity: 1; background: var(--primary-soft); color: var(--primary-deep);
+  border-color: var(--primary); font-weight: 600;
+}
+.toggle-cell:disabled { opacity: .4; cursor: not-allowed; }
+.toggle-cell.busy { opacity: .6; }
+:root[data-mantine-color-scheme="dark"] .toggle-cell { color: var(--text-soft); }
+:root[data-mantine-color-scheme="dark"] .toggle-cell.on { color: #fff; background: var(--primary-dark); }
