@@ -24,13 +24,27 @@ interface InviteDrillData {
   invitees: InviteeRow[];
 }
 
+// 模块级 30s 缓存：重复打开同一用户的邀请穿透秒开（数据变化不敏感，短 TTL 足够）
+const drillCache = new Map<number, { exp: number; data: InviteDrillData }>();
+
 export function InviteDrillModal({ user, onClose }: { user: AdminUserRow; onClose: () => void }) {
-  const [data, setData] = useState<InviteDrillData | null>(null);
+  const [data, setData] = useState<InviteDrillData | null>(() => {
+    const hit = drillCache.get(user.id);
+    return hit && hit.exp > Date.now() ? hit.data : null;
+  });
   const [error, setError] = useState(false);
 
   useEffect(() => {
+    const hit = drillCache.get(user.id);
+    if (hit && hit.exp > Date.now()) {
+      setData(hit.data);
+      return;
+    }
     api<{ data: InviteDrillData }>(`/admin/users/${user.id}/invites`)
-      .then((r) => setData(r.data))
+      .then((r) => {
+        drillCache.set(user.id, { exp: Date.now() + 30_000, data: r.data });
+        setData(r.data);
+      })
       .catch(() => setError(true));
   }, [user.id]);
 
