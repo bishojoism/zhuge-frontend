@@ -1206,3 +1206,18 @@ body {
   background-size: auto, auto, auto, auto, auto, 18px 18px;
   background-attachment: fixed;
 }
+/* ===== Let ambient body texture show through panels (v3) ===== */
+/* .feed-viewport (card stage) and .list-sticky (sticky top) were solid var(--bg),
+   hiding the body texture. Make them translucent + backdrop blur: texture shows
+   through between/behind cards while each card keeps its own solid bg, so text
+   contrast on content stays intact (a11y). */
+.feed-viewport,
+.list-sticky {
+  background: rgba(246, 245, 242, 0.5);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+:root[data-mantine-color-scheme="dark"] .feed-viewport,
+:root[data-mantine-color-scheme="dark"] .list-sticky {
+  background: rgba(21, 24, 29, 0.5);
+}
