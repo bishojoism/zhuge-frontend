@@ -1402,3 +1402,15 @@ body { padding-bottom: calc(54px + env(safe-area-inset-bottom)); }
 /* ===== Bottom clearance only on tab-bar pages ===== */
 body { padding-bottom: 0; }
 body.zhuge-tabbar { padding-bottom: calc(54px + env(safe-area-inset-bottom)); }
+
+/* ===== Safe-area aware layout (viewport-fit=cover) ===== */
+/* Nav height grows by top inset (status bar) on notched devices; sticky bars and
+   the tab panel track it via --nav-h. Bottom tab bar/panels clear the home
+   indicator via env(safe-area-inset-bottom) which now works with cover. */
+:root { --nav-h: calc(55px + env(safe-area-inset-top, 0px)); }
+.nav {
+  height: var(--nav-h);
+  padding-top: env(safe-area-inset-top, 0px);
+}
+.list-sticky { top: var(--nav-h); }
+.tab-panel { top: var(--nav-h); }
