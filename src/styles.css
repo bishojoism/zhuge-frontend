@@ -1087,3 +1087,25 @@ body { margin: 0; }
 }
 .notif-next-text { color: var(--text-soft, #5f6570); overflow-wrap: anywhere; }
 :root[data-mantine-color-scheme="dark"] .notif-next-text { color: var(--mantine-color-dimmed, #9096a0); }
+/* ===== Collapsed category bar: tags + sort folded into one menu ===== */
+.tagbar.cat-collapsed { justify-content: space-between; }
+.cat-btn { display: flex; align-items: center; gap: 6px; padding: 7px 12px; font-size: 14px; max-width: 100%; }
+.cat-btn .cat-icon { font-size: 14px; line-height: 1; }
+.cat-btn .cat-title { font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 9em; }
+.cat-btn .cat-sort { font-size: 12px; color: var(--muted); white-space: nowrap; }
+.cat-btn .cat-caret { font-size: 10px; color: var(--muted); }
+.cat-compose { padding: 7px 14px; font-size: 14px; flex-shrink: 0; }
+.cat-menu {
+  background: rgba(255,255,255,.97); border: 1px solid var(--border);
+  border-radius: var(--radius-md); box-shadow: var(--shadow-lg);
+  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+  padding: 6px; max-height: min(70vh, 480px); overflow-y: auto;
+}
+.cat-menu .mantine-Menu-label { font-size: 11px; font-weight: 700; color: var(--muted); padding: 6px 12px 3px; letter-spacing: .5px; }
+.cat-menu .mantine-Menu-item { width: 100%; border-radius: 8px; font-size: 13px; color: var(--text-soft); padding: 8px 12px; }
+.cat-menu .mantine-Menu-item:hover { background: var(--primary-soft); }
+.cat-menu .mantine-Menu-item.active { color: var(--primary-deep); font-weight: 600; background: var(--primary-soft); }
+:root[data-mantine-color-scheme="dark"] .cat-menu { background: rgba(30,34,41,.97); border-color: var(--border); }
+:root[data-mantine-color-scheme="dark"] .cat-menu .mantine-Menu-item { color: var(--text-soft); }
+:root[data-mantine-color-scheme="dark"] .cat-menu .mantine-Menu-item:hover { background: var(--primary-soft); }
+:root[data-mantine-color-scheme="dark"] .cat-menu .mantine-Menu-item.active { color: #fff; background: var(--primary-dark); }

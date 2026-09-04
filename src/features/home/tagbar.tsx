@@ -1,14 +1,11 @@
-// ===== 首页标签条：主标签 chips + 排序菜单 + 「＋」开戏按钮 =====
-import { useLayoutEffect, useRef } from 'react';
+// ===== 首页顶栏：分类（标签选择 + 排序折叠为一个入口）+ 「开戏」按钮 =====
+// 原"标签 chips 横滚条 + 独立排序按钮"整行折叠为左侧一个「分类」菜单：
+// 点开 = 标签组（全部/主标签/更多标签…）+ 排序组（推荐/最新/热门）；
+// 「开戏」按钮独占右侧。当前筛选摘要显示在分类按钮上（标签名 · 排序名）。
 import { Menu } from '@mantine/core';
 import type { Tag } from '../../types';
 
 export type SortKey = 'recommend' | 'latest' | 'hot';
-
-// 模块级：tagbar 横向滚动位置跨挂载持久。
-// 首页「加载中 → 加载出内容」时 tagbar 会从 fragment 移到 FeedView 的 prop 中，
-// React 会卸载重挂载 TagBar，组件内 useRef 会丢失；用模块级变量保住 scrollLeft。
-let tagbarScrollLeft = 0;
 
 const SORT_LABEL: Record<SortKey, string> = {
   recommend: '推荐',
@@ -46,101 +43,70 @@ export default function TagBar({
     .filter((t) => t.position != null && !t.is_hidden)
     .sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
 
-  // 当前选中的是次标签 → 标签条里动态插入一个高亮 chip（与旧版一致）
-  const selectedSecondary = activeTag != null
-    ? tags.find((t) => t.id === activeTag && t.position == null && !t.is_hidden)
-    : undefined;
-
-  // 切标签时保留 .tagbar-scroll 的 scrollLeft（实时保存到模块级，跨挂载恢复）
-  const scrollRef = useRef<HTMLDivElement>(null);
-
-  const saveScroll = () => {
-    tagbarScrollLeft = scrollRef.current?.scrollLeft ?? 0;
-  };
-
-  const handleChip = (id: number | null) => {
-    saveScroll();
-    onTagChange(id);
-  };
-
-  // 挂载时恢复（模块级持久化，覆盖「加载中 → 内容」切换导致的重挂载）
-  useLayoutEffect(() => {
-    if (scrollRef.current) scrollRef.current.scrollLeft = tagbarScrollLeft;
-  }, []);
+  // 当前选中的次标签（"更多标签…"里选的）：菜单里追加一个高亮项 + 按钮摘要显示其名
+  const activeTagName = activeTag != null ? tags.find((t) => t.id === activeTag)?.name : null;
+  const selectedSecondary =
+    activeTag != null && !primaryTags.some((t) => t.id === activeTag)
+      ? tags.find((t) => t.id === activeTag)
+      : undefined;
 
   return (
-    <div className="tagbar">
-      <div className="tagbar-scroll" ref={scrollRef} onScroll={saveScroll}>
-        <button
-          type="button"
-          className={`tagchip${activeTag === null ? ' active' : ''}`}
-          onClick={() => handleChip(null)}
-        >
-          全部
-        </button>
-        {primaryTags.map((t) => (
+    <div className="tagbar cat-collapsed">
+      <Menu position="bottom-start" width={210} withinPortal closeOnItemClick>
+        <Menu.Target>
           <button
             type="button"
-            key={t.id}
-            className={`tagchip${activeTag === t.id ? ' active' : ''}`}
-            onClick={() => handleChip(t.id)}
+            className="btn cat-btn"
+            title={`分类筛选：${activeTagName || '全部'} · ${SORT_LABEL[sort]}`}
+            aria-label="分类筛选"
           >
-            {t.name}
+            <span className="cat-icon">🗂</span>
+            <span className="cat-title">{activeTagName || '全部'}</span>
+            <span className="cat-sort">· {SORT_LABEL[sort]}</span>
+            <span className="cat-caret">▾</span>
           </button>
-        ))}
-        {selectedSecondary ? (
-          <span className="tagchip active" key={`secondary-${selectedSecondary.id}`}>
-            {selectedSecondary.name}
-          </span>
-        ) : null}
-        <button type="button" className="tagchip" onClick={onOpenTagPicker}>
-          更多标签…
-        </button>
-      </div>
-      <div className="tagbar-actions">
-        <div className="sort-menu-wrap">
-          <Menu
-            position="bottom-end"
-            width={140}
-            withinPortal
-            closeOnClickOutside
-            closeOnItemClick
-            closeOnEscape
-          >
-            <Menu.Target>
-              <button
-                type="button"
-                className="btn sort-btn"
-                title={`排序：${SORT_LABEL[sort]}`}
-                aria-label="排序"
-              >
-                <span className="sort-icon">⇅</span>
-                <span className="sort-label">排序</span>
-              </button>
-            </Menu.Target>
-            <Menu.Dropdown className="sort-menu">
-              {SORT_OPTIONS.map((o) => (
-                <Menu.Item
-                  key={o.key}
-                  className={sort === o.key ? 'active' : undefined}
-                  onClick={() => onSortChange(o.key)}
-                >
-                  {o.label}
-                </Menu.Item>
-              ))}
-            </Menu.Dropdown>
-          </Menu>
-        </div>
-        <button
-          type="button"
-          className="btn btn-accent"
-          style={{ padding: '6px 10px', fontSize: 14 }}
-          title="开戏"
-          onClick={onOpenComposer}
-        >
-          ＋
-        </button>
-      </div>
+        </Menu.Target>
+        <Menu.Dropdown className="cat-menu">
+          <Menu.Label>分类</Menu.Label>
+          <Menu.Item className={activeTag === null ? 'active' : undefined} onClick={() => onTagChange(null)}>
+            全部
+          </Menu.Item>
+          {primaryTags.map((t) => (
+            <Menu.Item
+              key={t.id}
+              className={activeTag === t.id ? 'active' : undefined}
+              onClick={() => onTagChange(t.id)}
+            >
+              {t.name}
+            </Menu.Item>
+          ))}
+          {selectedSecondary ? (
+            <Menu.Item className="active" onClick={() => onTagChange(selectedSecondary.id)}>
+              {selectedSecondary.name}
+            </Menu.Item>
+          ) : null}
+          <Menu.Item onClick={onOpenTagPicker}>更多标签…</Menu.Item>
+          <Menu.Divider />
+          <Menu.Label>排序</Menu.Label>
+          {SORT_OPTIONS.map((o) => (
+            <Menu.Item
+              key={o.key}
+              className={sort === o.key ? 'active' : undefined}
+              onClick={() => onSortChange(o.key)}
+            >
+              {o.label}
+            </Menu.Item>
+          ))}
+        </Menu.Dropdown>
+      </Menu>
+      <button
+        type="button"
+        className="btn btn-accent cat-compose"
+        title="开戏"
+        onClick={onOpenComposer}
+      >
+        ＋ 开戏
+      </button>
     </div>
   );
 }
