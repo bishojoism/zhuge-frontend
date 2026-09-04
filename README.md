@@ -64,3 +64,10 @@ src/
 - 服务端 API 契约不变（Cloudflare Worker），前端纯静态 SPA；
   未来可给 Worker 的 `index.html` 注入 `window.__INITIAL_DATA__` 恢复 SSR（占位注释已在 index.html）。
 - 生产构建会注册 Service Worker（缓存版本 `zhuge-web-v1`）；本地 dev 不注册，避免缓存干扰。
+
+
+## 开源许可
+
+GNU General Public License v3.0（GPL-3.0），详见 [LICENSE](LICENSE)。
+
+© 2025 bishojoism。《主格》文字角色扮演平台前端源码。本仓库仅含前端；平台后端与线上服务（API / 数据库 / 管理 / Worker）不在此仓库内。
