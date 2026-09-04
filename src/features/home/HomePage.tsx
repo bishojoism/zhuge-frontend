@@ -77,7 +77,17 @@ export default function HomePage() {
   //（推荐模式由 feed-lock 去掉；列表/加载中无 feed-lock，这里统一处理，消除 hero 上方空隙）
   useEffect(() => {
     document.body.classList.add('zhuge-home');
-    return () => document.body.classList.remove('zhuge-home');
+    // 网格/列表视图不锁滚动：清理历史滑卡版可能残留的锁（bfcache 返回或旧版本把
+    // feed-lock + overscroll-behavior:none 留在 body/html 上，新视图无 FeedView 去清）
+    document.body.classList.remove('feed-lock');
+    document.body.style.overscrollBehavior = '';
+    document.documentElement.style.overscrollBehavior = '';
+    return () => {
+      document.body.classList.remove('zhuge-home');
+      document.body.classList.remove('feed-lock');
+      document.body.style.overscrollBehavior = '';
+      document.documentElement.style.overscrollBehavior = '';
+    };
   }, []);
 
   // URL 即状态：/tag/:tagId 选标签，?sort= 选排序（返回/前进自动恢复）
