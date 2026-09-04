@@ -250,6 +250,8 @@ export function NotificationsModalContent({ onClose }: { onClose: () => void }) 
   const markAllRead = async () => {
     if (markingAll) return;
     setMarkingAll(true);
+    // 点击感知：乐观更新几乎瞬时完成（无转圈），给一条轻 toast 明确"已处理"
+    notifications.show({ message: '已全部标记为已读', color: 'green', autoClose: 1200 });
     // 乐观：本地立即标记已读。base 兜底用弹窗当前 data——若点击瞬间 SWR 缓存刚好被
     // 某次刷新置空（current 无 data），(current?.data || []) 会变成空列表 → 短暂闪
     // "还没有通知"；用有内容的 base 保证乐观帧不空、等 revalidate 收敛。
