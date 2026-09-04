@@ -392,25 +392,31 @@ export default function Layout({ children }: { children: ReactNode }) {
     </Tooltip>
   ) : null;
 
-  // 显示模式三选项（深色/浅色/跟随系统）：移入头像下拉菜单后，登录/未登录菜单共用，
-  // 当前激活项右侧打勾 + 高亮。setColorScheme 由 localStorageColorSchemeManager 持久化。
-  const schemeItems = (
-    [
-      { value: 'light', label: '浅色模式', icon: <IconSun size={16} /> },
-      { value: 'dark', label: '深色模式', icon: <IconMoon size={16} /> },
-      { value: 'auto', label: '跟随系统', icon: <IconDeviceDesktop size={16} /> },
-    ] as const
-  ).map((m) => (
-    <Menu.Item
-      key={m.value}
-      leftSection={m.icon}
-      rightSection={colorScheme === m.value ? <IconCheck size={14} /> : null}
-      onClick={() => setColorScheme(m.value)}
-      style={colorScheme === m.value ? { color: 'var(--primary-deep)', fontWeight: 600 } : undefined}
-    >
-      {m.label}
-    </Menu.Item>
-  ));
+  // 显示模式：一行三选（浅色/深色/跟随系统 图标并排，当前项高亮）。
+  // 不做三个菜单项分行——菜单里一行搞定，省纵向空间。setColorScheme 持久化同前。
+  const schemeRow = (
+    <div className="scheme-row" role="group" aria-label="显示模式">
+      {(
+        [
+          { value: 'light', label: '浅色模式', icon: <IconSun size={16} /> },
+          { value: 'dark', label: '深色模式', icon: <IconMoon size={16} /> },
+          { value: 'auto', label: '跟随系统', icon: <IconDeviceDesktop size={16} /> },
+        ] as const
+      ).map((m) => (
+        <button
+          key={m.value}
+          type="button"
+          className={`scheme-cell${colorScheme === m.value ? ' active' : ''}`}
+          title={m.label}
+          aria-label={m.label}
+          aria-pressed={colorScheme === m.value}
+          onClick={() => setColorScheme(m.value)}
+        >
+          {m.icon}
+        </button>
+      ))}
+    </div>
+  );
 
   // 字号三档（小/标准/大）：A 字大小作图标区分，当前档打勾高亮（同显示模式交互）
   const fontItems = (
@@ -673,7 +679,7 @@ export default function Layout({ children }: { children: ReactNode }) {
                   <Menu.Label>字号</Menu.Label>
                   {fontItems}
                   <Menu.Label>显示模式</Menu.Label>
-                  {schemeItems}
+                  {schemeRow}
                   <Menu.Divider />
                   <Menu.Item leftSection={<IconLogout size={16} />} onClick={handleLogout}>
                     <Text component="span" style={{ color: 'var(--st-danger)' }}>
@@ -719,7 +725,7 @@ export default function Layout({ children }: { children: ReactNode }) {
                   <Menu.Label>字号</Menu.Label>
                   {fontItems}
                   <Menu.Label>显示模式</Menu.Label>
-                  {schemeItems}
+                  {schemeRow}
                 </Menu.Dropdown>
               </Menu>
             </>

@@ -1117,3 +1117,15 @@ body { margin: 0; }
 :root[data-font-scale="small"] {
   --fs-post: 12.5px; --fs-card-title: 19px; --fs-card-excerpt: 13.5px; --fs-feed-author: 14px; --fs-list-title: 14.5px;
 }
+/* ===== Display mode: one row of three icons (avatar menu) ===== */
+.scheme-row { display: flex; gap: 6px; padding: 2px 12px 6px; }
+.scheme-cell {
+  flex: 1; display: flex; align-items: center; justify-content: center;
+  padding: 7px 0; border-radius: 8px; cursor: pointer;
+  border: 1px solid var(--border); background: transparent;
+  color: var(--text-soft); transition: all .15s ease;
+}
+.scheme-cell:hover { border-color: var(--primary); color: var(--primary-deep); }
+.scheme-cell.active { background: var(--primary-soft); color: var(--primary-deep); border-color: var(--primary); }
+:root[data-mantine-color-scheme="dark"] .scheme-cell { color: var(--text-soft); }
+:root[data-mantine-color-scheme="dark"] .scheme-cell.active { color: #fff; background: var(--primary-dark); }
