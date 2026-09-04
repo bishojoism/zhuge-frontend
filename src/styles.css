@@ -198,7 +198,7 @@
 
     /* 鏍囩鏉★紙妯悜婊氬姩涓€琛岋紝鍙充晶鍥哄畾鎺掑簭/寮€鎴忥級 */
     .tagbar {
-      display: flex; align-items: center; gap: 8px; margin-bottom: 14px;
+      display: flex; align-items: center; gap: 8px; margin: 8px 0 14px;
     }
     .tagbar-scroll {
       display: flex; gap: 8px; flex-wrap: nowrap;
