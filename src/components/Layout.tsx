@@ -184,6 +184,7 @@ export default function Layout({ children }: { children: ReactNode }) {
     } catch {
       /* 忽略 */
     }
+    pushSetting('aiAuto', next ? 1 : 0);
   };
   // 路由变化守卫：离开主题页（/d/:id，返回主页等）时归零页面滚动。
   // 常驻定时器方案：浏览器可能在返回导航后任意时刻异步恢复滚动位置（即使
@@ -391,6 +392,51 @@ export default function Layout({ children }: { children: ReactNode }) {
     </Tooltip>
   ) : null;
 
+  // 设置云同步：本地 localStorage 仍是主存储；登录后拉取账号设置覆盖本地，变更时回写。
+  // PUT 按单键合并（/api/me/settings { key, value }），避免并发整包覆盖。游客/未登录静默。
+  const pushSetting = (key: 'colorScheme' | 'fontScale' | 'aiAuto', value: unknown) => {
+    if (!user) return;
+    void api('/me/settings', { method: 'PUT', body: { key, value } }).catch(() => {
+      /* 同步失败静默：下次变更再试，本地优先 */
+    });
+  };
+  // 每个 user 只拉取应用一次：云端有值则覆盖本地（跨设备延续）；云端空则把本地当前值推上云
+  //（首设备数据上云）。0 步自动注册的游客 id 也会存（游客转正后设置保留）。
+  const syncedUidRef = useRef<number | null>(null);
+  useEffect(() => {
+    if (!user || syncedUidRef.current === user.id) return;
+    syncedUidRef.current = user.id;
+    void (async () => {
+      try {
+        const r = await api<{
+          data: Partial<Record<'colorScheme' | 'fontScale' | 'aiAuto', unknown>>;
+        }>('/me/settings');
+        const s = r.data || {};
+        let had = false;
+        if (s.colorScheme === 'light' || s.colorScheme === 'dark' || s.colorScheme === 'auto') {
+          had = true;
+          setColorScheme(s.colorScheme);
+        }
+        if (s.fontScale === 'small' || s.fontScale === 'standard' || s.fontScale === 'large') {
+          had = true;
+          setFontScale(s.fontScale);
+        }
+        if (s.aiAuto === 0 || s.aiAuto === 1) {
+          had = true;
+          setAiAutoOn(s.aiAuto === 1);
+        }
+        if (!had) {
+          pushSetting('colorScheme', colorScheme);
+          pushSetting('fontScale', fontScale);
+          pushSetting('aiAuto', aiAutoOn ? 1 : 0);
+        }
+      } catch {
+        /* 拉取失败：保留本地设置 */
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
+
   // 显示模式：一行三选（浅色/深色/跟随系统 图标并排，当前项高亮）。
   // 不做三个菜单项分行——菜单里一行搞定，省纵向空间。setColorScheme 持久化同前。
   const schemeRow = (
@@ -409,7 +455,10 @@ export default function Layout({ children }: { children: ReactNode }) {
           title={m.label}
           aria-label={m.label}
           aria-pressed={colorScheme === m.value}
-          onClick={() => setColorScheme(m.value)}
+          onClick={() => {
+            setColorScheme(m.value);
+            pushSetting('colorScheme', m.value);
+          }}
         >
           {m.icon}
         </button>
@@ -434,7 +483,10 @@ export default function Layout({ children }: { children: ReactNode }) {
           title={m.label}
           aria-label={m.label}
           aria-pressed={fontScale === m.value}
-          onClick={() => setFontScale(m.value)}
+          onClick={() => {
+            setFontScale(m.value);
+            pushSetting('fontScale', m.value);
+          }}
         >
           <span style={{ fontSize: m.fs, fontWeight: 700, lineHeight: 1 }}>A</span>
         </button>
