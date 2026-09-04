@@ -1174,10 +1174,10 @@ body {
 /* Text-only scaling via --zh-scale: layout/positioning unchanged (no portal
    misalignment), every font-size: Npx rule becomes calc(Npx * var()). */
 :root { --zh-scale: 1; }
-:root[data-font-scale="xs"] { --zh-scale: 0.88; }
-:root[data-font-scale="sm"] { --zh-scale: 0.95; }
-:root[data-font-scale="lg"] { --zh-scale: 1.12; }
-:root[data-font-scale="xl"] { --zh-scale: 1.25; }
+:root[data-font-scale="xs"] { --zh-scale: 0.8; }
+:root[data-font-scale="sm"] { --zh-scale: 0.92; }
+:root[data-font-scale="lg"] { --zh-scale: 1.2; }
+:root[data-font-scale="xl"] { --zh-scale: 1.45; }
 /* ===== Ambient background texture v2 (visible but content-safe) ===== */
 /* Stronger glows + clipped brand circles + finer dot grid. Cards/text keep solid
    backgrounds so contrast is untouched; decoration lives at viewport edges and
