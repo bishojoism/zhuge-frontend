@@ -451,6 +451,19 @@ export default function Layout({ children }: { children: ReactNode }) {
         >
           <span className="dot">主</span>主格
         </Link>
+        <div className="nav-spacer" />
+        <Tooltip label="刷新页面" withArrow>
+          <ActionIcon
+            variant="subtle"
+            size="lg"
+            onClick={handleRefresh}
+            aria-label="刷新页面"
+            title="刷新页面"
+            disabled={refreshing}
+          >
+            {refreshing ? <Loader size={18} /> : <IconRefresh size={20} />}
+          </ActionIcon>
+        </Tooltip>
       </nav>
       {/* 内容区：key=路径 → 路由切换时强制重建整个内容区（清掉旧页残留的 DOM，
           如主题页的帖子卡片在水合/协调后残留在主页顶部）。
