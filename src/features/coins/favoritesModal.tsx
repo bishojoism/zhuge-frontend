@@ -1,11 +1,12 @@
 // ===== 我的收藏：收藏的帖子列表（点击跳转定位到收藏的楼） =====
 import { useEffect, useState } from 'react';
-import { Button, Group, Loader, Stack, Text } from '@mantine/core';
+import { Loader, Stack, Text } from '@mantine/core';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../../api/client';
 import { openModalOnce } from '../../lib/modals';
 import { timeAgo } from '../../lib/utils';
 import TripleActions from '../../components/TripleActions';
+import { TopicCard, type TopicCardData } from '../home/list';
 
 interface FavoriteItem {
   post_id: number;
@@ -28,7 +29,7 @@ export function openFavoritesModal(): void {
   openModalOnce('favorites', (m) => {
     m.open({
       title: '我的收藏',
-      size: 420,
+      size: 460,
       children: <FavoritesContent />,
     });
   });
@@ -77,42 +78,35 @@ function FavoritesContent() {
     );
   }
 
+  // 复用全局 TopicCard（与其他列表一致的卡片样式）；点击仍跳转并定位收藏的楼
   return (
-    <Stack gap={6} style={{ maxHeight: '60vh', overflow: 'auto' }}>
-      {rows.map((it) => (
-        <Group
-          key={it.post_id}
-          gap="sm"
-          wrap="nowrap"
-          justify="space-between"
-          style={{
-            padding: '8px 10px',
-            borderRadius: 8,
-            border: '1px solid var(--border)',
-            cursor: 'pointer',
-          }}
-          onClick={() => go(it)}
-        >
-          <Stack gap={2} style={{ flex: 1, minWidth: 0 }}>
-            <Text size="sm" fw={600} truncate>
-              {it.is_private ? '🔒 ' : ''}{it.discussion_title}
-              <Text component="span" size="xs" c="dimmed" ml={6}>
-                {it.number}楼 · {it.post_author}
-              </Text>
-            </Text>
-            {it.content ? (
-              <Text size="xs" c="dimmed" lineClamp={2}>
-                {it.content}
-              </Text>
-            ) : null}
-            {/* 收藏夹内也可一键三连（点赞/投币/收藏 + 计数） */}
-            <TripleActions postId={it.post_id} authorId={it.post_user_id} initial={it} />
-          </Stack>
-          <Text size="xs" c="dimmed" style={{ whiteSpace: 'nowrap' }}>
-            {timeAgo(it.favorited_at)}
-          </Text>
-        </Group>
-      ))}
+    <Stack gap={6}>
+      {rows.map((it) => {
+        const card: TopicCardData = {
+          id: it.discussion_id,
+          title: it.discussion_title,
+          user_id: it.post_user_id,
+          excerpt: it.content || undefined,
+          author: it.post_author,
+        };
+        return (
+          <TopicCard
+            key={it.post_id}
+            d={card}
+            tags={[]}
+            onOpenTopic={() => go(it)}
+            titleRight={it.is_private ? <span>🔒</span> : undefined}
+            metaExtras={
+              <>
+                <span>
+                  {it.number}楼 · {timeAgo(it.favorited_at)}
+                </span>
+              </>
+            }
+            footer={<TripleActions postId={it.post_id} authorId={it.post_user_id} initial={it} />}
+          />
+        );
+      })}
     </Stack>
   );
 }
