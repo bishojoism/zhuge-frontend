@@ -1197,12 +1197,12 @@ body {
 :root[data-mantine-color-scheme="dark"] body {
   background-color: var(--bg);
   background-image:
-    radial-gradient(circle 460px at -3% -40px, rgba(232, 106, 84, 0.2), transparent 72%),
-    radial-gradient(1200px 900px at 12% -8%, rgba(232, 99, 74, 0.16), transparent 55%),
-    radial-gradient(circle 380px at -70px 108%, rgba(112, 140, 184, 0.22), transparent 70%),
-    radial-gradient(1000px 760px at 106% 30%, rgba(108, 148, 196, 0.18), transparent 58%),
-    radial-gradient(circle 300px at 60% -160px, rgba(160, 130, 190, 0.14), transparent 70%),
-    radial-gradient(rgba(226, 234, 250, 0.05) 1px, transparent 1px);
+    radial-gradient(circle 460px at -3% -40px, rgba(255, 138, 108, 0.34), transparent 72%),
+    radial-gradient(1200px 900px at 12% -8%, rgba(255, 128, 98, 0.3), transparent 55%),
+    radial-gradient(circle 380px at -70px 108%, rgba(140, 168, 218, 0.36), transparent 70%),
+    radial-gradient(1000px 760px at 106% 30%, rgba(128, 158, 214, 0.32), transparent 58%),
+    radial-gradient(circle 300px at 60% -160px, rgba(178, 148, 212, 0.26), transparent 70%),
+    radial-gradient(rgba(226, 234, 250, 0.09) 1px, transparent 1px);
   background-size: auto, auto, auto, auto, auto, 18px 18px;
   background-attachment: fixed;
 }
@@ -1265,12 +1265,12 @@ body::before {
 :root[data-mantine-color-scheme="dark"] html { background-color: var(--bg); }
 :root[data-mantine-color-scheme="dark"] body::before {
   background-image:
-    radial-gradient(circle 460px at -3% -40px, rgba(232, 106, 84, 0.2), transparent 72%),
-    radial-gradient(1200px 900px at 12% -8%, rgba(232, 99, 74, 0.16), transparent 55%),
-    radial-gradient(circle 380px at -70px 108%, rgba(112, 140, 184, 0.22), transparent 70%),
-    radial-gradient(1000px 760px at 106% 30%, rgba(108, 148, 196, 0.18), transparent 58%),
-    radial-gradient(circle 300px at 60% -160px, rgba(160, 130, 190, 0.14), transparent 70%),
-    radial-gradient(rgba(226, 234, 250, 0.05) 1px, transparent 1px);
+    radial-gradient(circle 460px at -3% -40px, rgba(255, 138, 108, 0.34), transparent 72%),
+    radial-gradient(1200px 900px at 12% -8%, rgba(255, 128, 98, 0.3), transparent 55%),
+    radial-gradient(circle 380px at -70px 108%, rgba(140, 168, 218, 0.36), transparent 70%),
+    radial-gradient(1000px 760px at 106% 30%, rgba(128, 158, 214, 0.32), transparent 58%),
+    radial-gradient(circle 300px at 60% -160px, rgba(178, 148, 212, 0.26), transparent 70%),
+    radial-gradient(rgba(226, 234, 250, 0.09) 1px, transparent 1px);
   background-size: auto, auto, auto, auto, auto, 18px 18px;
 }
 /* ===== Flat avatar menu spacing (no group titles / no dividers) ===== */
