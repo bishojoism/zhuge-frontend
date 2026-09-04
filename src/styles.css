@@ -1395,3 +1395,6 @@ body { padding-bottom: calc(54px + env(safe-area-inset-bottom)); }
 }
 /* Hide the in-page "back" button inside the modal (route page keeps it) */
 .me-page-modal > button:first-child { display: none; }
+
+/* ===== Grid card author name: tighter still ===== */
+.grid-list .topic-meta .author-link { max-width: 7em; }
