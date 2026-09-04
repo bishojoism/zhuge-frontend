@@ -1289,3 +1289,13 @@ body::before {
 .topic {
   border-radius: 0 !important;
 }
+/* ===== Recommend grid mode (replaces slide-card feed) ===== */
+.grid-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  padding: 0 14px 20px;
+}
+.grid-list .topic { margin-bottom: 0; }
+/* Narrow grid cards: clamp excerpt to ~4 lines so rows stay tidy */
+.grid-list .topic-excerpt { max-height: 6.6em; }

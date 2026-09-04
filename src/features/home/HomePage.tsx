@@ -13,7 +13,7 @@ import { openModalOnce } from '../../lib/modals';
 import { focusOnEnter } from '../../lib/modalFocus';
 import type { Discussion, InitData, User } from '../../types';
 import TagBar, { type SortKey } from './tagbar';
-import FeedView from './feed';
+import GridView from './grid';
 import ListView from './list';
 import { ComposerContent } from './composer';
 import { seedTopicCacheFromList } from './composer';
@@ -324,44 +324,36 @@ export default function HomePage() {
       ? items.length > 0 ? hasMore : result?.meta.hasMore || false
       : cacheHit ? result.meta.hasMore : false;
     // 有可显示内容（旧 items 或新 result）→ 直接渲染；仅首次加载/切换中（无内容）显示加载中
-    if (displayItems.length === 0) {
-      // 空态（首次加载 / 切换中 / 无数据）：不挂 feed，保持页面正常滚动。
-      // 判定用 result 而非 isLoading：SWR 的 isLoading 首帧恒为 true（即使 fallback 命中），
-      // 会闪"加载中"；result 在 fallback/内联数据命中时首帧即存在。
-      // 加载中用骨架卡片占位（与 feed 卡片同高），避免"加载中…"文字闪一帧突兀。
-      const loading = !result || (!ready && !cacheHit);
-      return (
-        <>
-          {tagbar}
-          {loading ? (
+    // ===== 推荐网格（原滑卡视图改为双列网格 + 无限滚动，与列表模式同构滚动/加载） =====
+    return (
+      <>
+        <div className="list-sticky">{tagbar}</div>
+        {displayItems.length === 0 ? (
+          !result || (!ready && !cacheHit) ? (
             <div className="feed-loading-skeleton" aria-hidden>
-              {[0, 1].map((i) => (
+              {[0, 1, 2].map((i) => (
                 <div key={i} className="feed-skeleton-card">
                   <div className="feed-skeleton-block" style={{ width: '30%', height: 14 }} />
-                  <div className="feed-skeleton-block" style={{ width: '70%', height: 20, marginTop: 8 }} />
+                  <div className="feed-skeleton-block" style={{ width: '70%', height: 18, marginTop: 8 }} />
                   <div className="feed-skeleton-block" style={{ width: '100%', height: 12, marginTop: 8 }} />
-                  <div className="feed-skeleton-block" style={{ width: '90%', height: 12, marginTop: 6 }} />
-                  <div className="feed-skeleton-block" style={{ width: '50%', height: 24, marginTop: 12 }} />
+                  <div className="feed-skeleton-block" style={{ width: '50%', height: 20, marginTop: 12 }} />
                 </div>
               ))}
             </div>
           ) : (
             <div className="empty">还没有主题，来发第一个吧！</div>
-          )}
-        </>
-      );
-    }
-    return (
-      <FeedView
-        items={displayItems}
-        tags={tags}
-        hasMore={displayHasMore}
-        loadingMore={loadingMore}
-        onLoadMore={loadMore}
-        onOpenTopic={openTopic}
-        tagbar={tagbar}
-        resetKey={`${sort}:${tag ?? 'all'}:${feedSeed}`}
-      />
+          )
+        ) : (
+          <GridView
+            items={displayItems}
+            tags={tags}
+            hasMore={displayHasMore}
+            loadingMore={loadingMore}
+            onLoadMore={loadMore}
+            onOpenTopic={openTopic}
+          />
+        )}
+      </>
     );
   }
 
