@@ -19,10 +19,10 @@ import { ComposerContent } from './composer';
 import { seedTopicCacheFromList } from './composer';
 import { TagPickerContent } from './tagPicker';
 
-// 推荐随机种子：分钟级稳定值（与 SSR 一致：Math.floor(now/60000)+1）。
-// 一分钟内所有推荐请求同 seed → 预加载的 recommend 缓存可命中（切标签/排序秒出）；
-// 每分钟自然变化，保留"刷新推荐顺序有变化"的体验。
-const newSeed = () => Math.floor(Date.now() / 60000) + 1;
+// 推荐随机种子：每次进入推荐视图（挂载/从列表切回/切标签）都生成全新随机值 →
+// 刷新前后、切换回来看到的推荐顺序必然不同。代价：预热的 recommend 缓存命中率下降
+//（最新/热门无 seed 不受影响）；服务端 seededShuffle 保证同 seed 序列一致（SSR 不冲突）。
+const newSeed = () => Math.floor(Math.random() * 1e9) + 1;
 
 const SORT_KEYS: SortKey[] = ['recommend', 'latest', 'hot'];
 
@@ -122,7 +122,7 @@ export default function HomePage() {
   // 无 cookie 首页整页缓存会复用旧 seed 的内联列表（缓存窗口内刷新顺序不变），
   // mount 后换随机 seed 重新洗牌 → 刷新前后进入推荐看到不同的列表顺序
   useEffect(() => {
-    setFeedSeed(Math.floor(Math.random() * 1e9) + 1);
+    setFeedSeed(newSeed());
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
