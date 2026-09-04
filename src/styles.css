@@ -1071,3 +1071,19 @@ body { margin: 0; }
   100% { box-shadow: none; }
 }
 
+
+/* ===== 通知弹窗内「下一步」引导条（原首页横幅迁入） ===== */
+.notif-next {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 12px; border-radius: 10px;
+  background: var(--primary-soft, rgba(124,142,163,.1));
+  border: 1px solid var(--border, rgba(124,142,163,.2));
+  font-size: 13px; line-height: 1.5;
+}
+.notif-next-label {
+  flex-shrink: 0; font-size: 11px; line-height: 1; color: #fff;
+  background: var(--primary, #7c8ea3);
+  border-radius: 999px; padding: 3px 8px;
+}
+.notif-next-text { color: var(--text-soft, #5f6570); overflow-wrap: anywhere; }
+:root[data-mantine-color-scheme="dark"] .notif-next-text { color: var(--mantine-color-dimmed, #9096a0); }

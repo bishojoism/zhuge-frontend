@@ -68,7 +68,8 @@ interface FeedViewProps {
   loadingMore: boolean;
   onLoadMore: () => void;
   onOpenTopic: (id: number) => void;
-  hero: ReactNode;
+  /** 「下一步」引导横幅已移入通知弹窗：首页不再渲染（保留 optional 兼容） */
+  hero?: ReactNode;
   tagbar: ReactNode;
   /** 切换标签/排序/seed 时变化，用于把滑动位置重置回第一张 */
   resetKey: string;

@@ -6,7 +6,7 @@ import { ActionIcon, Button, Group, Loader, Stack, Text } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { mutate as globalMutate } from 'swr';
 import { api } from '../../api/client';
-import { useNotifications, useMe } from '../../api/hooks';
+import { useNotifications, useMe, useNextStep } from '../../api/hooks';
 import { requireLogin } from '../auth/authModals';
 import { timeAgo } from '../../lib/utils';
 import type { NotificationItem, NotifListResult, NotifType } from '../../types';
@@ -41,6 +41,8 @@ export function NotificationsModalContent({ onClose }: { onClose: () => void }) 
   const { user } = useMe();
   const navigate = useNavigate();
   const { data, isLoading } = useNotifications();
+  // 「下一步」引导（原首页横幅迁入）：/api/me/next-step——登录态显示首个未完成建议任务/🎉
+  const { data: nextData } = useNextStep();
   // 分页：SWR 只拿第 1 页（20 条），"加载更多"追加本地 state（弹窗每次打开重新 mount，state 自然重置）
   const [extra, setExtra] = useState<NotificationItem[]>([]);
   const [page, setPage] = useState(1);
@@ -273,6 +275,13 @@ export function NotificationsModalContent({ onClose }: { onClose: () => void }) 
   return (
     <div style={{ position: 'relative' }}>
       <Stack gap="xs">
+        {/* 「下一步」引导条（原首页横幅迁移至此）：首个未完成建议任务 / 全部完成 🎉 */}
+        {nextData?.next ? (
+          <div className="notif-next" role="note">
+            <span className="notif-next-label">下一步</span>
+            <span className="notif-next-text">{nextData.next}</span>
+          </div>
+        ) : null}
         {list.length > 0 && (
           <Group justify="flex-end">
             <Button variant="subtle" size="compact-sm" onClick={markAllRead} loading={markingAll} loaderProps={{ size: 'xs' }}>

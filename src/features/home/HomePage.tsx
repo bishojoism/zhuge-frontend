@@ -7,7 +7,7 @@ import { modals } from '@mantine/modals';
 import { mutate } from 'swr';
 import { useAuth } from '../auth/AuthContext';
 import { requireLogin } from '../auth/authModals';
-import { useDiscussions, useTags, refreshListsAfterWrite, preloadAllPrimaryLists, useNextStep } from '../../api/hooks';
+import { useDiscussions, useTags, refreshListsAfterWrite, preloadAllPrimaryLists } from '../../api/hooks';
 import { readInitData } from '../../api/client';
 import { openModalOnce } from '../../lib/modals';
 import { focusOnEnter } from '../../lib/modalFocus';
@@ -36,20 +36,6 @@ function ModalComposerBody(props: { user: User; defaultTagId: number | null; onP
 function ModalTagPickerBody(props: { activeTag: number | null; onPick: (id: number | null) => void }) {
   const { tags } = useTags();
   return <TagPickerContent tags={tags} activeTag={props.activeTag} onPick={props.onPick} />;
-}
-
-// 扁横幅：显示「下一步」引导——调用 /api/me/next-step（与 MCP get_daily_todo 同一 action 逻辑：
-// 未登录→"注册《主格》"；已登录→首个未完成建议任务；全部完成→🎉）
-function Hero() {
-  const { data: nextData } = useNextStep();
-  const next = nextData?.next;
-  return (
-    <div className="hero hero-slim">
-      <p>
-        下一步：<b>{next || '…'}</b>
-      </p>
-    </div>
-  );
 }
 
 export default function HomePage() {
@@ -308,7 +294,6 @@ export default function HomePage() {
     );
   }, [tags, tag, switchTag]);
 
-  const hero = <Hero />;
   const tagbar = (
     <TagBar
       tags={tags}
@@ -347,7 +332,6 @@ export default function HomePage() {
       const loading = !result || (!ready && !cacheHit);
       return (
         <>
-          {hero}
           {tagbar}
           {loading ? (
             <div className="feed-loading-skeleton" aria-hidden>
@@ -375,7 +359,6 @@ export default function HomePage() {
         loadingMore={loadingMore}
         onLoadMore={loadMore}
         onOpenTopic={openTopic}
-        hero={hero}
         tagbar={tagbar}
         resetKey={`${sort}:${tag ?? 'all'}:${feedSeed}`}
       />
@@ -399,7 +382,7 @@ export default function HomePage() {
     /* 列表模式：hero/tagbar 用 sticky 吸顶（不随列表滚走），列表区正常文档流滚动。
        不锁页面高度——页面滚动条保留但横幅/标签固定，无需像素估算、无溢出问题 */
     <>
-      <div className="list-sticky">{hero}{tagbar}</div>
+      <div className="list-sticky">{tagbar}</div>
       {listItems.length === 0 ? (
         !result || (!listReady && !listCacheHit) ? (
           <div className="feed-loading-skeleton" aria-hidden>
