@@ -1377,3 +1377,6 @@ body { padding-bottom: calc(54px + env(safe-area-inset-bottom)); }
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   min-width: 0; flex: 0 1 auto;
 }
+
+/* ===== Grid block spans same width as list mode ===== */
+.grid-list { padding: 0 0 20px; }
