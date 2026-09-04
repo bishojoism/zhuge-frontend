@@ -92,6 +92,26 @@ function routeH1(pathname: string): string {
 export default function Layout({ children }: { children: ReactNode }) {
   // 深色/浅色/跟随系统 三态循环切换（图标显示当前状态）
   const { colorScheme, setColorScheme } = useMantineColorScheme();
+  // 阅读字号档位（头像菜单选择）：CSS 变量 data-font-scale 驱动（styles.css --fs-*），
+  // localStorage 持久化；standard 时移除属性用 :root 默认值。index.html 内联脚本先于
+  // React 设置属性防首帧闪烁。
+  const [fontScale, setFontScale] = useState<'small' | 'standard' | 'large'>(() => {
+    try {
+      const v = localStorage.getItem('zhuge-font-scale');
+      return v === 'small' || v === 'large' ? v : 'standard';
+    } catch {
+      return 'standard';
+    }
+  });
+  useEffect(() => {
+    try {
+      localStorage.setItem('zhuge-font-scale', fontScale);
+    } catch {
+      /* localStorage 不可用忽略 */
+    }
+    if (fontScale === 'standard') document.documentElement.removeAttribute('data-font-scale');
+    else document.documentElement.setAttribute('data-font-scale', fontScale);
+  }, [fontScale]);
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   // 未登录不请求通知（首屏零 API）
@@ -392,6 +412,25 @@ export default function Layout({ children }: { children: ReactNode }) {
     </Menu.Item>
   ));
 
+  // 字号三档（小/标准/大）：A 字大小作图标区分，当前档打勾高亮（同显示模式交互）
+  const fontItems = (
+    [
+      { value: 'small', label: '小字号', icon: <span style={{ fontSize: 11, fontWeight: 700 }}>A</span> },
+      { value: 'standard', label: '标准字号', icon: <span style={{ fontSize: 14, fontWeight: 700 }}>A</span> },
+      { value: 'large', label: '大字号', icon: <span style={{ fontSize: 18, fontWeight: 700 }}>A</span> },
+    ] as const
+  ).map((m) => (
+    <Menu.Item
+      key={m.value}
+      leftSection={m.icon}
+      rightSection={fontScale === m.value ? <IconCheck size={14} /> : null}
+      onClick={() => setFontScale(m.value)}
+      style={fontScale === m.value ? { color: 'var(--primary-deep)', fontWeight: 600 } : undefined}
+    >
+      {m.label}
+    </Menu.Item>
+  ));
+
   return (
     <>
       <IosUrlBarCollapser />
@@ -631,6 +670,8 @@ export default function Layout({ children }: { children: ReactNode }) {
                     </Group>
                   </div>
                   <Menu.Divider />
+                  <Menu.Label>字号</Menu.Label>
+                  {fontItems}
                   <Menu.Label>显示模式</Menu.Label>
                   {schemeItems}
                   <Menu.Divider />
@@ -675,6 +716,8 @@ export default function Layout({ children }: { children: ReactNode }) {
                     MCP
                   </Menu.Item>
                   <Menu.Divider />
+                  <Menu.Label>字号</Menu.Label>
+                  {fontItems}
                   <Menu.Label>显示模式</Menu.Label>
                   {schemeItems}
                 </Menu.Dropdown>

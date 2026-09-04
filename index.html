@@ -41,6 +41,15 @@
       } catch (e) {}
     })();
   </script>
+  <!-- 字号档位防闪烁：React 挂载前按 localStorage 设置 data-font-scale（CSS 变量驱动阅读字号） -->
+  <script>
+    (function () {
+      try {
+        var f = localStorage.getItem('zhuge-font-scale');
+        if (f === 'small' || f === 'large') document.documentElement.setAttribute('data-font-scale', f);
+      } catch (e) {}
+    })();
+  </script>
 </head>
 <body>
   <div id="root"></div>
