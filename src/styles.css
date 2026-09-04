@@ -1299,3 +1299,14 @@ body::before {
 .grid-list .topic { margin-bottom: 0; }
 /* Narrow grid cards: clamp excerpt to ~4 lines so rows stay tidy */
 .grid-list .topic-excerpt { max-height: 6.6em; }
+/* ===== Grid cards equal height per row ===== */
+.grid-list { align-items: stretch; }
+.grid-list .topic {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+/* Excerpt area flexes so short-content cards still fill the row height */
+.grid-list .topic-excerpt { flex: 1 1 auto; }
+/* Author row pinned to card bottom: all cards in a row align at the bottom */
+.grid-list .topic-meta { margin-top: auto; }
