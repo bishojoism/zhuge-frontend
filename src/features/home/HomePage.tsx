@@ -19,10 +19,11 @@ import { ComposerContent } from './composer';
 import { seedTopicCacheFromList } from './composer';
 import { TagPickerContent } from './tagPicker';
 
-// 推荐随机种子：每次进入推荐视图（挂载/从列表切回/切标签）都生成全新随机值 →
-// 刷新前后、切换回来看到的推荐顺序必然不同。代价：预热的 recommend 缓存命中率下降
-//（最新/热门无 seed 不受影响）；服务端 seededShuffle 保证同 seed 序列一致（SSR 不冲突）。
+// 推荐随机种子：每次整页加载生成全新随机值（刷新前后顺序不同）；
+// 同一会话内（SPA 切最新/热门/标签、返回首页等）保持当前 seed —— 切换视图不重排。
 const newSeed = () => Math.floor(Math.random() * 1e9) + 1;
+// 模块级标记：只在"整页加载后首次挂载"换一次 seed（SPA 内 remount 不再重排）
+let seedInitialized = false;
 
 const SORT_KEYS: SortKey[] = ['recommend', 'latest', 'hot'];
 
@@ -118,33 +119,26 @@ export default function HomePage() {
   const tagRef = useRef(urlTag);
   const sortRef = useRef(urlSort);
 
-  // 每次挂载（刷新 / 从其它页返回）强制换随机推荐种子：
-  // 无 cookie 首页整页缓存会复用旧 seed 的内联列表（缓存窗口内刷新顺序不变），
-  // mount 后换随机 seed 重新洗牌 → 刷新前后进入推荐看到不同的列表顺序
+  // 整页加载后首次挂载换随机推荐种子（无 cookie 首页整页缓存会复用旧 seed 内联列表，
+  // 换 seed 让每次刷新看到不同顺序）；SPA 内 remount（tab/路由往返）保持当前 seed
   useEffect(() => {
-    setFeedSeed(newSeed());
+    if (!seedInitialized) {
+      seedInitialized = true;
+      setFeedSeed(newSeed());
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // URL 变化（点标签 / 前进后退 / 直接输入）→ 同步状态。
+  // seed 保持会话稳定：切视图/切标签不重排（同会话内推荐顺序一致，A==B）
   // 进入推荐 → 用 SSR 内联 seed（每次刷新网页时 SSR 重新随机 → 刷新前后切回推荐的序列不同；
   //   且与 SSR 预渲染的内联数据同 seed 同序列 → 请求结果一致，预渲染生效、零 API 秒开、无跳变）；
   // 切标签（仍在推荐）→ 分钟级 seed（预加载缓存命中，秒切）
   useEffect(() => {
-    const tagChanged = urlTag !== tagRef.current;
-    const enteringRecommend = urlSort === 'recommend' && sortRef.current !== 'recommend';
     tagRef.current = urlTag;
     sortRef.current = urlSort;
     setTag(urlTag);
     setSort(urlSort);
-    if (enteringRecommend) {
-      // 从列表模式切回推荐：用当前分钟 seed（与 preloadAllPrimaryLists 预热一致，
-      // 推荐缓存命中 → 切回立即显示内容，不闪骨架/闪烁）。
-      // 不能用 initSnap.seed（页面加载时旧种子，可能已过期且无缓存）。
-      setFeedSeed(newSeed());
-    } else if (tagChanged) {
-      setFeedSeed(newSeed());
-    }
   }, [urlTag, urlSort]);
 
   // 分页累积（feed/列表共用 useDiscussions）
