@@ -302,9 +302,9 @@ export function NotificationsModalContent({ onClose }: { onClose: () => void }) 
             <span className="notif-next-text">{nextData.next}</span>
           </div>
         ) : nextLoading ? (
-          <div className="notif-next notif-next-loading" role="note" aria-label="下一步加载中">
+          <div className="notif-next" role="note">
             <span className="notif-next-label">下一步</span>
-            <span className="notif-next-text notif-next-skeleton">…</span>
+            <span className="notif-next-text">…</span>
           </div>
         ) : null}
         {list.length > 0 && (
