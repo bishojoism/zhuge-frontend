@@ -1363,3 +1363,17 @@ body { padding-bottom: calc(54px + env(safe-area-inset-bottom)); }
 .me-link-list { display: flex; flex-direction: column; }
 .me-link { text-align: left; padding: 12px 6px; border: none; background: transparent; border-bottom: 1px solid var(--border); font-size: calc(14px * var(--zh-scale, 1)); color: var(--text); cursor: pointer; }
 .me-link:last-child { border-bottom: none; }
+
+/* ===== Grid card compactness + author ellipsis ===== */
+.grid-list .topic { padding: 12px 14px; }
+.grid-list .topic .topic-title { margin-bottom: 4px; }
+.grid-list .topic .topic-excerpt { margin-bottom: 6px; line-height: 1.7; }
+/* Author row: single line, long names ellipsize instead of wrapping */
+.grid-list .topic-meta {
+  display: flex; align-items: center; gap: 6px; min-width: 0;
+}
+.grid-list .topic-meta .avatar-wrap { flex-shrink: 0; }
+.grid-list .topic-meta .author-link {
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  min-width: 0; flex: 0 1 auto;
+}
