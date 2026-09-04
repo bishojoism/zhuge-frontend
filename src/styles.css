@@ -1386,3 +1386,12 @@ body { padding-bottom: calc(54px + env(safe-area-inset-bottom)); }
 
 /* ===== Nav fixed height: panels/tabbar align exactly to its bottom ===== */
 .nav { height: 55px; }
+
+/* ===== Me-tab page modals (我的滴滴 / 我的主题) ===== */
+.me-page-modal {
+  max-height: min(72vh, 620px);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+/* Hide the in-page "back" button inside the modal (route page keeps it) */
+.me-page-modal > button:first-child { display: none; }

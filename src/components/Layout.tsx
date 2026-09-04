@@ -72,6 +72,9 @@ const openMcpModal = () => import('../features/api/mcpModal').then((m) => m.open
 const openBlocksModal = () => import('../features/private/blocksModal').then((m) => m.openBlocksModal());
 const openCoinsModal = () => import('../features/coins/coinsModal').then((m) => m.openTasksModal());
 const openFavoritesModal = () => import('../features/coins/favoritesModal').then((m) => m.openFavoritesModal());
+// 我的 tab 快捷入口（/private、/my 页面以弹窗打开）
+const openMyPrivateModal = () => import('../features/me/myTabModals').then((m) => m.openMyPrivateModal());
+const openMyTopicsModal = () => import('../features/me/myTabModals').then((m) => m.openMyTopicsModal());
 // iOS 安装指引静态引入：modals.open 需在点击手势内同步执行，iOS 才显示弹窗
 // （动态 import 会延到手势之外，弹窗可能不出现）
 import { openIosInstallHint } from '../features/pwa/installHint';
@@ -508,8 +511,8 @@ export default function Layout({ children }: { children: ReactNode }) {
               <div className="me-section-title">快捷入口</div>
               <div className="menu-groups menu-grid" role="group">
                 {[
-                  { icon: <IconHeartHandshake size={20} />, label: '我的滴滴', onClick: () => navigate('/private') },
-                  { icon: <IconFolder size={20} />, label: '我的主题', onClick: () => navigate('/my') },
+                  { icon: <IconHeartHandshake size={20} />, label: '我的滴滴', onClick: () => openMyPrivateModal() },
+                  { icon: <IconFolder size={20} />, label: '我的主题', onClick: () => openMyTopicsModal() },
                   { icon: <IconListCheck size={20} />, label: '今日任务', onClick: () => openCoinsModal() },
                   { icon: <IconStar size={20} />, label: '收藏夹', onClick: () => openFavoritesModal() },
                   { icon: <IconMasksTheater size={20} />, label: '皮', onClick: () => openCharactersModal() },
