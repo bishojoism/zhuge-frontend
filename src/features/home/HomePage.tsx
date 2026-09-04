@@ -118,6 +118,14 @@ export default function HomePage() {
   const tagRef = useRef(urlTag);
   const sortRef = useRef(urlSort);
 
+  // 每次挂载（刷新 / 从其它页返回）强制换随机推荐种子：
+  // 无 cookie 首页整页缓存会复用旧 seed 的内联列表（缓存窗口内刷新顺序不变），
+  // mount 后换随机 seed 重新洗牌 → 刷新前后进入推荐看到不同的列表顺序
+  useEffect(() => {
+    setFeedSeed(Math.floor(Math.random() * 1e9) + 1);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // URL 变化（点标签 / 前进后退 / 直接输入）→ 同步状态。
   // 进入推荐 → 用 SSR 内联 seed（每次刷新网页时 SSR 重新随机 → 刷新前后切回推荐的序列不同；
   //   且与 SSR 预渲染的内联数据同 seed 同序列 → 请求结果一致，预渲染生效、零 API 秒开、无跳变）；
