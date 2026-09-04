@@ -93,6 +93,24 @@ export function NotificationsModalContent({ onClose }: { onClose: () => void }) 
     }
   };
 
+  // 无限滚动：列表底部哨兵进入可视区（面板滚动容器内，IO 会考虑祖先 overflow 裁剪）
+  // 自动加载下一页，替代手动"加载更多"按钮
+  const sentinelRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const sentinel = sentinelRef.current;
+    if (!sentinel) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMore && !loadingMore) {
+          void loadMore();
+        }
+      },
+      { rootMargin: '0px 0px 500px 0px' }
+    );
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [hasMore, loadingMore, loadMore]);
+
   // 点击单条：标记已读 → 刷新未读 → 跳转 → 关闭弹窗。
   // 【跳转方式】主题类通知（/d/）跨页面进入时**直接整页走 SSR**：服务端按 URL 里的
   // ?replyNumber= / ?focusPost= 内联目标楼所在页（topicAround），首帧即含目标楼并定位，
@@ -380,19 +398,13 @@ export function NotificationsModalContent({ onClose }: { onClose: () => void }) 
                 {!n.is_read && <span className="notif-dot" />}
               </div>
             ))}
-            {hasMore && (
-              <Button
-                variant="subtle"
-                size="compact-sm"
-                fullWidth
-                mt={4}
-                onClick={loadMore}
-                loading={loadingMore}
-                loaderProps={{ size: 'xs' }}
-              >
-                加载更多
-              </Button>
-            )}
+            {hasMore ? (
+              <div ref={sentinelRef} className="load-more">
+                {loadingMore ? '加载中…' : '继续上滑加载更多'}
+              </div>
+            ) : list.length > 0 ? (
+              <div className="load-more">没有更多了</div>
+            ) : null}
           </Stack>
         )}
       </Stack>
