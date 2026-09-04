@@ -1276,3 +1276,11 @@ body::before {
 /* ===== Flat avatar menu spacing (no group titles / no dividers) ===== */
 .menu-groups.menu-grid { grid-template-columns: repeat(4, 1fr); }
 .menu-grid { margin-bottom: 6px; }
+/* ===== Fix: dark body must be transparent too ===== */
+/* :root[...] body{background:var(--bg)} (higher specificity) painted an opaque
+   dark layer OVER the z-index:-1 texture layer — dark mode never showed it.
+   Same-specificity override placed after it wins. */
+:root[data-mantine-color-scheme="dark"] body {
+  background-color: transparent;
+  background-image: none;
+}
